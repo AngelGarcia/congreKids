@@ -405,31 +405,34 @@ export default function ParentDashboard() {
               [1, 2].map(i => <Skeleton key={i} className="h-44 w-full rounded-3xl" />)
             ) : (
               <>
-                {sortedChildren.map(child => (
-                  <Card key={child.id} className="relative overflow-hidden border-2 border-primary/5 hover:border-primary/20 transition-all shadow-lg rounded-3xl bg-white group">
-                    <CardHeader className="p-6">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-2xl font-black">{child.name}</CardTitle>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleDeleteChild(child.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity h-10 w-10 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </Button>
-                      </div>
-                      <CardDescription className="text-base font-bold text-muted-foreground">
-                        Nacido el {formatDate(child.birthDate)}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="px-6 pb-6 pt-0">
-                      <Badge variant="secondary" className="px-4 py-1 text-sm rounded-xl bg-primary/10 text-primary border-none font-black">
-                        {Math.floor(calculateAgeInMonths((child.birthDate as any).toDate(), new Date()) / 12)} años
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                ))}
+                {sortedChildren.map(child => {
+                  const ageMonths = calculateAgeInMonths((child.birthDate as any).toDate(), new Date());
+                  return (
+                    <Card key={child.id} className="relative overflow-hidden border-2 border-primary/5 hover:border-primary/20 transition-all shadow-lg rounded-3xl bg-white group">
+                      <CardHeader className="p-6">
+                        <div className="flex justify-between items-start">
+                          <CardTitle className="text-2xl font-black">{child.name}</CardTitle>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteChild(child.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity h-10 w-10 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </Button>
+                        </div>
+                        <CardDescription className="text-base font-bold text-muted-foreground">
+                          Nacido el {formatDate(child.birthDate)}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="px-6 pb-6 pt-0">
+                        <Badge variant="secondary" className="px-4 py-1 text-sm rounded-xl bg-primary/10 text-primary border-none font-black">
+                          {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
                 
                 <Button 
                   variant="outline" 
@@ -530,31 +533,34 @@ export default function ParentDashboard() {
                           <p className="text-muted-foreground font-bold px-10">Primero añade a tus hijos arriba para poder inscribirlos.</p>
                         </div>
                       ) : (
-                        sortedChildren.map(child => (
-                          <div 
-                            key={child.id} 
-                            className={`flex items-center space-x-6 p-6 rounded-3xl border-3 transition-all cursor-pointer shadow-sm ${
-                              selectedChildren.includes(child.id) ? 'border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.02]' : 'border-border bg-white hover:border-primary/20'
-                            }`}
-                            onClick={() => {
-                              const isSelected = selectedChildren.includes(child.id);
-                              setSelectedChildren(prev => 
-                                isSelected ? prev.filter(id => id !== child.id) : [...prev, child.id]
-                              );
-                            }}
-                          >
-                            <Checkbox 
-                              checked={selectedChildren.includes(child.id)}
-                              className="w-10 h-10 rounded-xl border-4 data-[state=checked]:bg-primary"
-                            />
-                            <div className="flex-1">
-                              <p className="text-2xl font-black">{child.name}</p>
-                              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                                {Math.floor(calculateAgeInMonths((child.birthDate as any).toDate(), (upcomingMeeting.date as any).toDate()))} meses
-                              </p>
+                        sortedChildren.map(child => {
+                          const ageMonths = calculateAgeInMonths((child.birthDate as any).toDate(), (upcomingMeeting.date as any).toDate());
+                          return (
+                            <div 
+                              key={child.id} 
+                              className={`flex items-center space-x-6 p-6 rounded-3xl border-3 transition-all cursor-pointer shadow-sm ${
+                                selectedChildren.includes(child.id) ? 'border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.02]' : 'border-border bg-white hover:border-primary/20'
+                              }`}
+                              onClick={() => {
+                                const isSelected = selectedChildren.includes(child.id);
+                                setSelectedChildren(prev => 
+                                  isSelected ? prev.filter(id => id !== child.id) : [...prev, child.id]
+                                );
+                              }}
+                            >
+                              <Checkbox 
+                                checked={selectedChildren.includes(child.id)}
+                                className="w-10 h-10 rounded-xl border-4 data-[state=checked]:bg-primary"
+                              />
+                              <div className="flex-1">
+                                <p className="text-2xl font-black">{child.name}</p>
+                                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                                  {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   </div>
