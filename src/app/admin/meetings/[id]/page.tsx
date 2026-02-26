@@ -189,18 +189,20 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   };
 
   const shareOnWhatsApp = (data: any[], title: string) => {
+    const isGeneral = title.toLowerCase() === 'general';
     const header = `*📋 LISTADO ${title.toUpperCase()}*\n`;
-    const meetingInfo = `*Reunión:* ${meeting.title}\n`;
-    const dateInfo = `*Fecha:* ${formatDate(meeting.date)}\n`;
-    const totalInfo = `*Total:* ${data.length} niños\n\n`;
+    const meetingInfo = `*📍 Reunión:* ${meeting.title}\n`;
+    const dateInfo = `*📅 Fecha:* ${formatDate(meeting.date)}\n`;
+    const totalInfo = `*👥 Total:* ${data.length} niños\n\n`;
     
     const childrenList = data.map(child => {
       const guitarEmoji = child.guitarSelected ? ' 🎸' : '';
-      // Limpiamos "Familia " del nombre para evitar redundancia (Fam. Familia Surnames -> Fam. Surnames)
+      const ageGroupTag = isGeneral ? ` _(${child.ageGroupLabel})_` : '';
+      // Limpiamos "Familia " del nombre para evitar redundancia
       const cleanFamilyName = child.familyName?.startsWith('Familia ') 
         ? child.familyName.replace('Familia ', '') 
         : child.familyName;
-      return `• *${child.name}* (Fam. ${cleanFamilyName})${guitarEmoji}`;
+      return `• 🧒 *${child.name}* (Fam. ${cleanFamilyName})${ageGroupTag}${guitarEmoji}`;
     }).join('\n');
 
     const footer = `\n\n_Generado desde CongreKids_`;
