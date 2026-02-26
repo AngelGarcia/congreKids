@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -10,9 +11,10 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserData {
-  uid: string;
+  id: string; // Changed from uid to id to match backend.json and firestore.rules
   displayName: string | null;
   email: string | null;
   photoURL: string | null;
@@ -33,6 +35,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useFirebaseAuth();
   const db = useFirestore();
+  const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (!userDoc.exists()) {
           const newData: UserData = {
-            uid: currentUser.uid,
+            id: currentUser.uid, // Changed from uid to id
             displayName: currentUser.displayName,
             email: currentUser.email,
             photoURL: currentUser.photoURL,
@@ -69,8 +72,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth, db]);
 
   const login = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      let message = "No se pudo iniciar sesión.";
+      if (error.code === 'auth/operation-not-allowed') {
+        message = "El inicio de sesión con Google no está habilitado en la consola de Firebase.";
+      }
+      toast({
+        variant: "destructive",
+        title: "Error de Autenticación",
+        description: message,
+      });
+    }
   };
 
   const logout = async () => {
