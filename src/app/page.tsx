@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, Music } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, Music, CheckCircle2 } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -279,7 +279,7 @@ export default function ParentDashboard() {
   }
 
   const registrationOpeningDate = upcomingMeeting ? getRegistrationOpeningDate((upcomingMeeting.date as any).toDate()) : null;
-  const isRegistrationCurrentlyOpen = upcomingMeeting ? isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate(), registrationOpeningDate) : false;
+  const isRegistrationCurrentlyOpen = upcomingMeeting ? isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate(), registrationOpeningDate) && upcomingMeeting.status !== 'closed' : false;
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -321,7 +321,12 @@ export default function ParentDashboard() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 gap-4">
                       {(!sortedChildren || sortedChildren.length === 0) ? (
-                        <p className="py-8 text-center text-muted-foreground font-bold italic">Primero añade a tus hijos en el perfil familiar.</p>
+                        <div className="py-8 text-center space-y-4">
+                          <p className="text-muted-foreground font-bold italic">Primero añade a tus hijos en el perfil familiar.</p>
+                          <Button asChild variant="outline" className="rounded-xl font-black uppercase">
+                            <Link href="/family">Configurar Familia</Link>
+                          </Button>
+                        </div>
                       ) : (
                         sortedChildren.map(child => {
                           const ageMonths = calculateAgeInMonths((child.birthDate as any).toDate(), (upcomingMeeting.date as any).toDate());
@@ -342,9 +347,12 @@ export default function ParentDashboard() {
                                 <Checkbox checked={isSelected} className="w-6 h-6 rounded-lg border-2" onClick={(e) => e.stopPropagation()} />
                                 <div className="flex-1">
                                   <p className="text-lg font-black leading-none mb-1">{child.name}</p>
-                                  <p className="text-[10px] font-black text-muted-foreground uppercase">
-                                    {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
-                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase">
+                                      {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
+                                    </p>
+                                    {currentGroup && <Badge variant="outline" className="text-[8px] font-black uppercase px-2">{currentGroup.label}</Badge>}
+                                  </div>
                                 </div>
                               </div>
                               {isSelected && allowsGuitar && (
@@ -366,9 +374,49 @@ export default function ParentDashboard() {
                     </div>
                   </div>
                 ) : (
-                  <div className="py-16 text-center space-y-6">
-                    <AlertCircle className="text-destructive w-12 h-12 mx-auto" />
-                    <p className="text-xl font-black text-destructive uppercase">Inscripciones Cerradas</p>
+                  <div className="space-y-6">
+                    {registration && registration.children && registration.children.length > 0 ? (
+                      <div className="space-y-6 animate-in fade-in duration-500">
+                        <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-2xl border-2 border-primary/10">
+                          <CheckCircle2 className="w-6 h-6 text-primary" />
+                          <div>
+                            <p className="text-sm font-black uppercase tracking-tight">Inscripción Confirmada</p>
+                            <p className="text-xs text-muted-foreground font-medium">Asistencia cerrada para esta reunión.</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-3">
+                          {registration.children.map((child: any) => (
+                            <div key={child.childId} className="p-5 rounded-2xl border bg-muted/5 flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm border">
+                                  <Baby className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <p className="font-black text-lg leading-none mb-1">{child.name}</p>
+                                  <Badge variant="outline" className="text-[9px] font-black uppercase px-2">
+                                    {child.ageGroupLabel}
+                                  </Badge>
+                                </div>
+                              </div>
+                              {child.guitarSelected && (
+                                <Badge className="bg-accent text-white font-black uppercase text-[8px] px-3 py-1">
+                                  <Music className="w-3 h-3 mr-1" /> Guitarra
+                                </Badge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-16 text-center space-y-6">
+                        <AlertCircle className="text-destructive w-12 h-12 mx-auto" />
+                        <div className="space-y-1">
+                          <p className="text-xl font-black text-destructive uppercase">Inscripciones Cerradas</p>
+                          <p className="text-sm text-muted-foreground font-bold">No se realizó ninguna inscripción para esta fecha.</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
