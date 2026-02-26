@@ -32,6 +32,12 @@ import {
 } from "@/components/ui/accordion";
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const EXPORT_COLUMNS = [
   { id: 'parentName', label: 'Padre/Madre' },
@@ -472,109 +478,135 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
         </div>
 
         <div className="space-y-6">
-          <Accordion type="single" collapsible defaultValue="settings" className="w-full">
-            <AccordionItem value="settings" className={cn(
-              "rounded-2xl border-2 shadow-lg transition-all overflow-hidden bg-white border-none sticky top-24",
-              isEditing ? 'border-solid border-primary/20 shadow-primary/5' : 'border-dashed bg-muted/5'
-            )}>
-              <div className={cn(
-                "flex items-center justify-between px-6 py-2 border-b transition-colors",
-                isEditing ? "bg-primary/5 border-primary/10" : "bg-muted/5 border-muted"
+          <TooltipProvider>
+            <Accordion type="single" collapsible defaultValue="settings" className="w-full">
+              <AccordionItem value="settings" className={cn(
+                "rounded-2xl border-2 shadow-lg transition-all overflow-hidden bg-white border-none sticky top-24",
+                isEditing ? 'border-solid border-primary/20 shadow-primary/5' : 'border-dashed bg-muted/5'
               )}>
-                <AccordionTrigger className="flex-1 hover:no-underline py-4 group border-none">
-                  <div className="flex items-center gap-2">
-                    <Settings2 className={cn("w-5 h-5", isEditing ? 'text-primary' : 'text-muted-foreground')} />
-                    <CardTitle className="text-xs font-black uppercase tracking-widest">Ajustes de Reunión</CardTitle>
-                  </div>
-                </AccordionTrigger>
-                
-                <div className="flex items-center gap-2 z-10 relative">
-                  {isEditing ? (
-                    <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          setEditAgeGroups([...editAgeGroups, { label: 'Nuevo', minMonths: 0, maxMonths: 144, allowsGuitar: false }]); 
-                        }} 
-                        className="h-8 rounded-lg font-black uppercase text-[10px] text-primary"
-                      >
-                        <Plus className="w-3 h-3 mr-1" /> Añadir
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={(e) => { e.stopPropagation(); setIsEditing(false); }} 
-                        className="h-8 rounded-lg font-black uppercase text-[10px] text-muted-foreground"
-                      >
-                        <X className="w-3 h-3 mr-1" /> Cancelar
-                      </Button>
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        onClick={(e) => { e.stopPropagation(); handleSaveChanges(); }} 
-                        className="h-8 rounded-lg font-black uppercase text-[10px] shadow-sm"
-                      >
-                        <Save className="w-3 h-3 mr-1" /> Guardar
-                      </Button>
+                <div className={cn(
+                  "flex items-center justify-between px-6 py-2 border-b transition-colors",
+                  isEditing ? "bg-primary/5 border-primary/10" : "bg-muted/5 border-muted"
+                )}>
+                  <AccordionTrigger className="flex-1 hover:no-underline py-4 group border-none mr-2">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <Settings2 className={cn("w-5 h-5 shrink-0", isEditing ? 'text-primary' : 'text-muted-foreground')} />
+                      <CardTitle className="text-xs font-black uppercase tracking-widest truncate">Ajustes de Reunión</CardTitle>
                     </div>
-                  ) : (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} 
-                      className="h-8 rounded-lg font-black uppercase text-[10px] bg-white shadow-sm"
-                    >
-                      <Edit2 className="w-3 h-3 mr-2" /> Editar
-                    </Button>
-                  )}
-                </div>
-              </div>
-              
-              <AccordionContent className="p-6 pt-6 space-y-4">
-                {(isEditing ? editAgeGroups : meeting.ageGroups)?.map((group: any, idx: number) => (
-                  <div key={idx} className={cn(
-                    "flex flex-col gap-2 pb-4 last:pb-0 last:border-0 border-b",
-                    isEditing ? 'bg-primary/5 p-3 rounded-xl border-none' : ''
-                  )}>
+                  </AccordionTrigger>
+                  
+                  <div className="flex items-center gap-2 z-10 relative shrink-0">
                     {isEditing ? (
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <Input value={group.label} onChange={e => updateAgeGroup(idx, 'label', e.target.value)} className="h-8 font-black text-xs uppercase bg-white" />
-                          <Button variant="ghost" size="icon" onClick={() => setEditAgeGroups(editAgeGroups.filter((_, i) => i !== idx))} className="h-6 w-6 text-destructive"><Trash2 className="w-3 h-3" /></Button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <Label className="text-[9px] font-black uppercase">Mín (años)</Label>
-                            <Input type="number" step="0.1" value={group.minMonths / 12} onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} className="h-8 text-xs bg-white" />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-[9px] font-black uppercase">Máx (años)</Label>
-                            <Input type="number" step="0.1" value={group.maxMonths / 12} onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} className="h-8 text-xs bg-white" />
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between pt-1">
-                          <Label className="text-[10px] font-black uppercase">Guitarra</Label>
-                          <Switch checked={group.allowsGuitar} onCheckedChange={val => updateAgeGroup(idx, 'allowsGuitar', val)} />
-                        </div>
+                      <div className="flex gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setEditAgeGroups([...editAgeGroups, { label: 'Nuevo', minMonths: 0, maxMonths: 144, allowsGuitar: false }]); 
+                              }} 
+                              className="h-8 w-8 rounded-lg text-primary"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p className="font-bold">Añadir Categoría</p></TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={(e) => { e.stopPropagation(); setIsEditing(false); }} 
+                              className="h-8 w-8 rounded-lg text-muted-foreground"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p className="font-bold">Cancelar</p></TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="default" 
+                              size="icon" 
+                              onClick={(e) => { e.stopPropagation(); handleSaveChanges(); }} 
+                              className="h-8 w-8 rounded-lg shadow-sm"
+                            >
+                              <Save className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p className="font-bold">Guardar Cambios</p></TooltipContent>
+                        </Tooltip>
                       </div>
                     ) : (
-                      <>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-black uppercase">{group.label}</span>
-                          {group.allowsGuitar && <Music className="w-3 h-3 text-accent" />}
-                        </div>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">
-                          {group.minMonths / 12} a {group.maxMonths / 12} años
-                        </span>
-                      </>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} 
+                            className="h-8 w-8 rounded-lg bg-white shadow-sm"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="font-bold">Editar Configuración</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
-                ))}
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+                </div>
+                
+                <AccordionContent className="p-6 pt-6 space-y-4">
+                  {(isEditing ? editAgeGroups : meeting.ageGroups)?.map((group: any, idx: number) => (
+                    <div key={idx} className={cn(
+                      "flex flex-col gap-2 pb-4 last:pb-0 last:border-0 border-b",
+                      isEditing ? 'bg-primary/5 p-3 rounded-xl border-none' : ''
+                    )}>
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <Input value={group.label} onChange={e => updateAgeGroup(idx, 'label', e.target.value)} className="h-8 font-black text-xs uppercase bg-white" />
+                            <Button variant="ghost" size="icon" onClick={() => setEditAgeGroups(editAgeGroups.filter((_, i) => i !== idx))} className="h-6 w-6 text-destructive"><Trash2 className="w-3 h-3" /></Button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-[9px] font-black uppercase">Mín (años)</Label>
+                              <Input type="number" step="0.1" value={group.minMonths / 12} onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} className="h-8 text-xs bg-white" />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[9px] font-black uppercase">Máx (años)</Label>
+                              <Input type="number" step="0.1" value={group.maxMonths / 12} onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} className="h-8 text-xs bg-white" />
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between pt-1">
+                            <Label className="text-[10px] font-black uppercase">Guitarra</Label>
+                            <Switch checked={group.allowsGuitar} onCheckedChange={val => updateAgeGroup(idx, 'allowsGuitar', val)} />
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-black uppercase">{group.label}</span>
+                            {group.allowsGuitar && <Music className="w-3 h-3 text-accent" />}
+                          </div>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">
+                            {group.minMonths / 12} a {group.maxMonths / 12} años
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </TooltipProvider>
         </div>
       </div>
 
