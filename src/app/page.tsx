@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home, Heart, ShieldCheck } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home, Heart, ShieldCheck, ArrowRight, Settings } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import Link from 'next/link';
 
 export default function ParentDashboard() {
   const { user, userData, familyData, familyMembers, login, joinFamily, createFamily, updateFamilyName, loading: authLoading } = useAuth();
@@ -285,19 +286,35 @@ export default function ParentDashboard() {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <main className="container mx-auto px-4 py-16 flex flex-col items-center justify-center text-center space-y-8">
-          <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center text-primary shadow-xl">
-            <ShieldCheck className="w-12 h-12" />
+        <main className="container mx-auto px-4 py-24 flex flex-col items-center justify-center text-center space-y-12">
+          <div className="relative">
+            <div className="w-32 h-32 bg-primary/10 rounded-full flex items-center justify-center text-primary shadow-2xl animate-pulse">
+              <ShieldCheck className="w-16 h-16" />
+            </div>
+            <div className="absolute -bottom-2 -right-2 bg-accent text-white p-2 rounded-xl shadow-lg">
+              <Settings className="w-6 h-6 animate-spin-slow" />
+            </div>
           </div>
           <div className="space-y-4">
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase text-primary">Panel de Control</h1>
+            <h1 className="text-5xl sm:text-7xl font-black tracking-tighter uppercase text-primary leading-none">
+              Control Admin
+            </h1>
             <p className="text-xl text-muted-foreground font-medium max-w-lg mx-auto">
-              Has iniciado sesión como administrador. Desde aquí puedes gestionar las reuniones y ver todas las inscripciones.
+              Bienvenido, {user.displayName?.split(' ')[0]}. Tienes acceso total para gestionar reuniones e inscripciones.
             </p>
           </div>
-          <Button asChild size="lg" className="h-16 px-12 rounded-2xl text-xl font-black shadow-2xl uppercase">
-            <a href="/admin">Ir a Administración</a>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+            <Button asChild size="lg" className="flex-1 h-20 rounded-3xl text-xl font-black shadow-2xl uppercase tracking-tighter">
+              <Link href="/admin">
+                Ir al Panel <ArrowRight className="ml-2 w-6 h-6" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="flex-1 h-20 rounded-3xl text-xl font-black border-4 uppercase tracking-tighter">
+              <Link href="/admin/meetings/new">
+                Nueva Reunión
+              </Link>
+            </Button>
+          </div>
         </main>
       </div>
     );
