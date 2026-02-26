@@ -622,6 +622,25 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       )}
                     </div>
                   ))}
+
+                  {isEditing && (
+                    <div className="pt-4 flex flex-col gap-2">
+                      <Button 
+                        onClick={handleSaveChanges}
+                        className="w-full h-12 rounded-xl font-black uppercase shadow-lg tracking-tighter"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Guardar Cambios
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => setIsEditing(false)}
+                        className="w-full h-10 rounded-xl font-bold uppercase text-xs text-muted-foreground"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  )}
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
