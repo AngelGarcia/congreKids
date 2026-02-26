@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * CONGREKIDS SECURITY RULES - PROTOTYPING MODE
+     *
+     * Core Philosophy:
+     * This ruleset implements a strict ownership and role-based access control model for the CongreKids
+     * application. It prioritizes "Authorization Independence" by leveraging document paths (e.g., parent IDs
+     * in the path) to make fast, path-based security decisions without excessive document lookups.
+     *
+     * Data Structure:
+     * - /users/{userId}: Primary user profiles containing role information ('parent' or 'admin').
+     * - /users/{parentId}/children/{childId}: Child profiles nested under their respective parents.
+     * - /meetings/{meetingId}: Publicly readable meeting details managed by administrators.
+     * - /meetings/{meetingId}/registrations/{parentId}: Sign-up records for meetings, keyed by parent UID.
+     *
+     * Key Security Decisions:
+     * 1. Admin Role: Administrative privileges are determined by the 'role' field on the User document.
+     *    Rules use a direct get() on the authenticated user's profile to verify this role.
+     * 2. Path-Based Ownership: For children and registrations, the user's UID is part of the document path,
+     *    allowing the rules to verify ownership by comparing the path wildcard directly to request.auth.uid.
+     * 3. Public Read/Admin Write: Meetings are visible to all signed-in members to facilitate registration,
+     *    but creation and modification are restricted to admins.
+     * 4. Relational Integrity: On creation, documents must include fields (like parentId) that match the
+     *    authorized user, and these fields are made immutable on updates.
+     */
+
+    // --- GLOBAL HELPER FUNCTIONS ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for the User profile collection. Users can manage their own profile; admins can manage all.
+     * @path /users/{userId}
+     * @allow (get) If the user is the owner or an admin.
+     * @deny (list) If the user is not an admin.
+     * @principle Validates self-creation and enforces immutability of the user ID field.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if (isExistingOwner(userId) || isAdmin()) && request.resource.data.id == resource.data.id;
+      allow delete: if isAdmin();
+
+      /**
+       * @description Rules for children nested under parents. Managed by the parent or admins.
+       * @path /users/{userId}/children/{childId} // Corrected path description to match wildcard
+       * @allow (create) If request.auth.uid matches the userId in the path.
+       * @deny (update) If the parentId in the data is changed to a different UID.
+       * @principle Authorization Independence: Uses the userId in the path to verify ownership.
+       */
+      match /children/{childId} {
+        // Fix: 'parentId' is not a wildcard in this scope. 'userId' is the parent wildcard.
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && request.resource.data.parentId == userId;
+        allow update: if (resource != null && (isOwner(userId) || isAdmin())) && request.resource.data.parentId == resource.data.parentId;
+        allow delete: if resource != null && (isOwner(userId) || isAdmin());
+      }
+    }
+
+    /**
+     * @description Rules for Meeting documents. All members can view; only admins can modify.
+     * @path /meetings/{meetingId}
+     * @allow (list) If the user is signed in.
+     * @deny (create) If the user does not have the 'admin' role.
+     * @principle Structural Segregation: Separates public-facing meeting data from private user data.
+     */
+    match /meetings/{meetingId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+
+      /**
+       * @description Rules for registrations within a meeting. Keyed by parentId for easy access control.
+       * @path /meetings/{meetingId}/registrations/{parentId}
+       * @allow (create) If the parent is registering themselves for a meeting.
+       * @deny (get) If a user tries to view another parent's registration (unless they are an admin).
+       * @principle Query-Aware Security: ParentId in path and data allows for secure filtered listing.
+       */
+      match /registrations/{parentId} {
+        allow get, list: if isOwner(parentId) || isAdmin();
+        allow create: if isOwner(parentId) && request.resource.data.parentId == parentId;
+        allow update: if (resource != null && (isOwner(parentId) || isAdmin())) && request.resource.data.parentId == resource.data.parentId;
+        allow delete: if resource != null && (isOwner(parentId) || isAdmin());
+      }
+    }
+
+    /**
+     * @description Collection Group rules for Registrations to allow parents to find all their own sign-ups.
+     * @path /registrations (Collection Group)
+     */
+    match /{path=**}/registrations/{parentId} {
+      allow list: if isOwner(parentId) || isAdmin();
+    }
+  }
+}

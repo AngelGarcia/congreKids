@@ -1,0 +1,279 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Stores user profile information, authentication details (excluding sensitive credentials), and their assigned role within the CongreKids application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity (Firebase Auth UID)."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name, typically from Google Sign-In."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, typically from Google Sign-In.",
+          "format": "email"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL to the user's profile picture, typically from Google Sign-In.",
+          "format": "uri"
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role in the application ('parent' or 'admin')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user's profile was first created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "displayName",
+        "email",
+        "role",
+        "createdAt"
+      ]
+    },
+    "Child": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Child",
+      "type": "object",
+      "description": "Represents a child associated with a specific parent user for childcare sign-ups in CongreKids.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Child entity."
+        },
+        "parentId": {
+          "type": "string",
+          "description": "Reference to the User entity who is the parent of this child. (Relationship: User 1:N Child)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The child's given name."
+        },
+        "birthDate": {
+          "type": "string",
+          "description": "The child's date of birth.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "parentId",
+        "name",
+        "birthDate"
+      ]
+    },
+    "Meeting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Meeting",
+      "type": "object",
+      "description": "Defines the details for a specific weekly parent meeting where childcare sign-ups are managed.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Meeting entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or name of the meeting."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the meeting.",
+          "format": "date-time"
+        },
+        "registrationDeadline": {
+          "type": "string",
+          "description": "The timestamp by which parents must register their children for the meeting. Defaults to Thursday 23:59 before the meeting.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the meeting's registration period ('upcoming', 'closed', or 'past')."
+        },
+        "ageGroups": {
+          "type": "array",
+          "description": "An array of age group definitions for childcare. Each string element is expected to be a JSON serialized object containing 'label' (string), 'minMonths' (number), and 'maxMonths' (number).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Reference to the User entity (admin) who created this meeting. (Relationship: User 1:N Meeting)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the meeting record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "date",
+        "registrationDeadline",
+        "status",
+        "ageGroups",
+        "createdBy",
+        "createdAt"
+      ]
+    },
+    "Registration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Registration",
+      "type": "object",
+      "description": "Records a parent's sign-up for a specific meeting, detailing which of their children will attend.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Registration entity, typically corresponding to the parent's User ID (uid)."
+        },
+        "meetingId": {
+          "type": "string",
+          "description": "Reference to the Meeting entity this registration is for. (Relationship: Meeting 1:N Registration)"
+        },
+        "parentId": {
+          "type": "string",
+          "description": "Reference to the User entity (parent) who made this registration. (Relationship: User 1:N Registration)"
+        },
+        "parentName": {
+          "type": "string",
+          "description": "Denormalized display name of the parent who registered."
+        },
+        "parentEmail": {
+          "type": "string",
+          "description": "Denormalized email address of the parent who registered.",
+          "format": "email"
+        },
+        "children": {
+          "type": "array",
+          "description": "An array of children registered for this meeting. Each string element is expected to be a JSON serialized object containing 'childId' (string), 'name' (string), 'birthDate' (string, date-time), and 'ageGroupLabel' (string).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "registeredAt": {
+          "type": "string",
+          "description": "Timestamp when the registration was first created.",
+          "format": "date-time"
+        },
+        "lastUpdatedAt": {
+          "type": "string",
+          "description": "Timestamp when the registration was last updated.",
+          "format": "date-time"
+        },
+        "cancelledChildren": {
+          "type": "array",
+          "description": "Optional: An array of children who were initially registered but later cancelled. Each string element is expected to be a JSON serialized object containing 'childId' (string), 'name' (string), and 'cancelledAt' (string, date-time).",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "meetingId",
+        "parentId",
+        "parentName",
+        "parentEmail",
+        "children",
+        "registeredAt",
+        "lastUpdatedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information, including their assigned 'role'. Owned by the user, readable by admins. Global role checks will perform a `get()` on this document due to schema constraints.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, corresponding to Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{parentId}/children/{childId}",
+        "definition": {
+          "entityName": "Child",
+          "schema": {
+            "$ref": "#/backend/entities/Child"
+          },
+          "description": "Children profiles, nested under their parent's user document. The 'parentId' is present in the path for direct authorization via path matching, achieving authorization independence.",
+          "params": [
+            {
+              "name": "parentId",
+              "description": "The unique identifier of the parent user, corresponding to Firebase Auth UID."
+            },
+            {
+              "name": "childId",
+              "description": "The unique identifier for the child entity."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/meetings/{meetingId}",
+        "definition": {
+          "entityName": "Meeting",
+          "schema": {
+            "$ref": "#/backend/entities/Meeting"
+          },
+          "description": "Details for weekly parent meetings. All authenticated users can read these documents to view upcoming meetings. Only administrators can create, update, or delete meetings.",
+          "params": [
+            {
+              "name": "meetingId",
+              "description": "The unique identifier for the meeting entity."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/meetings/{meetingId}/registrations/{parentId}",
+        "definition": {
+          "entityName": "Registration",
+          "schema": {
+            "$ref": "#/backend/entities/Registration"
+          },
+          "description": "Records a parent's sign-up for a specific meeting. The 'parentId' is included in the path and denormalized within the document, along with 'parentName' and 'parentEmail', enabling authorization independence and efficient querying for individual parents' registrations and for administrators to view all registrations for a meeting.",
+          "params": [
+            {
+              "name": "meetingId",
+              "description": "The unique identifier of the meeting this registration is for."
+            },
+            {
+              "name": "parentId",
+              "description": "The unique identifier of the parent user who made this registration, corresponding to Firebase Auth UID."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure prioritizes secure, scalable, and debuggable access patterns by adhering to the core design principles, especially Authorization Independence and Query-Aware Security (QAPs). \n\n1.  **Authorization Independence (Denormalization for Ownership):**\n    *   For user-owned subcollections like `/users/{parentId}/children/{childId}`, the `parentId` is explicitly included in the path itself. This allows security rules to directly compare `request.auth.uid` with the `{parentId}` wildcard without needing to perform a `get()` operation on the parent `/users/{parentId}` document. The `Child` entity also stores `parentId` within the document for clarity and redundancy, further bolstering rule simplicity. \n    *   Similarly, for `/meetings/{meetingId}/registrations/{parentId}`, the parent's UID (`parentId`) is both part of the document path and denormalized within the `Registration` document (as `parentId`, `parentName`, `parentEmail`). This enables direct path-based authorization (`request.auth.uid == parentId`) and efficient filtering in queries without requiring `get()` calls to parent collections (like `Meeting` or `User`).\n    *   **Note on Global Roles:** The `User` schema provided includes a `role` field. Therefore, authorization for global roles (e.g., checking if `request.auth.uid` is an 'admin') will necessarily rely on a `get(/users/$(request.auth.uid)).data.role == 'admin'` operation in security rules. While this introduces a `get()`, it is a direct consequence of following the provided schema, and it is a controlled `get()` to a known, single document for role verification, minimizing its impact compared to nested `get()` operations for entity ownership.\n\n2.  **Structural Segregation (Homogeneous Security Posture):**\n    *   Each collection (e.g., `/users`, `/meetings`, `/users/{parentId}/children`, `/meetings/{meetingId}/registrations`) is designed to contain documents that share a consistent security posture. For example, all documents in `/meetings` are globally readable by authenticated users and writable only by admins. All documents in `/users/{parentId}/children` are owned by the `parentId` in the path. This simplifies security rules significantly by moving complexity from rule logic to the structural organization of data.\n\n3.  **QAPs (Secure List Operations):**\n    *   **Parents Listing Their Children:** Parents can securely query and list their own children by accessing `/users/{request.auth.uid}/children`. The rules will ensure `parentId` matches `request.auth.uid`.\n    *   **Parents Listing Upcoming Meetings:** All authenticated users can read all documents in `/meetings`, enabling parents to list upcoming meetings without needing specific filtering logic in rules that might be circumvented.\n    *   **Parents Listing Their Registrations:** Parents can query for their specific registrations either by accessing `/meetings/{meetingId}/registrations/{request.auth.uid}` directly for a given meeting, or by performing a collection group query on `registrations` filtered by `parentId == request.auth.uid`. The denormalized `parentId` in the `Registration` document is crucial for this efficient and secure querying pattern.\n    *   **Admins Listing Data:** Admins, identified by their `role` in the `User` document, will have broad read/write access across all collections, enabling them to list all users, children, meetings, and registrations for oversight and management. This is directly supported by the rule `get(/users/$(request.auth.uid)).data.role == 'admin'` for write operations and list operations.\n\nThis design ensures that common access patterns are straightforward to implement with robust security rules, minimizing the risk of data exposure or unauthorized modifications."
+  }
+}
