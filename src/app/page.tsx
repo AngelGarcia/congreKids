@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home, Heart, ShieldCheck, ArrowRight, Settings } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home, Heart, ShieldCheck, ArrowRight, Settings, LayoutDashboard } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -79,9 +79,7 @@ export default function ParentDashboard() {
 
   const handleCreateFamily = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedRole === 'admin' || newFamilyName.trim()) {
-      createFamily(newFamilyName.trim() || "Admin", selectedRole);
-    }
+    createFamily(newFamilyName.trim() || (selectedRole === 'admin' ? "Gestión" : ""), selectedRole);
   };
 
   const handleJoinFamily = (e: React.FormEvent) => {
@@ -237,85 +235,40 @@ export default function ParentDashboard() {
 
             <div className="space-y-4">
               <Label className="text-xs font-black uppercase text-primary">
-                {selectedRole === 'admin' ? 'Finalizar Configuración' : 'Crear Nueva Familia'}
+                Crear Nueva Familia
               </Label>
               <form onSubmit={handleCreateFamily} className="flex flex-col gap-3">
-                {selectedRole !== 'admin' && (
-                  <Input 
-                    placeholder="Apellidos (ej. García Medina)" 
-                    value={newFamilyName}
-                    onChange={e => setNewFamilyName(e.target.value)}
-                    className="h-14 rounded-xl border-2 font-bold"
-                  />
-                )}
+                <Input 
+                  placeholder="Apellidos (ej. García Medina)" 
+                  value={newFamilyName}
+                  onChange={e => setNewFamilyName(e.target.value)}
+                  className="h-14 rounded-xl border-2 font-bold"
+                />
                 <Button type="submit" className="h-14 rounded-xl font-black text-lg">
-                  {selectedRole === 'admin' ? 'ACCEDER COMO ADMIN' : 'CREAR FAMILIA'}
+                  CREAR FAMILIA
                 </Button>
               </form>
             </div>
             
-            {selectedRole !== 'admin' && (
-              <>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-muted-foreground/20" /></div>
-                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground font-black">O TAMBIÉN</span></div>
-                </div>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-muted-foreground/20" /></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground font-black">O TAMBIÉN</span></div>
+            </div>
 
-                <div className="space-y-4">
-                  <Label className="text-xs font-black uppercase text-primary">Unirse con código</Label>
-                  <form onSubmit={handleJoinFamily} className="flex flex-col gap-3">
-                    <Input 
-                      placeholder="Pega el código de tu pareja" 
-                      value={joinFamilyId}
-                      onChange={e => setJoinFamilyId(e.target.value)}
-                      className="h-14 rounded-xl border-2 font-bold"
-                    />
-                    <Button variant="outline" type="submit" className="h-14 rounded-xl font-black text-lg border-2">UNIRSE A MI PAREJA</Button>
-                  </form>
-                </div>
-              </>
-            )}
+            <div className="space-y-4">
+              <Label className="text-xs font-black uppercase text-primary">Unirse con código</Label>
+              <form onSubmit={handleJoinFamily} className="flex flex-col gap-3">
+                <Input 
+                  placeholder="Pega el código de tu pareja" 
+                  value={joinFamilyId}
+                  onChange={e => setJoinFamilyId(e.target.value)}
+                  className="h-14 rounded-xl border-2 font-bold"
+                />
+                <Button variant="outline" type="submit" className="h-14 rounded-xl font-black text-lg border-2">UNIRSE A MI PAREJA</Button>
+              </form>
+            </div>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
-
-  // Admin Dashboard view
-  if (userData.role === 'admin') {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-24 flex flex-col items-center justify-center text-center space-y-12">
-          <div className="relative">
-            <div className="w-32 h-32 bg-primary/10 rounded-full flex items-center justify-center text-primary shadow-2xl animate-pulse">
-              <ShieldCheck className="w-16 h-16" />
-            </div>
-            <div className="absolute -bottom-2 -right-2 bg-accent text-white p-2 rounded-xl shadow-lg">
-              <Settings className="w-6 h-6 animate-spin-slow" />
-            </div>
-          </div>
-          <div className="space-y-4">
-            <h1 className="text-5xl sm:text-7xl font-black tracking-tighter uppercase text-primary leading-none">
-              Control Admin
-            </h1>
-            <p className="text-xl text-muted-foreground font-medium max-w-lg mx-auto">
-              Bienvenido, {user.displayName?.split(' ')[0]}. Tienes acceso total para gestionar reuniones e inscripciones.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-            <Button asChild size="lg" className="flex-1 h-20 rounded-3xl text-xl font-black shadow-2xl uppercase tracking-tighter">
-              <Link href="/admin">
-                Ir al Panel <ArrowRight className="ml-2 w-6 h-6" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="flex-1 h-20 rounded-3xl text-xl font-black border-4 uppercase tracking-tighter">
-              <Link href="/admin/meetings/new">
-                Nueva Reunión
-              </Link>
-            </Button>
-          </div>
-        </main>
       </div>
     );
   }
@@ -331,6 +284,26 @@ export default function ParentDashboard() {
       <Navbar />
       <main className="container mx-auto px-4 py-8 space-y-12">
         
+        {/* Admin Quick Access Banner */}
+        {userData.role === 'admin' && (
+          <div className="max-w-4xl mx-auto">
+            <Link href="/admin">
+              <div className="bg-primary/90 text-white p-6 rounded-[2rem] shadow-xl flex items-center justify-between hover:bg-primary transition-all group">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <ShieldCheck className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="font-black uppercase tracking-tight text-lg">Modo Administrador Activo</h3>
+                    <p className="text-white/80 text-sm font-medium">Gestiona reuniones, familias y permisos.</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+              </div>
+            </Link>
+          </div>
+        )}
+
         {/* Family Tree Header Section */}
         <section className="flex flex-col items-center text-center space-y-8 relative">
           <div className="space-y-2">
@@ -360,19 +333,25 @@ export default function ParentDashboard() {
           </div>
 
           <div className="flex items-center justify-center gap-8 relative">
-            {/* Connection Line Parent Row */}
             {sortedMembers.length > 1 && (
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-primary/10 -z-10 rounded-full" />
             )}
             
             {sortedMembers.map((member) => (
               <div key={member.id} className="flex flex-col items-center gap-2">
-                <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-white shadow-xl ring-4 ring-primary/5">
-                  <AvatarImage src={member.photoURL || ''} />
-                  <AvatarFallback className="bg-primary/10 text-primary font-black text-2xl uppercase">
-                    {member.role?.[0]}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-white shadow-xl ring-4 ring-primary/5">
+                    <AvatarImage src={member.photoURL || ''} />
+                    <AvatarFallback className="bg-primary/10 text-primary font-black text-2xl uppercase">
+                      {member.role?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  {member.role === 'admin' && (
+                    <div className="absolute -top-1 -right-1 bg-accent text-white p-1 rounded-lg shadow-lg">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                  )}
+                </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-black uppercase text-primary tracking-widest">{member.role}</span>
                   <span className="text-sm font-bold text-foreground">{member.displayName?.split(' ')[0]}</span>
@@ -395,7 +374,6 @@ export default function ParentDashboard() {
             )}
           </div>
 
-          {/* Tree Connection Line to Children */}
           <div className="w-1 h-12 bg-primary/10 rounded-full" />
 
           {isManagingFamily && (

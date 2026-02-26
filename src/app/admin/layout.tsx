@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from '@/context/AuthContext';
@@ -15,7 +16,7 @@ import {
   SidebarTrigger,
   SidebarFooter
 } from '@/components/ui/sidebar';
-import { Calendar, PlusCircle, Users, LayoutDashboard, ChevronLeft, LogOut } from 'lucide-react';
+import { Calendar, PlusCircle, Users, LayoutDashboard, ChevronLeft, LogOut, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 
@@ -71,9 +72,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </SidebarMenuItem>
               <Separator className="my-2 bg-sidebar-border/50" />
               <SidebarMenuItem>
-                <SidebarMenuButton disabled>
-                  <Users />
-                  <span>Monitores (Próximamente)</span>
+                <SidebarMenuButton asChild>
+                  <Link href="/admin/users">
+                    <Users />
+                    <span>Usuarios y Permisos</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -91,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <SidebarTrigger className="mr-4" />
             <Link href="/" className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               <ChevronLeft className="w-4 h-4 mr-1" />
-              Volver a vista padre
+              Volver a vista familiar
             </Link>
           </header>
           <div className="p-8">
