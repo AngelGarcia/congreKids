@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
   SidebarFooter
 } from '@/components/ui/sidebar';
-import { Calendar, PlusCircle, Users, LayoutDashboard, ChevronLeft, LogOut, ShieldCheck } from 'lucide-react';
+import { Calendar, PlusCircle, Users, LayoutDashboard, ChevronLeft, LogOut, ShieldCheck, Home } from 'lucide-react';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 
@@ -71,6 +71,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <Separator className="my-2 bg-sidebar-border/50" />
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/admin/families">
+                    <Home />
+                    <span>Familias</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/admin/users">

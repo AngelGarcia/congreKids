@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils/date';
-import { Calendar, Users, ArrowRight, UserCheck, Clock } from 'lucide-react';
+import { Calendar, Users, ArrowRight, UserCheck, Clock, Home } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -55,26 +55,36 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-b-4 border-b-primary shadow-lg rounded-2xl overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 bg-primary/5">
-            <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Próximas</CardTitle>
-            <Clock className="w-5 h-5 text-primary" />
-          </CardHeader>
-          <CardContent className="pt-4">
-            {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.upcoming}</div>}
-            <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Reuniones abiertas</p>
-          </CardContent>
+        <Card className="border-b-4 border-b-primary shadow-lg rounded-2xl overflow-hidden hover:bg-primary/5 transition-colors cursor-pointer group">
+          <Link href="/admin/meetings">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-primary/5">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Próximas</CardTitle>
+              <Clock className="w-5 h-5 text-primary" />
+            </CardHeader>
+            <CardContent className="pt-4 flex justify-between items-end">
+              <div>
+                {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.upcoming}</div>}
+                <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Reuniones abiertas</p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+            </CardContent>
+          </Link>
         </Card>
 
-        <Card className="border-b-4 border-b-accent shadow-lg rounded-2xl overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 bg-accent/5">
-            <CardTitle className="text-sm font-black uppercase tracking-widest text-accent">Familias</CardTitle>
-            <Users className="w-5 h-5 text-accent" />
-          </CardHeader>
-          <CardContent className="pt-4">
-            {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.totalFamilies}</div>}
-            <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Unidades familiares registradas</p>
-          </CardContent>
+        <Card className="border-b-4 border-b-accent shadow-lg rounded-2xl overflow-hidden hover:bg-accent/5 transition-colors cursor-pointer group">
+          <Link href="/admin/families">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 bg-accent/5">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-accent">Familias</CardTitle>
+              <Users className="w-5 h-5 text-accent" />
+            </CardHeader>
+            <CardContent className="pt-4 flex justify-between items-end">
+              <div>
+                {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.totalFamilies}</div>}
+                <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Unidades familiares registradas</p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+            </CardContent>
+          </Link>
         </Card>
 
         <Card className="border-b-4 border-b-muted-foreground shadow-lg rounded-2xl overflow-hidden">
