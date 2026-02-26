@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -6,7 +5,7 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils/date';
-import { Baby, Search, Home, Users } from 'lucide-react';
+import { Baby, Search, Home, Users, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -31,9 +30,16 @@ function FamilyChildrenList({ familyId }: { familyId: string }) {
   if (isLoading) return <Skeleton className="h-10 w-full rounded-lg" />;
   if (!children || children.length === 0) return <p className="text-xs text-muted-foreground italic p-2">No hay hijos registrados.</p>;
 
+  // Ordenar hijos de mayor a menor (fecha de nacimiento más antigua primero)
+  const sortedChildren = [...children].sort((a, b) => {
+    const dateA = a.birthDate instanceof Date ? a.birthDate : (a.birthDate as any).toDate();
+    const dateB = b.birthDate instanceof Date ? b.birthDate : (b.birthDate as any).toDate();
+    return dateA.getTime() - dateB.getTime();
+  });
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-2">
-      {children.map(child => (
+      {sortedChildren.map(child => (
         <div key={child.id} className="flex items-center gap-3 bg-primary/5 p-3 rounded-xl border border-primary/10">
           <Baby className="w-5 h-5 text-primary" />
           <div>
@@ -64,24 +70,13 @@ export default function FamiliesManagement() {
   ) || [];
 
   /**
-   * Obtiene el texto con los nombres de los adultos de la familia.
-   * Utiliza una lógica robusta buscando tanto por el array de miembros como por la propiedad familyId del usuario.
+   * Obtiene los nombres de los adultos de la familia.
    */
-  const getFamilyAdultsText = (family: any) => {
-    if (loadingUsers) return 'Cargando adultos...';
-    if (!users) return 'Cargando...';
+  const getFamilyAdults = (family: any) => {
+    if (loadingUsers || !users) return [];
     
-    // 1. Intentar encontrar usuarios por el array de IDs en el documento de familia
-    let familyMemberUsers = users.filter(u => family.members?.includes(u.id));
-    
-    // 2. Si no hay resultados, intentar buscar por la propiedad familyId en los documentos de usuario
-    if (familyMemberUsers.length === 0) {
-      familyMemberUsers = users.filter(u => u.familyId === family.id);
-    }
-    
-    if (familyMemberUsers.length === 0) return 'Sin adultos registrados';
-    
-    return familyMemberUsers.map(u => u.displayName || u.email).join(' y ');
+    // Buscar por ID o por propiedad familyId
+    return users.filter(u => family.members?.includes(u.id) || u.familyId === family.id);
   };
 
   return (
@@ -112,48 +107,49 @@ export default function FamiliesManagement() {
           </div>
         ) : (
           <Accordion type="single" collapsible className="space-y-4">
-            {filteredFamilies.map((family) => (
-              <AccordionItem 
-                key={family.id} 
-                value={family.id}
-                className="bg-white rounded-2xl shadow-sm border px-6 hover:shadow-md transition-shadow border-b-0"
-              >
-                <AccordionTrigger className="hover:no-underline py-6">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full text-left gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                        <Home className="w-6 h-6" />
+            {filteredFamilies.map((family) => {
+              const adults = getFamilyAdults(family);
+              return (
+                <AccordionItem 
+                  key={family.id} 
+                  value={family.id}
+                  className="bg-white rounded-2xl shadow-sm border px-6 hover:shadow-md transition-shadow border-b-0"
+                >
+                  <AccordionTrigger className="hover:no-underline py-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full text-left gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                          <Home className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-black uppercase tracking-tighter leading-none">{family.name}</h3>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Users className="w-3 h-3 text-muted-foreground" />
+                            <p className="text-sm font-bold text-muted-foreground">
+                              {adults.length > 0 ? adults.map(u => u.displayName).join(' y ') : 'Cargando adultos...'}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-xl font-black uppercase tracking-tighter leading-none">{family.name}</h3>
-                        <p className="text-sm font-medium text-muted-foreground mt-1">
-                          {getFamilyAdultsText(family)}
-                        </p>
+                      <div className="flex items-center gap-2 pr-4">
+                        <Badge variant="secondary" className="bg-primary/5 text-primary border-none font-black px-4 h-8 uppercase tracking-widest">
+                          Ver Hijos
+                        </Badge>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6 pr-4">
-                      <div className="text-center hidden sm:block">
-                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Registrada</p>
-                        <p className="text-xs font-bold">{formatDate(family.createdAt)}</p>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-6">
+                    <div className="pt-2 border-t space-y-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Baby className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-black uppercase tracking-widest text-primary">Hijos (ordenados por edad)</span>
                       </div>
-                      <Badge variant="secondary" className="bg-primary/5 text-primary border-none font-black px-4 h-8">
-                        <Users className="w-3 h-3 mr-2" />
-                        {family.members?.length || 0} ADULTOS
-                      </Badge>
+                      <FamilyChildrenList familyId={family.id} />
                     </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pb-6">
-                  <div className="pt-2 border-t space-y-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Baby className="w-4 h-4 text-primary" />
-                      <span className="text-xs font-black uppercase tracking-widest text-primary">Listado de Hijos</span>
-                    </div>
-                    <FamilyChildrenList familyId={family.id} />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
           </Accordion>
         )}
       </div>

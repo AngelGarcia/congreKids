@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -63,6 +62,13 @@ export default function ParentDashboard() {
   const { data: children, isLoading: loadingChildren } = useCollection(childrenQuery);
   const { data: upcomingMeetings, isLoading: loadingMeetings } = useCollection(upcomingMeetingsQuery);
   const upcomingMeeting = upcomingMeetings?.[0] || null;
+
+  // Ordenar hijos de mayor a menor (fecha de nacimiento más antigua primero)
+  const sortedChildren = children ? [...children].sort((a, b) => {
+    const dateA = a.birthDate instanceof Date ? a.birthDate : (a.birthDate as any).toDate();
+    const dateB = b.birthDate instanceof Date ? b.birthDate : (b.birthDate as any).toDate();
+    return dateA.getTime() - dateB.getTime();
+  }) : [];
 
   const registrationRef = useMemoFirebase(() => {
     if (!db || !upcomingMeeting || !userData?.familyId || !user) return null;
@@ -394,7 +400,7 @@ export default function ParentDashboard() {
               [1, 2].map(i => <Skeleton key={i} className="h-44 w-full rounded-3xl" />)
             ) : (
               <>
-                {children?.map(child => (
+                {sortedChildren.map(child => (
                   <Card key={child.id} className="relative overflow-hidden border-2 border-primary/5 hover:border-primary/20 transition-all shadow-lg rounded-3xl bg-white group">
                     <CardHeader className="p-6">
                       <div className="flex justify-between items-start">
@@ -513,12 +519,12 @@ export default function ParentDashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
-                      {(!children || children.length === 0) ? (
+                      {(!sortedChildren || sortedChildren.length === 0) ? (
                         <div className="py-16 text-center border-3 border-dashed rounded-3xl bg-muted/10">
                           <p className="text-muted-foreground font-bold px-10">Primero añade a tus hijos arriba para poder inscribirlos.</p>
                         </div>
                       ) : (
-                        children.map(child => (
+                        sortedChildren.map(child => (
                           <div 
                             key={child.id} 
                             className={`flex items-center space-x-6 p-6 rounded-3xl border-3 transition-all cursor-pointer shadow-sm ${
@@ -554,7 +560,7 @@ export default function ParentDashboard() {
                   </div>
                 )}
               </CardContent>
-              {isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate()) && children && children.length > 0 && (
+              {isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate()) && sortedChildren && sortedChildren.length > 0 && (
                 <CardFooter className="p-8 pt-0 flex flex-col gap-6">
                   <Button onClick={handleRegister} className="w-full h-20 text-2xl rounded-3xl font-black shadow-2xl uppercase tracking-tighter hover:scale-[1.01] transition-transform">
                     {registration ? 'Actualizar Inscripción' : 'Confirmar Asistencia'}
