@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, use, useMemo } from 'react';
@@ -11,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -335,16 +336,25 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
             </Card>
             {meeting.ageGroups?.map((group: any) => {
               const count = allChildren.filter(c => c.ageGroupLabel === group.label).length;
+              const ratio = group.ratio || 8;
+              const monitorsNeeded = Math.ceil(count / ratio);
               return (
                 <Card key={group.label} className="border-muted bg-white rounded-2xl shadow-sm">
                   <CardHeader className="p-4 pb-1">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex justify-between">
                       {group.label}
+                      <span className="text-[8px] font-black opacity-40">Ratio 1:{ratio}</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <div className="text-2xl font-black">{count}</div>
-                    <p className="text-[8px] font-bold uppercase opacity-50">Niños</p>
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-2xl font-black">{count}</div>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">niños</span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1 text-primary">
+                      <UserCheck className="w-3 h-3" />
+                      <span className="text-[10px] font-black uppercase tracking-tight">{monitorsNeeded} {monitorsNeeded === 1 ? 'monitor' : 'monitores'}</span>
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -505,7 +515,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                               size="icon" 
                               onClick={(e) => { 
                                 e.stopPropagation(); 
-                                setEditAgeGroups([...editAgeGroups, { label: 'Nuevo', minMonths: 0, maxMonths: 144, allowsGuitar: false }]); 
+                                setEditAgeGroups([...editAgeGroups, { label: 'Nuevo', minMonths: 0, maxMonths: 144, allowsGuitar: false, ratio: 8 }]); 
                               }} 
                               className="h-8 w-8 rounded-lg text-primary"
                             >
@@ -585,16 +595,25 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                               <Input type="number" step="0.1" value={group.maxMonths / 12} onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} className="h-8 text-xs bg-white" />
                             </div>
                           </div>
-                          <div className="flex items-center justify-between pt-1">
-                            <Label className="text-[10px] font-black uppercase">Guitarra</Label>
-                            <Switch checked={group.allowsGuitar} onCheckedChange={val => updateAgeGroup(idx, 'allowsGuitar', val)} />
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <div className="space-y-1">
+                              <Label className="text-[9px] font-black uppercase">Ratio (niños/mon.)</Label>
+                              <Input type="number" value={group.ratio || 8} onChange={e => updateAgeGroup(idx, 'ratio', parseInt(e.target.value))} className="h-8 text-xs bg-white" />
+                            </div>
+                            <div className="flex flex-col justify-center items-end">
+                              <Label className="text-[10px] font-black uppercase mb-1">Guitarra</Label>
+                              <Switch checked={group.allowsGuitar} onCheckedChange={val => updateAgeGroup(idx, 'allowsGuitar', val)} />
+                            </div>
                           </div>
                         </div>
                       ) : (
                         <>
                           <div className="flex justify-between items-center">
                             <span className="text-xs font-black uppercase">{group.label}</span>
-                            {group.allowsGuitar && <Music className="w-3 h-3 text-accent" />}
+                            <div className="flex items-center gap-2">
+                              {group.allowsGuitar && <Music className="w-3 h-3 text-accent" />}
+                              <Badge variant="outline" className="text-[8px] font-black py-0 px-1 border-muted-foreground/30 opacity-60">1:{group.ratio || 8}</Badge>
+                            </div>
                           </div>
                           <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">
                             {group.minMonths / 12} a {group.maxMonths / 12} años

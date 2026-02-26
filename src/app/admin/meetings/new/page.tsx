@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -11,17 +12,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 import { getDefaultDeadline, generateFridaysForMonth, formatDate } from '@/lib/utils/date';
-import { Plus, Trash2, Save, X, Calendar as CalendarIcon, Wand2, Check, Settings2, Music } from 'lucide-react';
+import { Plus, Trash2, Save, X, Calendar as CalendarIcon, Wand2, Check, Settings2, Music, Users as UsersIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 
 const DEFAULT_AGE_GROUPS = [
-  { label: 'Bebés', minMonths: 0, maxMonths: 18, allowsGuitar: false },
-  { label: 'Pequeños', minMonths: 18, maxMonths: 36, allowsGuitar: false },
-  { label: '3-6 años', minMonths: 36, maxMonths: 72, allowsGuitar: false },
-  { label: 'Mayores', minMonths: 72, maxMonths: 144, allowsGuitar: true },
+  { label: 'Bebés', minMonths: 0, maxMonths: 18, allowsGuitar: false, ratio: 6 },
+  { label: 'Pequeños', minMonths: 18, maxMonths: 36, allowsGuitar: false, ratio: 8 },
+  { label: '3-6 años', minMonths: 36, maxMonths: 72, allowsGuitar: false, ratio: 8 },
+  { label: 'Mayores', minMonths: 72, maxMonths: 144, allowsGuitar: true, ratio: 10 },
 ];
 
 export default function NewMeeting() {
@@ -119,7 +120,7 @@ export default function NewMeeting() {
   };
 
   const addAgeGroup = () => {
-    setAgeGroups([...ageGroups, { label: 'Nuevo Grupo', minMonths: 0, maxMonths: 144, allowsGuitar: false }]);
+    setAgeGroups([...ageGroups, { label: 'Nuevo Grupo', minMonths: 0, maxMonths: 144, allowsGuitar: false, ratio: 8 }]);
   };
 
   return (
@@ -337,15 +338,30 @@ export default function NewMeeting() {
                         />
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <div className="flex items-center gap-2">
-                        <Music className="w-3 h-3 text-primary" />
-                        <Label className="text-[10px] font-black uppercase">Habilitar Guitarra</Label>
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1">
+                          <UsersIcon className="w-3 h-3 text-primary" />
+                          <Label className="text-[10px] font-black uppercase">Ratio</Label>
+                        </div>
+                        <Input 
+                          type="number"
+                          value={group.ratio || 8}
+                          onChange={e => updateAgeGroup(idx, 'ratio', parseInt(e.target.value))}
+                          className="h-8 text-xs rounded-lg"
+                        />
+                        <p className="text-[8px] text-muted-foreground font-medium uppercase">niños/monitor</p>
                       </div>
-                      <Switch 
-                        checked={group.allowsGuitar} 
-                        onCheckedChange={(val) => updateAgeGroup(idx, 'allowsGuitar', val)} 
-                      />
+                      <div className="flex flex-col justify-center items-end gap-1">
+                        <div className="flex items-center gap-1">
+                          <Music className="w-3 h-3 text-primary" />
+                          <Label className="text-[10px] font-black uppercase">Guitarra</Label>
+                        </div>
+                        <Switch 
+                          checked={group.allowsGuitar} 
+                          onCheckedChange={(val) => updateAgeGroup(idx, 'allowsGuitar', val)} 
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

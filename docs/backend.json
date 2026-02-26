@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -59,7 +60,8 @@
               "label": { "type": "string" },
               "minMonths": { "type": "number" },
               "maxMonths": { "type": "number" },
-              "allowsGuitar": { "type": "boolean" }
+              "allowsGuitar": { "type": "boolean" },
+              "ratio": { "type": "number", "description": "Número de niños por cada monitor." }
             }
           }
         },
