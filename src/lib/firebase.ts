@@ -1,18 +1,10 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase';
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "dummy-key",
-  authDomain: "congre-kids.firebaseapp.com",
-  projectId: "congre-kids",
-  storageBucket: "congre-kids.firebasestorage.app",
-  messagingSenderId: "dummy-id",
-  appId: "dummy-app-id"
-};
-
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+/**
+ * Firebase initialization using the standardized studio pattern.
+ * This ensures we use the correct configuration (apiKey, projectId, etc.)
+ * provided by the environment or the local config file.
+ */
+const { auth, firestore: db } = initializeFirebase();
 
 export { auth, db };
