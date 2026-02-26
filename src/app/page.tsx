@@ -19,6 +19,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Link from 'next/link';
+import { normalizeString } from '@/lib/utils/string';
 
 export default function ParentDashboard() {
   const { user, userData, familyData, login, joinFamily, createFamily, loading: authLoading } = useAuth();
@@ -80,9 +81,12 @@ export default function ParentDashboard() {
 
     setIsSearching(true);
     try {
+      // Normalizamos la búsqueda para ignorar tildes y mayúsculas
+      const normalizedSearch = normalizeString(familySurnames);
+      
       const q = query(
         collection(db, 'families'), 
-        where('name', '==', `Familia ${familySurnames.trim()}`)
+        where('searchName', '==', normalizedSearch)
       );
       const snap = await getDocs(q);
       

@@ -24,10 +24,11 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
+        "searchName": { "type": "string", "description": "Normalized name for insensitive searching." },
         "members": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "name", "members", "createdAt"]
+      "required": ["id", "name", "searchName", "members", "createdAt"]
     },
     "Child": {
       "title": "Child",

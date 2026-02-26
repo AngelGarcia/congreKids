@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -13,6 +14,7 @@ import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { normalizeString } from '@/lib/utils/string';
 
 interface UserData {
   id: string;
@@ -28,6 +30,7 @@ interface UserData {
 interface FamilyData {
   id: string;
   name: string;
+  searchName: string;
   members: string[];
 }
 
@@ -179,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       const familyRef = await addDoc(collection(db, 'families'), {
         name: `Familia ${name}`,
+        searchName: normalizeString(name),
         members: [user.uid],
         createdAt: serverTimestamp(),
       });
@@ -210,7 +214,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateFamilyName = async (newName: string) => {
     if (!userData?.familyId) return;
-    updateDoc(doc(db, 'families', userData.familyId), { name: newName })
+    // Extraemos apellidos si viene con el prefijo "Familia " para el searchName
+    const surnames = newName.startsWith('Familia ') ? newName.replace('Familia ', '') : newName;
+    
+    updateDoc(doc(db, 'families', userData.familyId), { 
+      name: newName,
+      searchName: normalizeString(surnames)
+    })
       .then(() => {
         toast({ title: "Nombre actualizado", description: `Ahora sois la ${newName}` });
       })
