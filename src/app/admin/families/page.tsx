@@ -1,14 +1,12 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs, DocumentData } from 'firebase/firestore';
+import { useState } from 'react';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils/date';
-import { Users, Baby, Search, ChevronDown, Home } from 'lucide-react';
+import { Baby, Search, Home, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -18,6 +16,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
+/**
+ * Componente para mostrar el listado de hijos de una familia específica.
+ */
 function FamilyChildrenList({ familyId }: { familyId: string }) {
   const db = useFirestore();
   const childrenQuery = useMemoFirebase(() => {
@@ -51,7 +52,7 @@ export default function FamiliesManagement() {
   const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Queries for families and all users to map names
+  // Consultas para familias y todos los usuarios
   const familiesQuery = useMemoFirebase(() => query(collection(db, 'families'), orderBy('name', 'asc')), [db]);
   const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
 
@@ -62,18 +63,32 @@ export default function FamiliesManagement() {
     f.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const getFamilyAdults = (familyId: string) => {
-    return users
-      ?.filter(u => u.familyId === familyId)
-      .map(u => u.displayName || u.email)
-      .join(' y ') || 'Sin adultos registrados';
+  /**
+   * Obtiene el texto con los nombres de los adultos de la familia.
+   * Utiliza una lógica robusta buscando tanto por el array de miembros como por la propiedad familyId del usuario.
+   */
+  const getFamilyAdultsText = (family: any) => {
+    if (loadingUsers) return 'Cargando adultos...';
+    if (!users) return 'Cargando...';
+    
+    // 1. Intentar encontrar usuarios por el array de IDs en el documento de familia
+    let familyMemberUsers = users.filter(u => family.members?.includes(u.id));
+    
+    // 2. Si no hay resultados, intentar buscar por la propiedad familyId en los documentos de usuario
+    if (familyMemberUsers.length === 0) {
+      familyMemberUsers = users.filter(u => u.familyId === family.id);
+    }
+    
+    if (familyMemberUsers.length === 0) return 'Sin adultos registrados';
+    
+    return familyMemberUsers.map(u => u.displayName || u.email).join(' y ');
   };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col gap-2">
         <h1 className="text-4xl font-black tracking-tighter uppercase text-primary">Familias Registradas</h1>
-        <p className="text-muted-foreground font-medium">Gestión de unidades familiares, padres e hijos.</p>
+        <p className="text-muted-foreground font-medium">Gestión de unidades familiares, padres e hijos de la congregación.</p>
       </div>
 
       <div className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border">
@@ -87,7 +102,7 @@ export default function FamiliesManagement() {
       </div>
 
       <div className="space-y-4">
-        {loadingFamilies || loadingUsers ? (
+        {loadingFamilies ? (
           [1, 2, 3].map(i => (
             <Skeleton key={i} className="h-24 w-full rounded-2xl" />
           ))
@@ -101,7 +116,7 @@ export default function FamiliesManagement() {
               <AccordionItem 
                 key={family.id} 
                 value={family.id}
-                className="bg-white rounded-2xl shadow-sm border px-6 hover:shadow-md transition-shadow"
+                className="bg-white rounded-2xl shadow-sm border px-6 hover:shadow-md transition-shadow border-b-0"
               >
                 <AccordionTrigger className="hover:no-underline py-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full text-left gap-4">
@@ -112,16 +127,17 @@ export default function FamiliesManagement() {
                       <div>
                         <h3 className="text-xl font-black uppercase tracking-tighter leading-none">{family.name}</h3>
                         <p className="text-sm font-medium text-muted-foreground mt-1">
-                          {getFamilyAdults(family.id)}
+                          {getFamilyAdultsText(family)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-6 pr-4">
-                      <div className="text-center">
+                      <div className="text-center hidden sm:block">
                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Registrada</p>
                         <p className="text-xs font-bold">{formatDate(family.createdAt)}</p>
                       </div>
-                      <Badge variant="secondary" className="bg-primary/5 text-primary border-none font-black px-4">
+                      <Badge variant="secondary" className="bg-primary/5 text-primary border-none font-black px-4 h-8">
+                        <Users className="w-3 h-3 mr-2" />
                         {family.members?.length || 0} ADULTOS
                       </Badge>
                     </div>
