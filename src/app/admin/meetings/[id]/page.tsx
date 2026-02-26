@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useEffect, useState, use } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, updateDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -17,13 +18,28 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const [meeting, setMeeting] = useState<any>(null);
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isNextMeeting, setIsNextMeeting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
       const mDoc = await getDoc(doc(db, 'meetings', id));
       if (mDoc.exists()) {
-        setMeeting({ id: mDoc.id, ...mDoc.data() });
+        const data = { id: mDoc.id, ...mDoc.data() };
+        setMeeting(data);
+
+        // Comprobar si es la próxima reunión
+        const now = new Date();
+        const q = query(
+          collection(db, 'meetings'),
+          where('date', '>=', Timestamp.fromDate(now)),
+          orderBy('date', 'asc'),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty && snap.docs[0].id === id) {
+          setIsNextMeeting(true);
+        }
       }
 
       const rSnap = await getDocs(collection(db, 'meetings', id, 'registrations'));
@@ -82,23 +98,38 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     });
   });
 
+  const isPast = (meeting.date as any).toDate() < new Date();
+  
+  let statusText = "Pasada";
+  let badgeVariant: "secondary" | "default" | "outline" = "secondary";
+  
+  if (!isPast) {
+    if (isNextMeeting) {
+      statusText = "Abierta / Próxima";
+      badgeVariant = "default";
+    } else {
+      statusText = "Programada";
+      badgeVariant = "outline";
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <Link href="/admin" className="text-sm text-muted-foreground flex items-center hover:text-primary mb-2">
+          <Link href="/admin/meetings" className="text-sm text-muted-foreground flex items-center hover:text-primary mb-2">
             <ChevronLeft className="w-4 h-4 mr-1" /> Volver
           </Link>
           <h1 className="text-3xl font-bold tracking-tight">{meeting.title}</h1>
-          <div className="text-muted-foreground flex items-center gap-2">
+          <div className="text-muted-foreground flex items-center gap-3">
             {formatDate(meeting.date)}
-            <Badge variant={meeting.status === 'upcoming' ? 'default' : 'secondary'}>
-              {meeting.status === 'upcoming' ? 'Abierta' : 'Cerrada'}
+            <Badge variant={badgeVariant} className="font-black uppercase">
+              {statusText}
             </Badge>
           </div>
         </div>
         <div className="flex gap-2">
-          {meeting.status === 'upcoming' && (
+          {isNextMeeting && meeting.status !== 'closed' && (
             <Button variant="outline" size="sm" onClick={handleCloseRegistration}>
               <Lock className="w-4 h-4 mr-2" />
               Cerrar Plazo

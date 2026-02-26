@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -99,7 +100,10 @@ export default function MeetingsAdmin() {
                         <Calendar className="w-6 h-6" />
                       </div>
                       <div>
-                        <h4 className="font-black uppercase tracking-tight text-lg">{m.title}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-black uppercase tracking-tight text-lg">{m.title}</h4>
+                          <Badge variant="outline" className="text-[9px] font-black uppercase px-2 py-0 h-5 border-muted-foreground/30 text-muted-foreground">Programada</Badge>
+                        </div>
                         <p className="text-xs font-bold text-muted-foreground uppercase">{formatDate(m.date)}</p>
                       </div>
                     </div>

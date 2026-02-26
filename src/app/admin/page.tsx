@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs, limit, where } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, limit, where, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -17,19 +17,30 @@ export default function AdminDashboard() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [stats, setStats] = useState({ upcoming: 0, total: 0, totalFamilies: 0 });
   const [loading, setLoading] = useState(true);
+  const [nextMeetingId, setNextMeetingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        const now = new Date();
         // Fetch Meetings
-        const q = query(collection(db, 'meetings'), orderBy('date', 'desc'), limit(5));
+        const q = query(collection(db, 'meetings'), orderBy('date', 'desc'), limit(10));
         const snap = await getDocs(q);
         const meetingsList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setMeetings(meetingsList);
 
+        // Identificar la próxima reunión (la más cercana al futuro)
+        const upcomingList = meetingsList
+          .filter(m => (m.date as any).toDate() >= now)
+          .sort((a, b) => (a.date as any).toDate().getTime() - (b.date as any).toDate().getTime());
+        
+        if (upcomingList.length > 0) {
+          setNextMeetingId(upcomingList[0].id);
+        }
+
         // Fetch Stats
         const allMeetingsSnap = await getDocs(collection(db, 'meetings'));
-        const upcomingCount = allMeetingsSnap.docs.filter(d => d.data().status === 'upcoming').length;
+        const upcomingCount = allMeetingsSnap.docs.filter(d => (d.data().date as any).toDate() >= now).length;
         
         const familiesSnap = await getDocs(collection(db, 'families'));
 
@@ -64,7 +75,7 @@ export default function AdminDashboard() {
             <CardContent className="pt-4 flex justify-between items-end">
               <div>
                 {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.upcoming}</div>}
-                <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Reuniones abiertas</p>
+                <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Reuniones programadas</p>
               </div>
               <ArrowRight className="w-5 h-5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
             </CardContent>
@@ -128,24 +139,42 @@ export default function AdminDashboard() {
                     </TableRow>
                   ))
                 ) : (
-                  meetings.map((meeting) => (
-                    <TableRow key={meeting.id} className="hover:bg-primary/5 transition-colors">
-                      <TableCell className="font-bold py-4">{meeting.title}</TableCell>
-                      <TableCell className="font-medium">{formatDate(meeting.date)}</TableCell>
-                      <TableCell>
-                        <Badge variant={meeting.status === 'upcoming' ? 'default' : 'secondary'} className="rounded-lg font-black uppercase px-3">
-                          {meeting.status === 'upcoming' ? 'Abierta' : 'Pasada'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="icon" className="hover:bg-primary/10 text-primary">
-                          <Link href={`/admin/meetings/${meeting.id}`}>
-                            <ArrowRight className="w-5 h-5" />
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  meetings.map((meeting) => {
+                    const isPast = (meeting.date as any).toDate() < new Date();
+                    const isNext = meeting.id === nextMeetingId;
+                    
+                    let statusLabel = "Pasada";
+                    let badgeVariant: "secondary" | "default" | "outline" = "secondary";
+                    
+                    if (!isPast) {
+                      if (isNext) {
+                        statusLabel = "Próxima / Abierta";
+                        badgeVariant = "default";
+                      } else {
+                        statusLabel = "Programada";
+                        badgeVariant = "outline";
+                      }
+                    }
+
+                    return (
+                      <TableRow key={meeting.id} className="hover:bg-primary/5 transition-colors">
+                        <TableCell className="font-bold py-4">{meeting.title}</TableCell>
+                        <TableCell className="font-medium">{formatDate(meeting.date)}</TableCell>
+                        <TableCell>
+                          <Badge variant={badgeVariant} className="rounded-lg font-black uppercase px-3">
+                            {statusLabel}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button asChild variant="ghost" size="icon" className="hover:bg-primary/10 text-primary">
+                            <Link href={`/admin/meetings/${meeting.id}`}>
+                              <ArrowRight className="w-5 h-5" />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
                 {!loading && meetings.length === 0 && (
                   <TableRow>
