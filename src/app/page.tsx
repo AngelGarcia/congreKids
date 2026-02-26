@@ -501,60 +501,61 @@ export default function ParentDashboard() {
           {loadingMeetings ? (
             <Skeleton className="h-80 w-full rounded-3xl" />
           ) : upcomingMeeting ? (
-            <Card className="border-4 border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white max-w-4xl mx-auto">
+            <Card className="border-4 border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white max-w-2xl mx-auto">
               <CardHeader className="bg-primary/5 p-8 space-y-4">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-3xl text-primary font-black leading-tight uppercase tracking-tighter">
+                  <CardTitle className="text-2xl text-primary font-black leading-tight uppercase tracking-tighter">
                     {upcomingMeeting.title}
                   </CardTitle>
                   <Badge className="bg-primary text-white font-black px-4 py-1 text-xs rounded-full uppercase">Próxima</Badge>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-lg font-bold text-muted-foreground">
-                    <CalendarIcon className="w-5 h-5" />
+                  <div className="flex items-center gap-2 text-base font-bold text-muted-foreground">
+                    <CalendarIcon className="w-4 h-4" />
                     {formatDateTime(upcomingMeeting.date)}
                   </div>
-                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] bg-destructive/10 text-destructive self-start px-3 py-1 rounded-lg">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] bg-destructive/10 text-destructive self-start px-2 py-1 rounded-lg">
                     <Clock className="w-3 h-3" />
                     Cierre: {formatDate(upcomingMeeting.registrationDeadline)}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-8">
+              <CardContent className="p-6">
                 {isRegistrationCurrentlyOpen ? (
-                  <div className="space-y-8">
-                    <div className="bg-muted/30 p-6 rounded-2xl border-l-4 border-primary">
-                      <p className="text-base font-bold text-foreground italic">"Selecciona a los peques que vendrán a la guardería"</p>
+                  <div className="space-y-4">
+                    <div className="bg-muted/30 p-4 rounded-xl border-l-4 border-primary">
+                      <p className="text-sm font-bold text-foreground italic">"Selecciona a los peques que vendrán"</p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 gap-2">
                       {(!sortedChildren || sortedChildren.length === 0) ? (
-                        <div className="py-16 text-center border-3 border-dashed rounded-3xl bg-muted/10">
+                        <div className="py-12 text-center border-3 border-dashed rounded-3xl bg-muted/10">
                           <p className="text-muted-foreground font-bold px-10">Primero añade a tus hijos arriba para poder inscribirlos.</p>
                         </div>
                       ) : (
                         sortedChildren.map(child => {
                           const ageMonths = calculateAgeInMonths((child.birthDate as any).toDate(), (upcomingMeeting.date as any).toDate());
+                          const isSelected = selectedChildren.includes(child.id);
                           return (
                             <div 
                               key={child.id} 
-                              className={`flex items-center space-x-6 p-6 rounded-3xl border-3 transition-all cursor-pointer shadow-sm ${
-                                selectedChildren.includes(child.id) ? 'border-primary bg-primary/5 ring-2 ring-primary/20 scale-[1.02]' : 'border-border bg-white hover:border-primary/20'
+                              className={`flex items-center space-x-4 p-3 rounded-2xl border-2 transition-all cursor-pointer ${
+                                isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'border-border bg-white hover:border-primary/10'
                               }`}
                               onClick={() => {
-                                const isSelected = selectedChildren.includes(child.id);
                                 setSelectedChildren(prev => 
                                   isSelected ? prev.filter(id => id !== child.id) : [...prev, child.id]
                                 );
                               }}
                             >
                               <Checkbox 
-                                checked={selectedChildren.includes(child.id)}
-                                className="w-10 h-10 rounded-xl border-4 data-[state=checked]:bg-primary"
+                                checked={isSelected}
+                                className="w-6 h-6 rounded-lg border-2 data-[state=checked]:bg-primary"
+                                onClick={(e) => e.stopPropagation()}
                               />
                               <div className="flex-1">
-                                <p className="text-2xl font-black">{child.name}</p>
-                                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                                <p className="text-lg font-black">{child.name}</p>
+                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
                                   {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
                                 </p>
                               </div>
@@ -565,30 +566,30 @@ export default function ParentDashboard() {
                     </div>
                   </div>
                 ) : registrationOpeningDate && isTooEarlyForRegistration(registrationOpeningDate) ? (
-                   <div className="py-20 text-center space-y-6">
-                    <Clock className="text-primary w-16 h-16 mx-auto animate-pulse" />
-                    <p className="text-2xl font-black text-primary uppercase tracking-tighter">Inscripciones Próximamente</p>
-                    <p className="text-muted-foreground font-bold max-w-sm mx-auto">
+                   <div className="py-16 text-center space-y-6">
+                    <Clock className="text-primary w-12 h-12 mx-auto animate-pulse" />
+                    <p className="text-xl font-black text-primary uppercase tracking-tighter">Inscripciones Próximamente</p>
+                    <p className="text-xs text-muted-foreground font-bold max-w-sm mx-auto">
                       Las listas para esta reunión se abrirán el <span className="text-primary">{formatDate(registrationOpeningDate!)}</span> a las 00:00h.
                     </p>
                   </div>
                 ) : (
-                  <div className="py-20 text-center space-y-6">
-                    <AlertCircle className="text-destructive w-16 h-16 mx-auto" />
-                    <p className="text-2xl font-black text-destructive uppercase tracking-tighter">Inscripciones Cerradas</p>
-                    <p className="text-muted-foreground font-bold">El plazo para esta reunión ha finalizado.</p>
+                  <div className="py-16 text-center space-y-6">
+                    <AlertCircle className="text-destructive w-12 h-12 mx-auto" />
+                    <p className="text-xl font-black text-destructive uppercase tracking-tighter">Inscripciones Cerradas</p>
+                    <p className="text-xs text-muted-foreground font-bold">El plazo para esta reunión ha finalizado.</p>
                   </div>
                 )}
               </CardContent>
               {isRegistrationCurrentlyOpen && sortedChildren && sortedChildren.length > 0 && (
-                <CardFooter className="p-8 pt-0 flex flex-col gap-6">
-                  <Button onClick={handleRegister} className="w-full h-20 text-2xl rounded-3xl font-black shadow-2xl uppercase tracking-tighter hover:scale-[1.01] transition-transform">
+                <CardFooter className="p-6 pt-0 flex flex-col gap-4">
+                  <Button onClick={handleRegister} className="w-full h-14 text-lg rounded-2xl font-black shadow-xl uppercase tracking-tighter">
                     {registration ? 'Actualizar Inscripción' : 'Confirmar Asistencia'}
                   </Button>
                   {registration && (
-                    <div className="flex items-center gap-3 text-green-600 font-black justify-center bg-green-50 p-4 rounded-2xl w-full border-2 border-green-100">
-                      <Heart className="w-6 h-6 fill-green-600" />
-                      <span className="text-sm uppercase tracking-widest">Inscripción familiar guardada</span>
+                    <div className="flex items-center gap-2 text-green-600 font-black justify-center bg-green-50 p-2 rounded-xl w-full border border-green-100">
+                      <Heart className="w-4 h-4 fill-green-600" />
+                      <span className="text-[10px] uppercase tracking-widest">Inscripción guardada</span>
                     </div>
                   )}
                 </CardFooter>
