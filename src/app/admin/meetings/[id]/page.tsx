@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, getDocs, updateDoc, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, CheckSquare } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -25,6 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 
 const EXPORT_COLUMNS = [
   { id: 'parentName', label: 'Padre/Madre' },
@@ -36,6 +37,9 @@ const EXPORT_COLUMNS = [
   { id: 'guitar', label: 'Guitarra' },
 ];
 
+type SortField = 'name' | 'familyName' | 'guitarSelected';
+type SortOrder = 'asc' | 'desc';
+
 export default function MeetingDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [meeting, setMeeting] = useState<any>(null);
@@ -45,6 +49,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const [isEditing, setIsEditing] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(EXPORT_COLUMNS.map(c => c.id));
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const { toast } = useToast();
 
   // State for editing
@@ -94,6 +100,37 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     fetchData();
   }, [id]);
 
+  // Procesar todos los niños en una lista plana con metadatos de familia
+  const allChildren = useMemo(() => {
+    const children: any[] = [];
+    registrations.forEach(reg => {
+      (reg.children || []).forEach((child: any) => {
+        children.push({
+          ...child,
+          familyName: reg.familyName,
+          parentName: reg.parentName,
+          parentEmail: reg.parentEmail,
+          registrationId: reg.id
+        });
+      });
+    });
+
+    // Ordenar
+    return children.sort((a, b) => {
+      let valA = a[sortField] || '';
+      let valB = b[sortField] || '';
+
+      if (typeof valA === 'boolean') {
+        valA = valA ? 1 : 0;
+        valB = valB ? 1 : 0;
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [registrations, sortField, sortOrder]);
+
   const handleToggleStatus = async () => {
     const newStatus = meeting.status === 'closed' ? 'upcoming' : 'closed';
     updateDoc(doc(db, 'meetings', id), { status: newStatus })
@@ -142,33 +179,36 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     setEditAgeGroups(newGroups);
   };
 
-  const toggleColumnSelection = (columnId: string) => {
-    setSelectedColumns(prev => 
-      prev.includes(columnId) 
-        ? prev.filter(c => c !== columnId) 
-        : [...prev, columnId]
-    );
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="ml-1 w-3 h-3 opacity-30" />;
+    return sortOrder === 'asc' ? <ChevronUp className="ml-1 w-3 h-3 text-primary" /> : <ChevronDown className="ml-1 w-3 h-3 text-primary" />;
   };
 
   const exportToCSV = () => {
     const headers = EXPORT_COLUMNS.filter(c => selectedColumns.includes(c.id)).map(c => c.label);
     const rows = [headers];
 
-    registrations.forEach(reg => {
-      reg.children?.forEach((child: any) => {
-        const rowData: string[] = [];
-        if (selectedColumns.includes('parentName')) rowData.push(reg.parentName || '');
-        if (selectedColumns.includes('parentEmail')) rowData.push(reg.parentEmail || '');
-        if (selectedColumns.includes('childName')) rowData.push(child.name || '');
-        if (selectedColumns.includes('ageGroup')) rowData.push(child.ageGroupLabel || '');
-        if (selectedColumns.includes('birthDate')) rowData.push(formatDate(child.birthDate));
-        if (selectedColumns.includes('familyName')) rowData.push(reg.familyName || '');
-        if (selectedColumns.includes('guitar')) rowData.push(child.guitarSelected ? 'SÍ' : 'NO');
-        rows.push(rowData);
-      });
+    allChildren.forEach(child => {
+      const rowData: string[] = [];
+      if (selectedColumns.includes('parentName')) rowData.push(child.parentName || '');
+      if (selectedColumns.includes('parentEmail')) rowData.push(child.parentEmail || '');
+      if (selectedColumns.includes('childName')) rowData.push(child.name || '');
+      if (selectedColumns.includes('ageGroup')) rowData.push(child.ageGroupLabel || '');
+      if (selectedColumns.includes('birthDate')) rowData.push(formatDate(child.birthDate));
+      if (selectedColumns.includes('familyName')) rowData.push(child.familyName || '');
+      if (selectedColumns.includes('guitar')) rowData.push(child.guitarSelected ? 'SÍ' : 'NO');
+      rows.push(rowData);
     });
 
-    // Añadimos el BOM (Byte Order Mark) para UTF-8 para que Excel reconozca eñes y tildes
     const BOM = '\uFEFF';
     const csvContent = rows.map(e => e.map(val => `"${val}"`).join(",")).join("\n");
     const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -181,15 +221,13 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     link.click();
     document.body.removeChild(link);
     setIsExportDialogOpen(false);
-    toast({ title: "Archivo generado", description: "La exportación se ha descargado correctamente." });
   };
 
   if (loading) return <div className="p-8">Cargando detalles de la reunión...</div>;
   if (!meeting) return <div className="p-8">Reunión no encontrada.</div>;
 
-  const guitarCount = registrations.reduce((acc, reg) => 
-    acc + (reg.children?.filter((c: any) => c.guitarSelected).length || 0), 0
-  );
+  const totalChildrenCount = allChildren.length;
+  const guitarCount = allChildren.filter(c => c.guitarSelected).length;
 
   return (
     <div className="space-y-8">
@@ -255,87 +293,147 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 space-y-8">
+          {/* Tarjetas de Resumen */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="border-accent/40 bg-accent/5 rounded-2xl shadow-sm">
-              <CardHeader className="p-4 pb-2">
+              <CardHeader className="p-4 pb-1">
                 <CardTitle className="text-xs font-black uppercase tracking-widest text-accent flex items-center gap-2">
                   <Music className="w-3 h-3" /> Clase Guitarra
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="text-4xl font-black text-accent">{guitarCount}</div>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase">Niños apuntados</p>
+                <div className="text-3xl font-black text-accent">{guitarCount}</div>
+                <p className="text-[9px] text-muted-foreground font-bold uppercase">Niños apuntados</p>
               </CardContent>
             </Card>
-            
+            <Card className="border-primary/20 bg-primary/5 rounded-2xl shadow-sm">
+              <CardHeader className="p-4 pb-1">
+                <CardTitle className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                  <Baby className="w-3 h-3" /> Total Inscritos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="text-3xl font-black text-primary">{totalChildrenCount}</div>
+                <p className="text-[9px] text-muted-foreground font-bold uppercase">Niños confirmados</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Listados segmentados por Categoría */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 border-b pb-2">
+              <Baby className="w-5 h-5 text-primary" />
+              <h2 className="text-sm font-black uppercase tracking-widest">Listados por Sala / Grupo</h2>
+            </div>
+
             {meeting.ageGroups?.map((group: any) => {
-              const count = registrations.reduce((acc, reg) => 
-                acc + (reg.children?.filter((c: any) => (c.ageGroupLabel || 'Sin grupo') === group.label).length || 0), 0
-              );
+              const childrenInGroup = allChildren.filter(c => (c.ageGroupLabel || 'Sin grupo') === group.label);
+              
               return (
-                <Card key={group.label} className="border-primary/20 rounded-2xl shadow-sm">
-                  <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-xs font-black uppercase tracking-widest text-primary">{group.label}</CardTitle>
+                <Card key={group.label} className="rounded-2xl shadow-sm border overflow-hidden">
+                  <CardHeader className="bg-muted/5 py-3 px-6 flex flex-row items-center justify-between border-b">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="rounded-lg font-black uppercase text-[10px] bg-white border-primary/30 text-primary">
+                        {group.label}
+                      </Badge>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                        ({group.minMonths / 12} - {group.maxMonths / 12} años)
+                      </span>
+                    </div>
+                    <Badge variant="secondary" className="font-black text-[10px]">{childrenInGroup.length} NIÑOS</Badge>
                   </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="text-4xl font-black">{count}</div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase">Registrados</p>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader className="bg-muted/5">
+                        <TableRow className="hover:bg-transparent border-none h-10">
+                          <TableHead 
+                            className="font-black uppercase text-[9px] tracking-widest cursor-pointer group"
+                            onClick={() => toggleSort('name')}
+                          >
+                            <div className="flex items-center">
+                              Nombre del Niño <SortIcon field="name" />
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="font-black uppercase text-[9px] tracking-widest cursor-pointer group"
+                            onClick={() => toggleSort('familyName')}
+                          >
+                            <div className="flex items-center">
+                              Familia <SortIcon field="familyName" />
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="font-black uppercase text-[9px] tracking-widest cursor-pointer group"
+                            onClick={() => toggleSort('guitarSelected')}
+                          >
+                            <div className="flex items-center">
+                              Extra <SortIcon field="guitarSelected" />
+                            </div>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {childrenInGroup.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center py-6 text-xs text-muted-foreground italic">
+                              No hay niños inscritos en este grupo todavía.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          childrenInGroup.map((child, idx) => (
+                            <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-12">
+                              <TableCell className="font-black text-sm">{child.name}</TableCell>
+                              <TableCell className="text-[11px] font-bold uppercase text-muted-foreground">{child.familyName}</TableCell>
+                              <TableCell>
+                                {child.guitarSelected && (
+                                  <Badge className="bg-accent text-white font-black uppercase text-[8px] rounded-lg">
+                                    <Music className="w-3 h-3 mr-1" /> GUITARRA
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
                   </CardContent>
                 </Card>
               );
             })}
-          </div>
 
-          <Card className="rounded-2xl shadow-sm border overflow-hidden">
-            <CardHeader className="bg-muted/5 border-b flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
-                <Baby className="w-5 h-5 text-primary" /> Listado de Niños
-              </CardTitle>
-              <Badge variant="outline" className="font-black text-[10px] uppercase">{registrations.reduce((acc, r) => acc + (r.children?.length || 0), 0)} TOTAL</Badge>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader className="bg-muted/5">
-                  <TableRow className="hover:bg-transparent border-none">
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Nombre del Niño</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Categoría</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Extra</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Familia</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {registrations.flatMap((reg) => 
-                    (reg.children || []).map((child: any, idx: number) => (
-                      <TableRow key={`${reg.id}-${idx}`} className="hover:bg-primary/5 transition-colors">
-                        <TableCell className="font-black py-4">{child.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="rounded-lg font-black uppercase text-[9px] border-primary/20 text-primary">
-                            {child.ageGroupLabel || 'Sin grupo'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {child.guitarSelected && (
-                            <Badge className="bg-accent text-white font-black uppercase text-[9px] rounded-lg">
-                              <Music className="w-3 h-3 mr-1" /> GUITARRA
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs font-bold uppercase text-muted-foreground">{reg.familyName || 'Sin apellidos'}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+            {/* Caso de niños que no entran en ninguna categoría (si los hay) */}
+            {allChildren.filter(c => !meeting.ageGroups.find((g: any) => g.label === c.ageGroupLabel)).length > 0 && (
+              <Card className="rounded-2xl shadow-sm border border-destructive/20 overflow-hidden">
+                <CardHeader className="bg-destructive/5 py-3 px-6 border-b">
+                  <Badge variant="destructive" className="font-black text-[10px]">SIN CATEGORÍA DEFINIDA</Badge>
+                </CardHeader>
+                <CardContent className="p-0">
+                   <Table>
+                    <TableBody>
+                      {allChildren.filter(c => !meeting.ageGroups.find((g: any) => g.label === c.ageGroupLabel)).map((child, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-black text-sm">{child.name}</TableCell>
+                          <TableCell className="text-xs font-bold uppercase text-muted-foreground">{child.familyName}</TableCell>
+                          <TableCell className="text-xs text-destructive font-black uppercase">{child.ageGroupLabel}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                   </Table>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
 
         <div className="space-y-6">
-          <Card className={`rounded-2xl border-2 shadow-lg transition-all ${isEditing ? 'border-primary shadow-primary/10' : 'border-dashed bg-muted/5'}`}>
+          <Card className={cn(
+            "rounded-2xl border-2 shadow-lg transition-all",
+            isEditing ? 'border-primary shadow-primary/10' : 'border-dashed bg-muted/5'
+          )}>
             <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
-                <Settings2 className={`w-4 h-4 ${isEditing ? 'text-primary' : 'text-muted-foreground'}`} />
+                <Settings2 className={cn("w-4 h-4", isEditing ? 'text-primary' : 'text-muted-foreground')} />
                 <CardTitle className="text-xs font-black uppercase tracking-widest">Umbrales de Edad</CardTitle>
               </div>
               {isEditing && (
@@ -346,7 +444,10 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
             </CardHeader>
             <CardContent className="p-4 pt-2 space-y-4">
               {(isEditing ? editAgeGroups : meeting.ageGroups)?.map((group: any, idx: number) => (
-                <div key={idx} className={`flex flex-col gap-2 pb-4 last:pb-0 last:border-0 border-b ${isEditing ? 'bg-primary/5 p-3 rounded-xl border-none' : ''}`}>
+                <div key={idx} className={cn(
+                  "flex flex-col gap-2 pb-4 last:pb-0 last:border-0 border-b",
+                  isEditing ? 'bg-primary/5 p-3 rounded-xl border-none' : ''
+                )}>
                   {isEditing ? (
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
@@ -433,15 +534,20 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
             {EXPORT_COLUMNS.map((col) => (
               <div 
                 key={col.id} 
-                className={`flex items-center space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                className={cn(
+                  "flex items-center space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer",
                   selectedColumns.includes(col.id) ? 'border-primary/20 bg-primary/5' : 'border-transparent bg-muted/5 opacity-60'
-                }`}
-                onClick={() => toggleColumnSelection(col.id)}
+                )}
+                onClick={() => {
+                  setSelectedColumns(prev => 
+                    prev.includes(col.id) ? prev.filter(c => c !== col.id) : [...prev, col.id]
+                  );
+                }}
               >
                 <Checkbox 
                   id={col.id} 
                   checked={selectedColumns.includes(col.id)} 
-                  onCheckedChange={() => toggleColumnSelection(col.id)}
+                  onCheckedChange={() => {}}
                   className="w-5 h-5 rounded-md"
                 />
                 <Label htmlFor={col.id} className="text-sm font-black uppercase cursor-pointer flex-1">
