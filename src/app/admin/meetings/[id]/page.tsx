@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -56,6 +56,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   
   // Export states
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [orderedColumns, setOrderedColumns] = useState([...EXPORT_COLUMNS]);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(EXPORT_COLUMNS.map(c => c.id));
   const [dataToExport, setDataToExport] = useState<any[]>([]);
   const [exportTitle, setExportTitle] = useState('');
@@ -207,19 +208,33 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     setIsExportDialogOpen(true);
   };
 
+  const moveColumn = (index: number, direction: 'up' | 'down') => {
+    const newOrdered = [...orderedColumns];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newOrdered.length) return;
+    
+    [newOrdered[index], newOrdered[targetIndex]] = [newOrdered[targetIndex], newOrdered[index]];
+    setOrderedColumns(newOrdered);
+  };
+
   const exportToCSV = () => {
-    const headers = EXPORT_COLUMNS.filter(c => selectedColumns.includes(c.id)).map(c => c.label);
+    const activeCols = orderedColumns.filter(c => selectedColumns.includes(c.id));
+    const headers = activeCols.map(c => c.label);
     const rows = [headers];
 
     dataToExport.forEach(child => {
-      const rowData: string[] = [];
-      if (selectedColumns.includes('parentName')) rowData.push(child.parentName || '');
-      if (selectedColumns.includes('parentEmail')) rowData.push(child.parentEmail || '');
-      if (selectedColumns.includes('childName')) rowData.push(child.name || '');
-      if (selectedColumns.includes('ageGroup')) rowData.push(child.ageGroupLabel || '');
-      if (selectedColumns.includes('birthDate')) rowData.push(formatDate(child.birthDate));
-      if (selectedColumns.includes('familyName')) rowData.push(child.familyName || '');
-      if (selectedColumns.includes('guitar')) rowData.push(child.guitarSelected ? 'SÍ' : 'NO');
+      const rowData: string[] = activeCols.map(col => {
+        switch (col.id) {
+          case 'parentName': return child.parentName || '';
+          case 'parentEmail': return child.parentEmail || '';
+          case 'childName': return child.name || '';
+          case 'ageGroup': return child.ageGroupLabel || '';
+          case 'birthDate': return formatDate(child.birthDate);
+          case 'familyName': return child.familyName || '';
+          case 'guitar': return child.guitarSelected ? 'SÍ' : 'NO';
+          default: return '';
+        }
+      });
       rows.push(rowData);
     });
 
@@ -305,7 +320,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-8">
-          {/* Tarjetas de Resumen */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="border-accent/40 bg-accent/5 rounded-2xl shadow-sm">
               <CardHeader className="p-4 pb-1">
@@ -329,7 +343,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 <p className="text-[9px] text-muted-foreground font-bold uppercase">Niños confirmados</p>
               </CardContent>
             </Card>
-            {/* Tarjetas por categoría (dinámicas) */}
             {meeting.ageGroups?.map((group: any) => {
               const count = allChildren.filter(c => c.ageGroupLabel === group.label).length;
               return (
@@ -474,7 +487,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           </div>
         </div>
 
-        {/* SIDEBAR CONFIG */}
         <div className="space-y-6">
           <Card className={cn(
             "rounded-2xl border-2 shadow-lg transition-all sticky top-24",
@@ -536,7 +548,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
-      {/* DIÁLOGO DE EXPORTACIÓN */}
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
         <DialogContent className="rounded-3xl border-none shadow-2xl max-w-md">
           <DialogHeader>
@@ -545,15 +556,49 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               Exportar {exportTitle}
             </DialogTitle>
             <DialogDescription className="font-bold">
-              Selecciona las columnas para el CSV del listado <strong>{exportTitle}</strong>.
+              Selecciona y ordena las columnas para el listado de <strong>{exportTitle}</strong>.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 gap-3 py-6">
-            {EXPORT_COLUMNS.map((col) => (
-              <div key={col.id} className={cn("flex items-center space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer", selectedColumns.includes(col.id) ? 'border-primary/20 bg-primary/5' : 'border-transparent bg-muted/5 opacity-60')} onClick={() => setSelectedColumns(prev => prev.includes(col.id) ? prev.filter(c => c !== col.id) : [...prev, col.id])}>
-                <Checkbox id={col.id} checked={selectedColumns.includes(col.id)} className="w-5 h-5 rounded-md" />
-                <Label htmlFor={col.id} className="text-sm font-black uppercase cursor-pointer flex-1">{col.label}</Label>
+          <div className="grid grid-cols-1 gap-2 py-6">
+            <Label className="text-[10px] font-black uppercase text-muted-foreground mb-1">Orden y Selección de Columnas:</Label>
+            {orderedColumns.map((col, idx) => (
+              <div 
+                key={col.id} 
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-xl border-2 transition-all", 
+                  selectedColumns.includes(col.id) ? 'border-primary/20 bg-primary/5' : 'border-transparent bg-muted/5 opacity-60'
+                )}
+              >
+                <Checkbox 
+                  id={`export-${col.id}`} 
+                  checked={selectedColumns.includes(col.id)} 
+                  onCheckedChange={() => setSelectedColumns(prev => prev.includes(col.id) ? prev.filter(c => c !== col.id) : [...prev, col.id])}
+                  className="w-5 h-5 rounded-md" 
+                />
+                <Label htmlFor={`export-${col.id}`} className="text-xs font-black uppercase cursor-pointer flex-1">
+                  {col.label}
+                </Label>
+                <div className="flex gap-1 shrink-0">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-7 w-7 rounded-lg hover:bg-white" 
+                    onClick={() => moveColumn(idx, 'up')}
+                    disabled={idx === 0}
+                  >
+                    <ArrowUp className="w-3 h-3" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-7 w-7 rounded-lg hover:bg-white" 
+                    onClick={() => moveColumn(idx, 'down')}
+                    disabled={idx === orderedColumns.length - 1}
+                  >
+                    <ArrowDown className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
