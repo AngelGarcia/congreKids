@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
@@ -27,21 +27,21 @@ export default function ParentDashboard() {
   const [newChildBirthDate, setNewChildBirthDate] = useState('');
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
 
-  // Memoized Queries
+  // Memoized Queries - Ensure they wait for 'user' to be available to avoid permission errors
   const childrenQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'children');
   }, [db, user]);
 
   const upcomingMeetingsQuery = useMemoFirebase(() => {
-    if (!db) return null;
+    if (!db || !user) return null; // Wait for user authentication
     return query(
       collection(db, 'meetings'), 
       where('status', '==', 'upcoming'), 
       orderBy('date', 'asc'), 
       limit(1)
     );
-  }, [db]);
+  }, [db, user]);
 
   // Hooks for Data
   const { data: children, isLoading: loadingChildren } = useCollection(childrenQuery);
@@ -57,11 +57,11 @@ export default function ParentDashboard() {
   const { data: registration } = useDoc(registrationRef);
 
   // Sync selected children with registration data when it loads
-  useState(() => {
-    if (registration) {
-      setSelectedChildren(registration.children?.map((c: any) => c.childId) || []);
+  useEffect(() => {
+    if (registration && registration.children) {
+      setSelectedChildren(registration.children.map((c: any) => c.childId));
     }
-  });
+  }, [registration]);
 
   const handleAddChild = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +69,7 @@ export default function ParentDashboard() {
 
     const birthDate = new Date(newChildBirthDate);
     addDocumentNonBlocking(childrenQuery, {
+      parentId: user.uid,
       name: newChildName,
       birthDate: Timestamp.fromDate(birthDate),
     });
@@ -93,16 +94,26 @@ export default function ParentDashboard() {
       .filter(c => selectedChildren.includes(c.id))
       .map(c => {
         const ageMonths = calculateAgeInMonths((c.birthDate as any).toDate(), meetingDate);
-        const group = upcomingMeeting.ageGroups.find((g: any) => ageMonths >= g.minMonths && ageMonths < g.maxMonths);
+        const group = upcomingMeeting.ageGroups.find((g: any) => {
+          // Some age groups might be stored as objects or strings, let's be robust
+          const parsedGroup = typeof g === 'string' ? JSON.parse(g) : g;
+          return ageMonths >= parsedGroup.minMonths && ageMonths < parsedGroup.maxMonths;
+        });
+        
+        const groupLabel = group 
+          ? (typeof group === 'string' ? JSON.parse(group).label : group.label) 
+          : "Sin grupo";
+
         return {
           childId: c.id,
           name: c.name,
           birthDate: c.birthDate,
-          ageGroupLabel: group ? group.label : "Sin grupo"
+          ageGroupLabel: groupLabel
         };
       });
 
     setDocumentNonBlocking(registrationRef, {
+      meetingId: upcomingMeeting.id,
       parentId: user.uid,
       parentName: userData.displayName,
       parentEmail: userData.email,
@@ -172,7 +183,10 @@ export default function ParentDashboard() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => handleDeleteChild(child.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChild(child.id);
+                          }}
                           className="text-muted-foreground hover:text-destructive transition-colors"
                         >
                           <Trash2 className="w-5 h-5" />
