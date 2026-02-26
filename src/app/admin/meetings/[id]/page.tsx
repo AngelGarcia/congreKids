@@ -53,8 +53,13 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [isNextMeeting, setIsNextMeeting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Export states
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(EXPORT_COLUMNS.map(c => c.id));
+  const [dataToExport, setDataToExport] = useState<any[]>([]);
+  const [exportTitle, setExportTitle] = useState('');
+
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const { toast } = useToast();
@@ -196,11 +201,17 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     return sortOrder === 'asc' ? <ChevronUp className="ml-1 w-3 h-3 text-primary" /> : <ChevronDown className="ml-1 w-3 h-3 text-primary" />;
   };
 
+  const openExportDialog = (data: any[], title: string) => {
+    setDataToExport(data);
+    setExportTitle(title);
+    setIsExportDialogOpen(true);
+  };
+
   const exportToCSV = () => {
     const headers = EXPORT_COLUMNS.filter(c => selectedColumns.includes(c.id)).map(c => c.label);
     const rows = [headers];
 
-    allChildren.forEach(child => {
+    dataToExport.forEach(child => {
       const rowData: string[] = [];
       if (selectedColumns.includes('parentName')) rowData.push(child.parentName || '');
       if (selectedColumns.includes('parentEmail')) rowData.push(child.parentEmail || '');
@@ -219,7 +230,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `inscripciones_${meeting?.title || 'reunion'}.csv`);
+    link.setAttribute("download", `inscripciones_${meeting?.title || 'reunion'}_${exportTitle}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -287,9 +298,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                   {meeting.status === 'closed' ? <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</> : <><Lock className="w-4 h-4 mr-2" /> Cerrar Plazo</>}
                 </Button>
               )}
-              <Button size="sm" onClick={() => setIsExportDialogOpen(true)} className="rounded-xl font-bold uppercase shadow-md">
-                <FileDown className="w-4 h-4 mr-2" /> Exportar CSV
-              </Button>
             </>
           )}
         </div>
@@ -346,10 +354,23 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               {/* LISTADO GENERAL */}
               <AccordionItem value="general" className="rounded-2xl shadow-sm border overflow-hidden bg-white px-0">
                 <AccordionTrigger className="hover:no-underline py-4 px-6 bg-primary/5 group">
-                  <div className="flex items-center gap-3">
-                    <ListFilter className="w-5 h-5 text-primary" />
-                    <h2 className="text-sm font-black uppercase tracking-widest text-primary">Listado General (Todos)</h2>
-                    <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary font-black">{allChildren.length}</Badge>
+                  <div className="flex items-center justify-between w-full pr-4">
+                    <div className="flex items-center gap-3">
+                      <ListFilter className="w-5 h-5 text-primary" />
+                      <h2 className="text-sm font-black uppercase tracking-widest text-primary">Listado General (Todos)</h2>
+                      <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary font-black">{allChildren.length}</Badge>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openExportDialog(allChildren, "General");
+                      }}
+                      className="h-8 rounded-lg font-black uppercase text-[10px] bg-white shadow-sm border-primary/20 hover:bg-primary/5"
+                    >
+                      <FileDown className="w-3 h-3 mr-2" /> Exportar
+                    </Button>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-0">
@@ -394,13 +415,26 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 return (
                   <AccordionItem key={group.label} value={group.label} className="rounded-2xl shadow-sm border overflow-hidden bg-white px-0">
                     <AccordionTrigger className="hover:no-underline py-4 px-6 bg-muted/5">
-                      <div className="flex items-center gap-3">
-                        <Baby className="w-5 h-5 text-muted-foreground" />
-                        <h2 className="text-sm font-black uppercase tracking-widest">Categoría: {group.label}</h2>
-                        <Badge variant="outline" className="ml-2 font-black">{childrenInGroup.length}</Badge>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase ml-2 opacity-60">
-                          ({group.minMonths / 12} - {group.maxMonths / 12} años)
-                        </span>
+                      <div className="flex items-center justify-between w-full pr-4">
+                        <div className="flex items-center gap-3">
+                          <Baby className="w-5 h-5 text-muted-foreground" />
+                          <h2 className="text-sm font-black uppercase tracking-widest">Categoría: {group.label}</h2>
+                          <Badge variant="outline" className="ml-2 font-black">{childrenInGroup.length}</Badge>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase ml-2 opacity-60">
+                            ({group.minMonths / 12} - {group.maxMonths / 12} años)
+                          </span>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openExportDialog(childrenInGroup, group.label);
+                          }}
+                          className="h-8 rounded-lg font-black uppercase text-[10px] bg-white shadow-sm hover:bg-muted/5"
+                        >
+                          <FileDown className="w-3 h-3 mr-2" /> Exportar
+                        </Button>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="p-0">
@@ -508,10 +542,10 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           <DialogHeader>
             <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-2">
               <FileDown className="w-6 h-6" />
-              Exportar Listado
+              Exportar {exportTitle}
             </DialogTitle>
             <DialogDescription className="font-bold">
-              Selecciona las columnas para el CSV. Los nombres incluirán tildes y eñes correctamente.
+              Selecciona las columnas para el CSV del listado <strong>{exportTitle}</strong>.
             </DialogDescription>
           </DialogHeader>
           
