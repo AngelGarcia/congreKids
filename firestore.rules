@@ -1,114 +1,51 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * CONGREKIDS SECURITY RULES - PROTOTYPING MODE
-     *
-     * Core Philosophy: 
-     * This ruleset implements a robust, multi-layered authorization model for the CongreKids platform. 
-     * It prioritizes strict identity-based access control while maintaining flexibility in data 
-     * structure to support rapid development.
-     *
-     * Data Structure:
-     * 1. User Profiles & Children: Organized under /users/{userId}. 
-     * 2. Admin Roles: Managed via a dedicated /roles_admin/{adminId} collection (DBAC).
-     * 3. Meetings: Publicly viewable by signed-in users, managed by admins.
-     * 4. Registrations: Nested under meetings, keyed by parentId for path-based ownership.
-     *
-     * Key Security Decisions:
-     * - Authorization Independence: Decisions rely on path variables matching Auth UIDs whenever possible.
-     * - DBAC (Database-Based Access Control): Admin status is verified by the existence of a document 
-     *   in /roles_admin, avoiding 'get' calls to user profile documents for performance.
-     * - Relational Integrity: On creation, the rules enforce that internal data fields (like userId or parentId) 
-     *   match the document path to prevent data spoofing.
-     * - Ownership Immutability: Critical relational fields are locked after creation.
-     */
-
-    // --- HELPER FUNCTIONS ---
-
+    
     function isSignedIn() {
       return request.auth != null;
     }
-
+    
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isSignedIn() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
-
+    
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
+    
+    function isFamilyMember(familyId) {
+      return isSignedIn() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyId == familyId;
     }
 
-    // --- COLLECTION RULES ---
-
-    /**
-     * @description Rules for the User profile entity. 
-     * @path /users/{userId}
-     * @allow (get/list) If user is owner or an admin. (create) If user ID matches path.
-     * @deny (write) If auth UID does not match path {userId}.
-     * @principle Enforces path-based ownership and relational integrity for user profiles.
-     */
     match /users/{userId} {
-      allow get, list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
     }
 
-    /**
-     * @description Security marker for administrative roles.
-     * @path /roles_admin/{adminId}
-     * @allow (get/list/write) Only if the requester is an existing admin.
-     * @deny (all) For non-admin users.
-     * @principle Implements DBAC (Database-Based Access Control) for high-performance role checks.
-     */
-    match /roles_admin/{adminId} {
-      allow get, list: if isAdmin();
-      allow create, update, delete: if isAdmin();
+    match /families/{familyId} {
+      allow get: if isFamilyMember(familyId) || isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isFamilyMember(familyId) || isAdmin();
+      allow list, delete: if isAdmin();
+      
+      match /children/{childId} {
+        allow read, write: if isFamilyMember(familyId) || isAdmin();
+      }
     }
 
-    /**
-     * @description Manages child profiles nested under their parent's user document.
-     * @path /users/{userId}/children/{childId}
-     * @allow (get/list) If parent owner or admin. (create/update) If parent owner.
-     * @deny (create) If internal userId field does not match parent path.
-     * @principle Ensures hierarchical data ownership and validates parent-child relationship.
-     */
-    match /users/{userId}/children/{childId} {
-      allow get, list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Core meeting details and configuration.
-     * @path /meetings/{meetingId}
-     * @allow (get/list) All authenticated users. (write) Only administrators.
-     * @deny (write) Any non-admin user attempt to modify meeting metadata.
-     * @principle Public read-only access for consumers with restricted admin-only management.
-     */
     match /meetings/{meetingId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description Parent registrations for specific meetings.
-     * @path /meetings/{meetingId}/registrations/{parentId}
-     * @allow (get/list) Owner of the registration or admin. (create/update) Owner.
-     * @deny (create) If parentId in data does not match parentId in path.
-     * @principle Path-based ownership for registrations with relational field validation.
-     */
-    match /meetings/{meetingId}/registrations/{parentId} {
-      allow get, list: if isOwner(parentId) || isAdmin();
-      allow create: if isOwner(parentId) && request.resource.data.parentId == parentId;
-      allow update: if (isExistingOwner(parentId) || isAdmin()) && request.resource.data.parentId == resource.data.parentId;
-      allow delete: if isExistingOwner(parentId) || isAdmin();
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+      
+      match /registrations/{familyId} {
+        allow read, write: if isFamilyMember(familyId) || isAdmin();
+      }
     }
   }
 }

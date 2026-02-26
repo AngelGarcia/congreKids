@@ -275,23 +275,15 @@ export default function ParentDashboard() {
       <Navbar />
       <main className="container mx-auto px-4 py-8 space-y-12">
         
-        {/* Admin Quick Access Banner */}
+        {/* Admin Quick Access (Discrete) */}
         {userData.isAdmin && (
-          <div className="max-w-4xl mx-auto">
-            <Link href="/admin">
-              <div className="bg-primary/90 text-white p-6 rounded-[2rem] shadow-xl flex items-center justify-between hover:bg-primary transition-all group">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                    <ShieldCheck className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h3 className="font-black uppercase tracking-tight text-lg">Modo Administrador Activo</h3>
-                    <p className="text-white/80 text-sm font-medium">Gestiona reuniones, familias y permisos.</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
-              </div>
-            </Link>
+          <div className="flex justify-center">
+            <Button asChild variant="outline" className="rounded-full border-primary/20 bg-primary/5 font-bold hover:bg-primary/10">
+              <Link href="/admin">
+                <ShieldCheck className="mr-2 h-4 w-4 text-primary" />
+                Ir al área de Administración
+              </Link>
+            </Button>
           </div>
         )}
 
