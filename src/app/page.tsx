@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -9,17 +8,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, CheckCircle2 } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, Music } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { formatDate, formatDateTime, isRegistrationOpen, calculateAgeInMonths, getRegistrationOpeningDate, isTooEarlyForRegistration } from '@/lib/utils/date';
+import { formatDate, formatDateTime, isRegistrationOpen, calculateAgeInMonths, getRegistrationOpeningDate } from '@/lib/utils/date';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Link from 'next/link';
 import { normalizeString } from '@/lib/utils/string';
+import { Switch } from '@/components/ui/switch';
 
 export default function ParentDashboard() {
   const { user, userData, familyData, login, joinFamily, createFamily, loading: authLoading } = useAuth();
@@ -35,6 +35,7 @@ export default function ParentDashboard() {
   const [isSearching, setIsSearching] = useState(false);
   const [foundFamilies, setFoundFamilies] = useState<any[]>([]);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
+  const [guitarSelections, setGuitarSelections] = useState<Record<string, boolean>>({});
 
   const childrenQuery = useMemoFirebase(() => {
     if (!db || !userData?.familyId || !user) return null;
@@ -72,6 +73,11 @@ export default function ParentDashboard() {
   useEffect(() => {
     if (registration && registration.children) {
       setSelectedChildren(registration.children.map((c: any) => c.childId));
+      const gS: Record<string, boolean> = {};
+      registration.children.forEach((c: any) => {
+        if (c.guitarSelected) gS[c.childId] = true;
+      });
+      setGuitarSelections(gS);
     }
   }, [registration]);
 
@@ -81,17 +87,11 @@ export default function ParentDashboard() {
 
     setIsSearching(true);
     try {
-      // Normalizamos la búsqueda para ignorar tildes y mayúsculas
       const normalizedSearch = normalizeString(familySurnames);
-      
-      const q = query(
-        collection(db, 'families'), 
-        where('searchName', '==', normalizedSearch)
-      );
+      const q = query(collection(db, 'families'), where('searchName', '==', normalizedSearch));
       const snap = await getDocs(q);
       
       if (!snap.empty) {
-        // Obtenemos los miembros de cada familia para diferenciarlas
         const familiesWithMembers = await Promise.all(snap.docs.map(async (docSnap) => {
           const famData = { id: docSnap.id, ...docSnap.data() };
           const mQ = query(collection(db, 'users'), where('familyId', '==', docSnap.id));
@@ -119,19 +119,17 @@ export default function ParentDashboard() {
       .map(c => {
         const ageMonths = calculateAgeInMonths((c.birthDate as any).toDate(), meetingDate);
         const group = upcomingMeeting.ageGroups.find((g: any) => {
-          const parsedGroup = typeof g === 'string' ? JSON.parse(g) : g;
-          return ageMonths >= parsedGroup.minMonths && ageMonths < parsedGroup.maxMonths;
+          return ageMonths >= g.minMonths && ageMonths < g.maxMonths;
         });
         
-        const groupLabel = group 
-          ? (typeof group === 'string' ? JSON.parse(group).label : group.label) 
-          : "Sin grupo";
+        const groupLabel = group ? group.label : "Sin grupo";
 
         return {
           childId: c.id,
           name: c.name,
           birthDate: c.birthDate,
-          ageGroupLabel: groupLabel
+          ageGroupLabel: groupLabel,
+          guitarSelected: !!guitarSelections[c.id]
         };
       });
 
@@ -151,6 +149,13 @@ export default function ParentDashboard() {
       title: "Inscripción guardada", 
       description: `Los datos se han sincronizado con tu familia.` 
     });
+  };
+
+  const toggleGuitar = (childId: string) => {
+    setGuitarSelections(prev => ({
+      ...prev,
+      [childId]: !prev[childId]
+    }));
   };
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center font-black text-primary text-2xl uppercase tracking-tighter">Cargando CongreKids...</div>;
@@ -182,7 +187,6 @@ export default function ParentDashboard() {
             <CardDescription className="text-base font-bold">Configura tu unidad familiar para empezar.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 p-8">
-            
             {step === 'role' && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Primero, ¿cuál es tu rol?</Label>
@@ -209,7 +213,6 @@ export default function ParentDashboard() {
                 <Button onClick={() => setStep('search')} className="w-full h-14 rounded-xl font-black text-lg shadow-lg">SIGUIENTE</Button>
               </div>
             )}
-
             {step === 'search' && (
               <form onSubmit={handleSearchFamily} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                 <div className="space-y-3">
@@ -222,7 +225,6 @@ export default function ParentDashboard() {
                     className="h-14 rounded-xl border-2 font-bold text-center text-lg"
                     autoFocus
                   />
-                  <p className="text-[10px] text-muted-foreground text-center font-bold italic">Buscaremos si tu pareja ya ha creado la familia.</p>
                 </div>
                 <div className="flex flex-col gap-3">
                   <Button type="submit" disabled={isSearching} className="h-14 rounded-xl font-black text-lg shadow-lg">
@@ -232,7 +234,6 @@ export default function ParentDashboard() {
                 </div>
               </form>
             )}
-
             {step === 'confirm' && (
               <div className="space-y-6 animate-in zoom-in-95 duration-300">
                 {foundFamilies.length > 0 ? (
@@ -250,49 +251,27 @@ export default function ParentDashboard() {
                                     {m.displayName?.[0]}
                                   </div>
                                 ))}
-                                <span className="ml-3 text-[10px] font-bold text-muted-foreground self-center">
-                                  {fam.membersList.map((m: any) => m.displayName?.split(' ')[0]).join(' y ')}
-                                </span>
                               </div>
-                              <Button size="sm" onClick={() => joinFamily(fam.id, selectedRole)} className="rounded-lg h-8 px-4 font-black uppercase text-[10px]">
-                                UNIRME
-                              </Button>
+                              <Button size="sm" onClick={() => joinFamily(fam.id, selectedRole)} className="rounded-lg h-8 px-4 font-black uppercase text-[10px]">UNIRME</Button>
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                    
-                    <div className="relative py-4">
-                      <div className="absolute inset-0 flex items-center"><span className="w-full border-t"></span></div>
-                      <div className="relative flex justify-center text-[10px] font-black uppercase"><span className="bg-white px-2 text-muted-foreground">O también</span></div>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <Button variant="outline" onClick={() => createFamily(familySurnames, selectedRole)} className="h-14 rounded-xl font-black text-xs uppercase border-2 border-primary text-primary hover:bg-primary/5">
-                        NO, CREAR NUEVA FAMILIA {familySurnames.toUpperCase()}
-                      </Button>
-                      <Button variant="ghost" onClick={() => setStep('search')} className="text-[10px] font-black uppercase text-muted-foreground">Volver a buscar</Button>
-                    </div>
+                    <Button variant="outline" onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-14 rounded-xl font-black text-xs uppercase border-2 border-primary text-primary hover:bg-primary/5">
+                      CREAR NUEVA FAMILIA {familySurnames.toUpperCase()}
+                    </Button>
                   </div>
                 ) : (
                   <div className="text-center space-y-6">
-                    <div className="bg-muted/10 p-8 rounded-[2rem] border-2 border-dashed border-muted-foreground/30 space-y-2">
-                      <p className="text-xs font-black uppercase text-muted-foreground tracking-widest italic">Nueva Unidad Familiar</p>
-                      <h3 className="text-2xl font-black uppercase tracking-tighter">Familia {familySurnames}</h3>
-                      <p className="text-sm font-bold text-muted-foreground">No hemos encontrado ninguna familia con estos apellidos.</p>
-                    </div>
-                    <div className="flex flex-col gap-3">
-                      <Button onClick={() => createFamily(familySurnames, selectedRole)} className="h-16 rounded-2xl font-black text-lg shadow-xl uppercase tracking-tighter">
-                        CREAR ESTA FAMILIA
-                      </Button>
-                      <Button variant="ghost" onClick={() => setStep('search')} className="text-xs font-black uppercase text-muted-foreground">Corregir apellidos</Button>
-                    </div>
+                    <h3 className="text-2xl font-black uppercase tracking-tighter">Familia {familySurnames}</h3>
+                    <Button onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase tracking-tighter">
+                      CREAR ESTA FAMILIA
+                    </Button>
                   </div>
                 )}
               </div>
             )}
-
           </CardContent>
         </Card>
       </div>
@@ -306,25 +285,19 @@ export default function ParentDashboard() {
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
       <main className="container mx-auto px-4 py-12 space-y-12 max-w-4xl">
-        
-        {/* Admin Quick Access */}
         {userData.isAdmin && (
           <div className="flex justify-center -mt-4 mb-4">
             <Link href="/admin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary flex items-center gap-2 transition-colors">
-              <ShieldCheck className="w-3 h-3" />
-              Área de Administración
+              <ShieldCheck className="w-3 h-3" /> Área de Administración
             </Link>
           </div>
         )}
 
         <div className="text-center space-y-2">
-          <h1 className="text-5xl font-black tracking-tighter uppercase text-primary drop-shadow-sm">
-            {familyData?.name || '...'}
-          </h1>
+          <h1 className="text-5xl font-black tracking-tighter uppercase text-primary drop-shadow-sm">{familyData?.name || '...'}</h1>
           <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.3em]">Unidad Familiar</p>
         </div>
 
-        {/* Meeting Section */}
         <section className="space-y-6">
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
@@ -338,65 +311,54 @@ export default function ParentDashboard() {
           ) : upcomingMeeting ? (
             <Card className="border-4 border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
               <CardHeader className="bg-primary/5 p-8 space-y-4">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-2xl text-primary font-black leading-tight uppercase tracking-tighter">
-                    {upcomingMeeting.title}
-                  </CardTitle>
-                  <Badge className="bg-primary text-white font-black px-4 py-1 text-xs rounded-full uppercase">Siguiente</Badge>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-base font-bold text-muted-foreground">
-                    <CalendarIcon className="w-4 h-4" />
-                    {formatDateTime(upcomingMeeting.date)}
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] bg-destructive/10 text-destructive self-start px-2 py-1 rounded-lg">
-                    <Clock className="w-3 h-3" />
-                    Plazo hasta: {formatDate(upcomingMeeting.registrationDeadline)}
-                  </div>
+                <CardTitle className="text-2xl text-primary font-black leading-tight uppercase tracking-tighter">{upcomingMeeting.title}</CardTitle>
+                <div className="flex items-center gap-2 text-base font-bold text-muted-foreground">
+                  <CalendarIcon className="w-4 h-4" /> {formatDateTime(upcomingMeeting.date)}
                 </div>
               </CardHeader>
               <CardContent className="p-6">
                 {isRegistrationCurrentlyOpen ? (
                   <div className="space-y-4">
-                    <div className="bg-muted/30 p-4 rounded-xl border-l-4 border-primary">
-                      <p className="text-sm font-bold text-foreground italic">"Selecciona a los peques que vendrán"</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="grid grid-cols-1 gap-4">
                       {(!sortedChildren || sortedChildren.length === 0) ? (
-                        <div className="py-8 text-center border-2 border-dashed rounded-2xl bg-muted/5 space-y-3">
-                          <p className="text-muted-foreground font-bold text-sm px-6">Para inscribir a tus hijos, primero debes añadirlos en tu perfil familiar.</p>
-                          <Button asChild variant="outline" size="sm" className="rounded-xl font-black uppercase tracking-tighter text-[10px]">
-                            <Link href="/family">Gestionar Familia</Link>
-                          </Button>
-                        </div>
+                        <p className="py-8 text-center text-muted-foreground font-bold italic">Primero añade a tus hijos en el perfil familiar.</p>
                       ) : (
                         sortedChildren.map(child => {
                           const ageMonths = calculateAgeInMonths((child.birthDate as any).toDate(), (upcomingMeeting.date as any).toDate());
                           const isSelected = selectedChildren.includes(child.id);
+                          const currentGroup = upcomingMeeting.ageGroups.find((g: any) => ageMonths >= g.minMonths && ageMonths < g.maxMonths);
+                          const allowsGuitar = currentGroup?.allowsGuitar;
+
                           return (
-                            <div 
-                              key={child.id} 
-                              className={`flex items-center space-x-4 p-3 rounded-2xl border-2 transition-all cursor-pointer ${
-                                isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'border-border bg-white hover:border-primary/10'
-                              }`}
-                              onClick={() => {
-                                setSelectedChildren(prev => 
-                                  isSelected ? prev.filter(id => id !== child.id) : [...prev, child.id]
-                                );
-                              }}
-                            >
-                              <Checkbox 
-                                checked={isSelected}
-                                className="w-6 h-6 rounded-lg border-2 data-[state=checked]:bg-primary"
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                              <div className="flex-1">
-                                <p className="text-lg font-black leading-none mb-1">{child.name}</p>
-                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
-                                  {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
-                                </p>
+                            <div key={child.id} className="space-y-2">
+                              <div 
+                                className={`flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                                  isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'border-border bg-white hover:border-primary/10'
+                                }`}
+                                onClick={() => {
+                                  setSelectedChildren(prev => isSelected ? prev.filter(id => id !== child.id) : [...prev, child.id]);
+                                }}
+                              >
+                                <Checkbox checked={isSelected} className="w-6 h-6 rounded-lg border-2" onClick={(e) => e.stopPropagation()} />
+                                <div className="flex-1">
+                                  <p className="text-lg font-black leading-none mb-1">{child.name}</p>
+                                  <p className="text-[10px] font-black text-muted-foreground uppercase">
+                                    {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
+                                  </p>
+                                </div>
                               </div>
+                              {isSelected && allowsGuitar && (
+                                <div className="ml-8 flex items-center justify-between p-3 bg-accent/5 rounded-xl border-2 border-accent/20">
+                                  <div className="flex items-center gap-2">
+                                    <Music className="w-4 h-4 text-accent" />
+                                    <span className="text-xs font-black uppercase tracking-tight">¿Apuntar a clase de guitarra?</span>
+                                  </div>
+                                  <Switch 
+                                    checked={guitarSelections[child.id] || false} 
+                                    onCheckedChange={() => toggleGuitar(child.id)}
+                                  />
+                                </div>
+                              )}
                             </div>
                           );
                         })
@@ -406,8 +368,7 @@ export default function ParentDashboard() {
                 ) : (
                   <div className="py-16 text-center space-y-6">
                     <AlertCircle className="text-destructive w-12 h-12 mx-auto" />
-                    <p className="text-xl font-black text-destructive uppercase tracking-tighter">Inscripciones Cerradas</p>
-                    <p className="text-xs text-muted-foreground font-bold">El plazo para esta reunión ha finalizado.</p>
+                    <p className="text-xl font-black text-destructive uppercase">Inscripciones Cerradas</p>
                   </div>
                 )}
               </CardContent>
@@ -416,12 +377,6 @@ export default function ParentDashboard() {
                   <Button onClick={handleRegister} className="w-full h-14 text-lg rounded-2xl font-black shadow-xl uppercase tracking-tighter">
                     {registration ? 'Actualizar Inscripción' : 'Confirmar Asistencia'}
                   </Button>
-                  {registration && (
-                    <div className="flex items-center gap-2 text-green-600 font-black justify-center bg-green-50 p-2 rounded-xl w-full border border-green-100">
-                      <Heart className="w-4 h-4 fill-green-600" />
-                      <span className="text-[10px] uppercase tracking-widest">Inscripción guardada correctamente</span>
-                    </div>
-                  )}
                 </CardFooter>
               )}
             </Card>
@@ -432,7 +387,6 @@ export default function ParentDashboard() {
           )}
         </section>
 
-        {/* Family Summary Card */}
         <section className="pt-8">
           <Card className="rounded-3xl border-2 bg-muted/5 border-dashed hover:bg-white transition-all group overflow-hidden">
             <Link href="/family" className="p-8 flex items-center justify-between">
@@ -442,16 +396,13 @@ export default function ParentDashboard() {
                 </div>
                 <div>
                   <h3 className="text-lg font-black uppercase tracking-tight">Mi Familia</h3>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {children?.length || 0} hijos registrados • Gestionar perfiles y pareja
-                  </p>
+                  <p className="text-xs font-medium text-muted-foreground">{children?.length || 0} hijos registrados</p>
                 </div>
               </div>
               <ArrowRight className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-1" />
             </Link>
           </Card>
         </section>
-
       </main>
     </div>
   );

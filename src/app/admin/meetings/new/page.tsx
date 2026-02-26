@@ -11,16 +11,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 import { getDefaultDeadline, generateFridaysForMonth, formatDate } from '@/lib/utils/date';
-import { Plus, Trash2, Save, X, Calendar as CalendarIcon, Wand2, Check, Settings2 } from 'lucide-react';
+import { Plus, Trash2, Save, X, Calendar as CalendarIcon, Wand2, Check, Settings2, Music } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 
 const DEFAULT_AGE_GROUPS = [
-  { label: 'Bebés', minMonths: 0, maxMonths: 18 },
-  { label: 'Pequeños', minMonths: 18, maxMonths: 36 },
-  { label: '3-6 años', minMonths: 36, maxMonths: 72 },
-  { label: 'Mayores', minMonths: 72, maxMonths: 144 },
+  { label: 'Bebés', minMonths: 0, maxMonths: 18, allowsGuitar: false },
+  { label: 'Pequeños', minMonths: 18, maxMonths: 36, allowsGuitar: false },
+  { label: '3-6 años', minMonths: 36, maxMonths: 72, allowsGuitar: false },
+  { label: 'Mayores', minMonths: 72, maxMonths: 144, allowsGuitar: true },
 ];
 
 export default function NewMeeting() {
@@ -72,7 +73,7 @@ export default function NewMeeting() {
     fridaysToCreate.forEach(friday => {
       const deadlineDate = getDefaultDeadline(friday);
       addDocumentNonBlocking(collection(db, 'meetings'), {
-        title: formatDate(friday), // Título automático: Viernes, X de Mes
+        title: formatDate(friday), 
         date: Timestamp.fromDate(friday),
         registrationDeadline: Timestamp.fromDate(deadlineDate),
         status: 'upcoming',
@@ -118,7 +119,7 @@ export default function NewMeeting() {
   };
 
   const addAgeGroup = () => {
-    setAgeGroups([...ageGroups, { label: 'Nuevo Grupo', minMonths: 0, maxMonths: 144 }]);
+    setAgeGroups([...ageGroups, { label: 'Nuevo Grupo', minMonths: 0, maxMonths: 144, allowsGuitar: false }]);
   };
 
   return (
@@ -335,6 +336,16 @@ export default function NewMeeting() {
                           className="h-9 font-bold rounded-lg border-2"
                         />
                       </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <div className="flex items-center gap-2">
+                        <Music className="w-3 h-3 text-primary" />
+                        <Label className="text-[10px] font-black uppercase">Habilitar Guitarra</Label>
+                      </div>
+                      <Switch 
+                        checked={group.allowsGuitar} 
+                        onCheckedChange={(val) => updateAgeGroup(idx, 'allowsGuitar', val)} 
+                      />
                     </div>
                   </div>
                 ))}
