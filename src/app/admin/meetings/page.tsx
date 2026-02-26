@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 
 export default function MeetingsAdmin() {
   const db = useFirestore();
+  // Traemos todas para separar y ordenar en memoria con mayor precisión
   const meetingsQuery = useMemoFirebase(() => query(collection(db, 'meetings'), orderBy('date', 'desc')), [db]);
   const { data: meetings, isLoading } = useCollection(meetingsQuery);
 
@@ -22,9 +23,16 @@ export default function MeetingsAdmin() {
 
   const now = new Date();
   
-  // Separar reuniones
-  const upcoming = meetings?.filter(m => (m.date as any).toDate() >= now).reverse() || [];
-  const past = meetings?.filter(m => (m.date as any).toDate() < now) || [];
+  // Separar y ordenar reuniones
+  // Futuras: de menor a mayor (próxima primero)
+  const upcoming = meetings
+    ?.filter(m => (m.date as any).toDate() >= now)
+    .sort((a, b) => (a.date as any).toDate().getTime() - (b.date as any).toDate().getTime()) || [];
+  
+  // Pasadas: de mayor a menor (reciente primero)
+  const past = meetings
+    ?.filter(m => (m.date as any).toDate() < now)
+    .sort((a, b) => (b.date as any).toDate().getTime() - (a.date as any).toDate().getTime()) || [];
 
   const nextMeeting = upcoming[0];
   const otherFuture = upcoming.slice(1);
@@ -88,7 +96,7 @@ export default function MeetingsAdmin() {
                 </p>
               </div>
               <div className="flex flex-col gap-3 w-full md:w-auto">
-                <Button asChild size="xl" className="h-16 px-8 bg-white text-primary hover:bg-white/90 rounded-2xl font-black text-lg uppercase tracking-tighter shadow-xl">
+                <Button asChild size="lg" className="h-16 px-8 bg-white text-primary hover:bg-white/90 rounded-2xl font-black text-lg uppercase tracking-tighter shadow-xl">
                   <Link href={`/admin/meetings/${nextMeeting.id}`}>
                     Ver Inscripciones
                     <ArrowRight className="ml-2 w-5 h-5" />
