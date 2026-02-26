@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -130,6 +130,13 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     }
   }
 
+  const formatMonthsToYears = (months: number) => {
+    if (months === 0) return "0";
+    if (months < 12) return `${months} m`;
+    const years = months / 12;
+    return `${years} añ${years === 1 ? 'o' : 'os'}`;
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -137,7 +144,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           <Link href="/admin/meetings" className="text-sm text-muted-foreground flex items-center hover:text-primary mb-2">
             <ChevronLeft className="w-4 h-4 mr-1" /> Volver
           </Link>
-          <h1 className="text-3xl font-bold tracking-tight">{meeting.title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight uppercase tracking-tighter">{meeting.title}</h1>
           <div className="text-muted-foreground flex items-center gap-3">
             {formatDate(meeting.date)}
             <Badge variant={badgeVariant} className="font-black uppercase">
@@ -147,7 +154,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
         </div>
         <div className="flex gap-2">
           {!isPast && isNextMeeting && (
-            <Button variant="outline" size="sm" onClick={handleToggleStatus}>
+            <Button variant="outline" size="sm" onClick={handleToggleStatus} className="rounded-xl font-bold uppercase">
               {meeting.status === 'closed' ? (
                 <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</>
               ) : (
@@ -155,71 +162,106 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               )}
             </Button>
           )}
-          <Button size="sm" onClick={exportToCSV}>
+          <Button size="sm" onClick={exportToCSV} className="rounded-xl font-bold uppercase">
             <FileDown className="w-4 h-4 mr-2" />
             Exportar CSV
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Resumen por grupos de edad si existen registros */}
-        {Object.keys(registrations.reduce((acc: any, reg) => {
-          reg.children.forEach((c: any) => {
-            acc[c.ageGroupLabel || 'Sin grupo'] = true;
-          });
-          return acc;
-        }, {})).map((group) => {
-          const count = registrations.reduce((acc, reg) => 
-            acc + reg.children.filter((c: any) => (c.ageGroupLabel || 'Sin grupo') === group).length, 0
-          );
-          return (
-            <Card key={group} className="border-primary/20">
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-sm font-medium">{group}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-3xl font-bold">{count}</div>
-                <p className="text-xs text-muted-foreground">Niños registrados</p>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Object.keys(registrations.reduce((acc: any, reg) => {
+            reg.children.forEach((c: any) => {
+              acc[c.ageGroupLabel || 'Sin grupo'] = true;
+            });
+            return acc;
+          }, {})).map((group) => {
+            const count = registrations.reduce((acc, reg) => 
+              acc + reg.children.filter((c: any) => (c.ageGroupLabel || 'Sin grupo') === group).length, 0
+            );
+            return (
+              <Card key={group} className="border-primary/20 rounded-2xl shadow-sm">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-xs font-black uppercase tracking-widest text-primary">{group}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-4xl font-black">{count}</div>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase">Niños registrados</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Configuración de Grupos de Edad */}
+        <Card className="rounded-2xl border-2 border-dashed bg-muted/5">
+          <CardHeader className="p-4 pb-2 flex flex-row items-center gap-2">
+            <Settings2 className="w-4 h-4 text-muted-foreground" />
+            <CardTitle className="text-xs font-black uppercase tracking-widest">Configuración Edad</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-2 space-y-3">
+            {meeting.ageGroups?.map((group: any, idx: number) => (
+              <div key={idx} className="flex flex-col gap-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black uppercase">{group.label}</span>
+                  <span className="text-[10px] font-bold text-muted-foreground">
+                    {formatMonthsToYears(group.minMonths)} a {formatMonthsToYears(group.maxMonths)}
+                  </span>
+                </div>
+                <div className="h-1 bg-primary/10 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary/30" 
+                    style={{ 
+                      marginLeft: `${(group.minMonths / 144) * 100}%`,
+                      width: `${((group.maxMonths - group.minMonths) / 144) * 100}%`
+                    }} 
+                  />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Listado de Niños</CardTitle>
-          <CardDescription>Total de {registrations.reduce((acc, r) => acc + r.children.length, 0)} niños inscritos.</CardDescription>
+      <Card className="rounded-2xl shadow-sm border overflow-hidden">
+        <CardHeader className="bg-muted/5 border-b">
+          <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+            <Baby className="w-5 h-5 text-primary" />
+            Listado de Niños
+          </CardTitle>
+          <CardDescription className="font-medium">Total de {registrations.reduce((acc, r) => acc + r.children.length, 0)} niños inscritos.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre del Niño</TableHead>
-                <TableHead>Grupo de Edad</TableHead>
-                <TableHead>Padre / Madre</TableHead>
-                <TableHead>F. Nacimiento</TableHead>
+            <TableHeader className="bg-muted/5">
+              <TableRow className="hover:bg-transparent border-none">
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">Nombre del Niño</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">Categoría</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">Padre / Madre</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">F. Nacimiento</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {registrations.flatMap((reg) => 
                 reg.children.map((child: any, idx: number) => (
-                  <TableRow key={`${reg.id}-${idx}`}>
-                    <TableCell className="font-medium">
-                      {child.name} <span className="text-muted-foreground font-normal ml-1">({reg.familyName || 'Sin apellidos'})</span>
+                  <TableRow key={`${reg.id}-${idx}`} className="hover:bg-primary/5 transition-colors">
+                    <TableCell className="font-black py-4">
+                      {child.name} <span className="text-muted-foreground font-bold ml-1 uppercase text-xs">({reg.familyName || 'Sin apellidos'})</span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{child.ageGroupLabel || 'Sin grupo'}</Badge>
+                      <Badge variant="outline" className="rounded-lg font-black uppercase text-[9px] border-primary/20 text-primary">
+                        {child.ageGroupLabel || 'Sin grupo'}
+                      </Badge>
                     </TableCell>
-                    <TableCell>{reg.parentName}</TableCell>
-                    <TableCell>{formatDate(child.birthDate)}</TableCell>
+                    <TableCell className="text-sm font-medium">{reg.parentName}</TableCell>
+                    <TableCell className="text-xs font-bold uppercase text-muted-foreground">{formatDate(child.birthDate)}</TableCell>
                   </TableRow>
                 ))
               )}
               {registrations.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">
+                  <TableCell colSpan={4} className="text-center py-20 text-muted-foreground font-black uppercase opacity-40 italic">
                     Todavía no hay inscripciones para esta reunión.
                   </TableCell>
                 </TableRow>
