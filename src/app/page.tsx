@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Check, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2 } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, CheckCircle2 } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -32,8 +32,7 @@ export default function ParentDashboard() {
   // Forms state
   const [familySurnames, setFamilySurnames] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [foundFamily, setFoundFamily] = useState<any>(null);
-  const [foundMembers, setFoundMembers] = useState<any[]>([]);
+  const [foundFamilies, setFoundFamilies] = useState<any[]>([]);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
 
   const childrenQuery = useMemoFirebase(() => {
@@ -88,18 +87,18 @@ export default function ParentDashboard() {
       const snap = await getDocs(q);
       
       if (!snap.empty) {
-        const fam = { id: snap.docs[0].id, ...snap.docs[0].data() };
-        setFoundFamily(fam);
-        
-        // Buscar miembros para confirmación
-        const mQ = query(collection(db, 'users'), where('familyId', '==', fam.id));
-        const mSnap = await getDocs(mQ);
-        setFoundMembers(mSnap.docs.map(d => d.data()));
-        setStep('confirm');
+        // Obtenemos los miembros de cada familia para diferenciarlas
+        const familiesWithMembers = await Promise.all(snap.docs.map(async (docSnap) => {
+          const famData = { id: docSnap.id, ...docSnap.data() };
+          const mQ = query(collection(db, 'users'), where('familyId', '==', docSnap.id));
+          const mSnap = await getDocs(mQ);
+          return { ...famData, membersList: mSnap.docs.map(d => d.data()) };
+        }));
+        setFoundFamilies(familiesWithMembers);
       } else {
-        setFoundFamily(null);
-        setStep('confirm'); // Pasamos a confirmar pero para "Crear"
+        setFoundFamilies([]);
       }
+      setStep('confirm');
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "No se pudo realizar la búsqueda." });
     } finally {
@@ -223,7 +222,7 @@ export default function ParentDashboard() {
                 </div>
                 <div className="flex flex-col gap-3">
                   <Button type="submit" disabled={isSearching} className="h-14 rounded-xl font-black text-lg shadow-lg">
-                    {isSearching ? <Loader2 className="animate-spin" /> : 'BUSCAR O CONTINUAR'}
+                    {isSearching ? <Loader2 className="animate-spin" /> : 'BUSCAR COINCIDENCIAS'}
                   </Button>
                   <Button variant="ghost" onClick={() => setStep('role')} className="text-xs font-black uppercase text-muted-foreground">Volver</Button>
                 </div>
@@ -232,36 +231,50 @@ export default function ParentDashboard() {
 
             {step === 'confirm' && (
               <div className="space-y-6 animate-in zoom-in-95 duration-300">
-                {foundFamily ? (
-                  <div className="text-center space-y-6">
-                    <div className="bg-primary/5 p-6 rounded-2xl border-2 border-primary/20 space-y-2">
-                      <p className="text-xs font-black uppercase text-primary tracking-widest italic">Familia Encontrada</p>
-                      <h3 className="text-2xl font-black uppercase tracking-tighter">{foundFamily.name}</h3>
-                      <div className="pt-4 flex flex-col items-center gap-2">
-                        <p className="text-[10px] font-black uppercase text-muted-foreground">Miembros actuales:</p>
-                        <div className="flex -space-x-2">
-                          {foundMembers.map((m, i) => (
-                            <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-primary/20 flex items-center justify-center text-[10px] font-black uppercase">
-                              {m.displayName?.[0]}
+                {foundFamilies.length > 0 ? (
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <p className="text-xs font-black uppercase text-primary tracking-widest italic mb-4">¿Alguna de estas es tu familia?</p>
+                      <div className="space-y-3">
+                        {foundFamilies.map((fam) => (
+                          <div key={fam.id} className="bg-primary/5 p-5 rounded-2xl border-2 border-primary/20 text-left hover:bg-primary/10 transition-colors">
+                            <h3 className="text-lg font-black uppercase tracking-tighter leading-none mb-2">{fam.name}</h3>
+                            <div className="flex items-center justify-between">
+                              <div className="flex -space-x-1.5 overflow-hidden">
+                                {fam.membersList.map((m: any, i: number) => (
+                                  <div key={i} className="inline-block h-6 w-6 rounded-full border-2 border-white bg-primary/20 flex items-center justify-center text-[8px] font-black uppercase">
+                                    {m.displayName?.[0]}
+                                  </div>
+                                ))}
+                                <span className="ml-3 text-[10px] font-bold text-muted-foreground self-center">
+                                  {fam.membersList.map((m: any) => m.displayName?.split(' ')[0]).join(' y ')}
+                                </span>
+                              </div>
+                              <Button size="sm" onClick={() => joinFamily(fam.id, selectedRole)} className="rounded-lg h-8 px-4 font-black uppercase text-[10px]">
+                                UNIRME
+                              </Button>
                             </div>
-                          ))}
-                        </div>
-                        <p className="text-sm font-bold">{foundMembers.map(m => m.displayName).join(' y ')}</p>
+                          </div>
+                        ))}
                       </div>
                     </div>
+                    
+                    <div className="relative py-4">
+                      <div className="absolute inset-0 flex items-center"><span className="w-full border-t"></span></div>
+                      <div className="relative flex justify-center text-[10px] font-black uppercase"><span className="bg-white px-2 text-muted-foreground">O también</span></div>
+                    </div>
+
                     <div className="flex flex-col gap-3">
-                      <Button onClick={() => joinFamily(foundFamily.id, selectedRole)} className="h-16 rounded-2xl font-black text-lg shadow-xl uppercase tracking-tighter">
-                        ¡SÍ, ES MI FAMILIA! UNIRME
+                      <Button variant="outline" onClick={() => createFamily(familySurnames, selectedRole)} className="h-14 rounded-xl font-black text-xs uppercase border-2 border-primary text-primary hover:bg-primary/5">
+                        NO, CREAR NUEVA FAMILIA {familySurnames.toUpperCase()}
                       </Button>
-                      <Button variant="outline" onClick={() => setStep('search')} className="h-12 rounded-xl font-black text-xs uppercase border-2">
-                        NO ES MI FAMILIA, BUSCAR OTRA
-                      </Button>
+                      <Button variant="ghost" onClick={() => setStep('search')} className="text-[10px] font-black uppercase text-muted-foreground">Volver a buscar</Button>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center space-y-6">
-                    <div className="bg-muted/10 p-6 rounded-2xl border-2 border-dashed border-muted-foreground/30 space-y-2">
-                      <p className="text-xs font-black uppercase text-muted-foreground tracking-widest italic">Nueva Familia</p>
+                    <div className="bg-muted/10 p-8 rounded-[2rem] border-2 border-dashed border-muted-foreground/30 space-y-2">
+                      <p className="text-xs font-black uppercase text-muted-foreground tracking-widest italic">Nueva Unidad Familiar</p>
                       <h3 className="text-2xl font-black uppercase tracking-tighter">Familia {familySurnames}</h3>
                       <p className="text-sm font-bold text-muted-foreground">No hemos encontrado ninguna familia con estos apellidos.</p>
                     </div>
@@ -269,7 +282,7 @@ export default function ParentDashboard() {
                       <Button onClick={() => createFamily(familySurnames, selectedRole)} className="h-16 rounded-2xl font-black text-lg shadow-xl uppercase tracking-tighter">
                         CREAR ESTA FAMILIA
                       </Button>
-                      <Button variant="ghost" onClick={() => setStep('search')} className="text-xs font-black uppercase text-muted-foreground">Revisar apellidos</Button>
+                      <Button variant="ghost" onClick={() => setStep('search')} className="text-xs font-black uppercase text-muted-foreground">Corregir apellidos</Button>
                     </div>
                   </div>
                 )}
@@ -290,12 +303,12 @@ export default function ParentDashboard() {
       <Navbar />
       <main className="container mx-auto px-4 py-12 space-y-12 max-w-4xl">
         
-        {/* Admin Quick Access (Discrete) */}
+        {/* Admin Quick Access */}
         {userData.isAdmin && (
           <div className="flex justify-center -mt-4 mb-4">
             <Link href="/admin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary flex items-center gap-2 transition-colors">
               <ShieldCheck className="w-3 h-3" />
-              Ir al área de Administración
+              Área de Administración
             </Link>
           </div>
         )}
@@ -307,7 +320,7 @@ export default function ParentDashboard() {
           <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.3em]">Unidad Familiar</p>
         </div>
 
-        {/* Meeting Section - MAIN HERO */}
+        {/* Meeting Section */}
         <section className="space-y-6">
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
@@ -325,7 +338,7 @@ export default function ParentDashboard() {
                   <CardTitle className="text-2xl text-primary font-black leading-tight uppercase tracking-tighter">
                     {upcomingMeeting.title}
                   </CardTitle>
-                  <Badge className="bg-primary text-white font-black px-4 py-1 text-xs rounded-full uppercase">Próxima</Badge>
+                  <Badge className="bg-primary text-white font-black px-4 py-1 text-xs rounded-full uppercase">Siguiente</Badge>
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2 text-base font-bold text-muted-foreground">
@@ -334,7 +347,7 @@ export default function ParentDashboard() {
                   </div>
                   <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] bg-destructive/10 text-destructive self-start px-2 py-1 rounded-lg">
                     <Clock className="w-3 h-3" />
-                    Cierre de lista: {formatDate(upcomingMeeting.registrationDeadline)}
+                    Plazo hasta: {formatDate(upcomingMeeting.registrationDeadline)}
                   </div>
                 </div>
               </CardHeader>
@@ -386,14 +399,6 @@ export default function ParentDashboard() {
                       )}
                     </div>
                   </div>
-                ) : registrationOpeningDate && isTooEarlyForRegistration(registrationOpeningDate) ? (
-                   <div className="py-16 text-center space-y-6">
-                    <Clock className="text-primary w-12 h-12 mx-auto animate-pulse" />
-                    <p className="text-xl font-black text-primary uppercase tracking-tighter">Inscripciones Próximamente</p>
-                    <p className="text-xs text-muted-foreground font-bold max-w-sm mx-auto">
-                      Las listas para esta reunión se abrirán el <span className="text-primary">{formatDate(registrationOpeningDate!)}</span> a las 00:00h.
-                    </p>
-                  </div>
                 ) : (
                   <div className="py-16 text-center space-y-6">
                     <AlertCircle className="text-destructive w-12 h-12 mx-auto" />
@@ -423,7 +428,7 @@ export default function ParentDashboard() {
           )}
         </section>
 
-        {/* Family Summary Card (Secondary) */}
+        {/* Family Summary Card */}
         <section className="pt-8">
           <Card className="rounded-3xl border-2 bg-muted/5 border-dashed hover:bg-white transition-all group overflow-hidden">
             <Link href="/family" className="p-8 flex items-center justify-between">
