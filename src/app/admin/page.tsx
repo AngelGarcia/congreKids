@@ -3,11 +3,11 @@
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs, limit, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, limit, doc, getDoc, onSnapshot, collectionGroup } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Calendar, Users, ArrowRight, Clock, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar, Users, ArrowRight, Clock, ShieldCheck, CheckCircle2, AlertCircle, Baby } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function AdminDashboard() {
   const [nextMeeting, setNextMeeting] = useState<any>(null);
   const [nextMeetingStats, setNextMeetingStats] = useState({ childCount: 0 });
-  const [stats, setStats] = useState({ upcoming: 0, total: 0, totalFamilies: 0 });
+  const [stats, setStats] = useState({ upcoming: 0, total: 0, totalFamilies: 0, totalChildren: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,11 +31,15 @@ export default function AdminDashboard() {
           .sort((a: any, b: any) => (a.date as any).toDate().getTime() - (b.date as any).toDate().getTime());
         
         const familiesSnap = await getDocs(collection(db, 'families'));
+        
+        // Obtener el total de niños usando una consulta de grupo de colecciones
+        const childrenSnap = await getDocs(collectionGroup(db, 'children'));
 
         setStats({
           upcoming: upcomingMeetings.length,
           total: allMeetingsSnap.size,
-          totalFamilies: familiesSnap.size
+          totalFamilies: familiesSnap.size,
+          totalChildren: childrenSnap.size
         });
 
         if (upcomingMeetings.length > 0) {
@@ -84,15 +88,15 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="border-b-4 border-b-primary shadow-lg rounded-2xl overflow-hidden hover:bg-primary/5 transition-colors cursor-pointer group">
-          <Link href="/admin/meetings">
+          <Link href="/admin/families">
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-primary/5">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Próximas</CardTitle>
-              <Clock className="w-5 h-5 text-primary" />
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Niños</CardTitle>
+              <Baby className="w-5 h-5 text-primary" />
             </CardHeader>
             <CardContent className="pt-4 flex justify-between items-end">
               <div>
-                {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.upcoming}</div>}
-                <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Reuniones programadas</p>
+                {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.totalChildren}</div>}
+                <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Niños registrados en total</p>
               </div>
               <ArrowRight className="w-5 h-5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
             </CardContent>
