@@ -90,12 +90,12 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
             <ChevronLeft className="w-4 h-4 mr-1" /> Volver
           </Link>
           <h1 className="text-3xl font-bold tracking-tight">{meeting.title}</h1>
-          <p className="text-muted-foreground flex items-center gap-2">
+          <div className="text-muted-foreground flex items-center gap-2">
             {formatDate(meeting.date)}
             <Badge variant={meeting.status === 'upcoming' ? 'default' : 'secondary'}>
               {meeting.status === 'upcoming' ? 'Abierta' : 'Cerrada'}
             </Badge>
-          </p>
+          </div>
         </div>
         <div className="flex gap-2">
           {meeting.status === 'upcoming' && (
