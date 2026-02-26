@@ -43,20 +43,21 @@ export default function ParentDashboard() {
   }, [familyData]);
 
   // Memoized Queries
+  // Ensure we check for 'user' before creating queries that require authentication
   const childrenQuery = useMemoFirebase(() => {
     if (!db || !userData?.familyId) return null;
     return collection(db, 'families', userData.familyId, 'children');
   }, [db, userData?.familyId]);
 
   const upcomingMeetingsQuery = useMemoFirebase(() => {
-    if (!db) return null;
+    if (!db || !user) return null;
     return query(
       collection(db, 'meetings'), 
       where('status', '==', 'upcoming'), 
       orderBy('date', 'asc'), 
       limit(1)
     );
-  }, [db]);
+  }, [db, user]);
 
   const { data: children, isLoading: loadingChildren } = useCollection(childrenQuery);
   const { data: upcomingMeetings, isLoading: loadingMeetings } = useCollection(upcomingMeetingsQuery);
@@ -350,7 +351,7 @@ export default function ParentDashboard() {
                 </CardContent>
                 <CardFooter className="p-8 pt-0 flex flex-col gap-4">
                   <Button type="submit" className="w-full h-16 text-xl rounded-2xl font-black shadow-xl uppercase">
-                    Guardar Perfil
+                    Guardar Hijo
                   </Button>
                 </CardFooter>
               </form>
