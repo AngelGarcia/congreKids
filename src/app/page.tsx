@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, History } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, History, X } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -22,19 +22,22 @@ export default function ParentDashboard() {
   const db = useFirestore();
   const { toast } = useToast();
   
+  // State for showing the add child form
+  const [isAddingChild, setIsAddingChild] = useState(false);
+  
   // Child form state
   const [newChildName, setNewChildName] = useState('');
   const [newChildBirthDate, setNewChildBirthDate] = useState('');
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
 
-  // Memoized Queries - Ensure they wait for 'user' to be available to avoid permission errors
+  // Memoized Queries
   const childrenQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'children');
   }, [db, user]);
 
   const upcomingMeetingsQuery = useMemoFirebase(() => {
-    if (!db || !user) return null; // Wait for user authentication
+    if (!db || !user) return null;
     return query(
       collection(db, 'meetings'), 
       where('status', '==', 'upcoming'), 
@@ -76,6 +79,7 @@ export default function ParentDashboard() {
     
     setNewChildName('');
     setNewChildBirthDate('');
+    setIsAddingChild(false);
     toast({ title: "¡Hijo añadido!", description: "Se ha guardado correctamente el perfil." });
   };
 
@@ -95,7 +99,6 @@ export default function ParentDashboard() {
       .map(c => {
         const ageMonths = calculateAgeInMonths((c.birthDate as any).toDate(), meetingDate);
         const group = upcomingMeeting.ageGroups.find((g: any) => {
-          // Some age groups might be stored as objects or strings, let's be robust
           const parsedGroup = typeof g === 'string' ? JSON.parse(g) : g;
           return ageMonths >= parsedGroup.minMonths && ageMonths < parsedGroup.maxMonths;
         });
@@ -205,51 +208,63 @@ export default function ParentDashboard() {
                 ))}
                 
                 <Card className="border-dashed border-2 flex flex-col items-center justify-center p-8 text-center space-y-4 hover:bg-primary/5 transition-all cursor-pointer rounded-2xl bg-white/50" 
-                      onClick={() => document.getElementById('new-child-form')?.scrollIntoView({ behavior: 'smooth' })}>
+                      onClick={() => setIsAddingChild(true)}>
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                     <Plus className="w-8 h-8" />
                   </div>
-                  <p className="text-lg font-bold text-primary">Añadir perfil</p>
+                  <p className="text-lg font-bold text-primary">Añadir hijo</p>
                 </Card>
               </>
             )}
           </div>
 
-          <Card id="new-child-form" className="mt-10 max-w-xl shadow-lg border-primary/5 rounded-2xl overflow-hidden">
-            <CardHeader className="bg-primary/5">
-              <CardTitle className="text-xl">Registrar nuevo perfil</CardTitle>
-              <CardDescription>Añade a tus hijos para poder inscribirlos en las reuniones.</CardDescription>
-            </CardHeader>
-            <form onSubmit={handleAddChild}>
-              <CardContent className="space-y-5 pt-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-base">Nombre completo</Label>
-                  <Input 
-                    id="name" 
-                    placeholder="Ej. Pablo García" 
-                    value={newChildName}
-                    onChange={(e) => setNewChildName(e.target.value)}
-                    required
-                    className="h-12 text-lg rounded-xl"
-                  />
+          {isAddingChild && (
+            <Card className="mt-10 max-w-xl shadow-lg border-primary/5 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+              <CardHeader className="bg-primary/5 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">Añadir nuevo hijo</CardTitle>
+                  <CardDescription>Introduce los datos para poder inscribirlo en las reuniones.</CardDescription>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="birthDate" className="text-base">Fecha de nacimiento</Label>
-                  <Input 
-                    id="birthDate" 
-                    type="date" 
-                    value={newChildBirthDate}
-                    onChange={(e) => setNewChildBirthDate(e.target.value)}
-                    required
-                    className="h-12 text-lg rounded-xl"
-                  />
-                </div>
-              </CardContent>
-              <CardFooter className="pb-8">
-                <Button type="submit" className="w-full h-14 text-lg rounded-xl shadow-md">Guardar Perfil</Button>
-              </CardFooter>
-            </form>
-          </Card>
+                <Button variant="ghost" size="icon" onClick={() => setIsAddingChild(false)} className="rounded-full">
+                  <X className="w-5 h-5" />
+                </Button>
+              </CardHeader>
+              <form onSubmit={handleAddChild}>
+                <CardContent className="space-y-5 pt-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-base">Nombre completo</Label>
+                    <Input 
+                      id="name" 
+                      placeholder="Ej. Pablo García" 
+                      value={newChildName}
+                      onChange={(e) => setNewChildName(e.target.value)}
+                      required
+                      className="h-12 text-lg rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="birthDate" className="text-base">Fecha de nacimiento</Label>
+                    <Input 
+                      id="birthDate" 
+                      type="date" 
+                      value={newChildBirthDate}
+                      onChange={(e) => setNewChildBirthDate(e.target.value)}
+                      required
+                      className="h-12 text-lg rounded-xl"
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="pb-8 flex gap-3">
+                  <Button type="button" variant="outline" onClick={() => setIsAddingChild(false)} className="flex-1 h-14 text-lg rounded-xl">
+                    Cancelar
+                  </Button>
+                  <Button type="submit" className="flex-[2] h-14 text-lg rounded-xl shadow-md">
+                    Guardar hijo
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          )}
         </section>
 
         {/* Meeting Section */}
