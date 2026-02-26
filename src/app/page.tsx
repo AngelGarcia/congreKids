@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -8,8 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Check, Heart, ShieldCheck, ArrowRight, Clock } from 'lucide-react';
-import { collection, query, where, orderBy, limit, doc, Timestamp } from 'firebase/firestore';
+import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Check, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2 } from 'lucide-react';
+import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { formatDate, formatDateTime, isRegistrationOpen, calculateAgeInMonths, getRegistrationOpeningDate, isTooEarlyForRegistration } from '@/lib/utils/date';
@@ -26,10 +27,13 @@ export default function ParentDashboard() {
   
   // UI State
   const [selectedRole, setSelectedRole] = useState<'padre' | 'madre'>('padre');
+  const [step, setStep] = useState<'role' | 'search' | 'confirm'>('role');
   
   // Forms state
-  const [newFamilyName, setNewFamilyName] = useState('');
-  const [joinFamilyId, setJoinFamilyId] = useState('');
+  const [familySurnames, setFamilySurnames] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [foundFamily, setFoundFamily] = useState<any>(null);
+  const [foundMembers, setFoundMembers] = useState<any[]>([]);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
 
   const childrenQuery = useMemoFirebase(() => {
@@ -71,15 +75,35 @@ export default function ParentDashboard() {
     }
   }, [registration]);
 
-  const handleCreateFamily = (e: React.FormEvent) => {
+  const handleSearchFamily = async (e: React.FormEvent) => {
     e.preventDefault();
-    createFamily(newFamilyName.trim() || "", selectedRole);
-  };
+    if (!familySurnames.trim()) return;
 
-  const handleJoinFamily = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (joinFamilyId.trim()) {
-      joinFamily(joinFamilyId.trim(), selectedRole);
+    setIsSearching(true);
+    try {
+      const q = query(
+        collection(db, 'families'), 
+        where('name', '==', `Familia ${familySurnames.trim()}`)
+      );
+      const snap = await getDocs(q);
+      
+      if (!snap.empty) {
+        const fam = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        setFoundFamily(fam);
+        
+        // Buscar miembros para confirmación
+        const mQ = query(collection(db, 'users'), where('familyId', '==', fam.id));
+        const mSnap = await getDocs(mQ);
+        setFoundMembers(mSnap.docs.map(d => d.data()));
+        setStep('confirm');
+      } else {
+        setFoundFamily(null);
+        setStep('confirm'); // Pasamos a confirmar pero para "Crear"
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: "No se pudo realizar la búsqueda." });
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -146,69 +170,112 @@ export default function ParentDashboard() {
   if (!userData?.familyId) {
     return (
       <div className="min-h-screen bg-background p-6 flex flex-col items-center justify-center">
-        <Card className="w-full max-w-md rounded-3xl border-4 border-primary/10 shadow-2xl">
-          <CardHeader className="text-center space-y-2">
-            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
+        <Card className="w-full max-w-md rounded-3xl border-4 border-primary/10 shadow-2xl overflow-hidden">
+          <CardHeader className="text-center space-y-2 bg-primary/5 pb-8">
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-sm border">
               <Users className="w-8 h-8" />
             </div>
             <CardTitle className="text-3xl font-black uppercase tracking-tighter">Bienvenido</CardTitle>
-            <CardDescription className="text-base font-bold">Para empezar, define tu unidad familiar o únete a una existente.</CardDescription>
+            <CardDescription className="text-base font-bold">Configura tu unidad familiar para empezar.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 p-8">
-            <div className="space-y-6">
-              <Label className="text-xs font-black uppercase text-primary">Primero, ¿cuál es tu rol?</Label>
-              <RadioGroup value={selectedRole} onValueChange={(val: any) => setSelectedRole(val)} className="flex flex-wrap gap-2">
-                <div className="flex-1 min-w-[120px]">
-                  <RadioGroupItem value="padre" id="padre" className="peer sr-only" />
-                  <Label
-                    htmlFor="padre"
-                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary transition-all cursor-pointer"
-                  >
-                    <span className="text-base font-black uppercase">Padre</span>
-                  </Label>
-                </div>
-                <div className="flex-1 min-w-[120px]">
-                  <RadioGroupItem value="madre" id="madre" className="peer sr-only" />
-                  <Label
-                    htmlFor="madre"
-                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary transition-all cursor-pointer"
-                  >
-                    <span className="text-base font-black uppercase">Madre</span>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-4">
-              <Label className="text-xs font-black uppercase text-primary">Crear Nueva Familia</Label>
-              <form onSubmit={handleCreateFamily} className="flex flex-col gap-3">
-                <Input 
-                  placeholder="Apellidos (ej. García Medina)" 
-                  value={newFamilyName}
-                  onChange={e => setNewFamilyName(e.target.value)}
-                  className="h-14 rounded-xl border-2 font-bold"
-                />
-                <Button type="submit" className="h-14 rounded-xl font-black text-lg">CREAR FAMILIA</Button>
-              </form>
-            </div>
             
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-muted-foreground/20" /></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground font-black">O TAMBIÉN</span></div>
-            </div>
+            {step === 'role' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Primero, ¿cuál es tu rol?</Label>
+                <RadioGroup value={selectedRole} onValueChange={(val: any) => setSelectedRole(val)} className="flex gap-3">
+                  <div className="flex-1">
+                    <RadioGroupItem value="padre" id="padre" className="peer sr-only" />
+                    <Label
+                      htmlFor="padre"
+                      className="flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer"
+                    >
+                      <span className="text-base font-black uppercase">Padre</span>
+                    </Label>
+                  </div>
+                  <div className="flex-1">
+                    <RadioGroupItem value="madre" id="madre" className="peer sr-only" />
+                    <Label
+                      htmlFor="madre"
+                      className="flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer"
+                    >
+                      <span className="text-base font-black uppercase">Madre</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+                <Button onClick={() => setStep('search')} className="w-full h-14 rounded-xl font-black text-lg shadow-lg">SIGUIENTE</Button>
+              </div>
+            )}
 
-            <div className="space-y-4">
-              <Label className="text-xs font-black uppercase text-primary">Unirse con código</Label>
-              <form onSubmit={handleJoinFamily} className="flex flex-col gap-3">
-                <Input 
-                  placeholder="Pega el código de tu pareja" 
-                  value={joinFamilyId}
-                  onChange={e => setJoinFamilyId(e.target.value)}
-                  className="h-14 rounded-xl border-2 font-bold"
-                />
-                <Button variant="outline" type="submit" className="h-14 rounded-xl font-black text-lg border-2">UNIRSE A MI PAREJA</Button>
+            {step === 'search' && (
+              <form onSubmit={handleSearchFamily} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="space-y-3">
+                  <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Apellidos de tu Familia</Label>
+                  <Input 
+                    placeholder="Ej. García Medina" 
+                    value={familySurnames}
+                    onChange={e => setFamilySurnames(e.target.value)}
+                    required
+                    className="h-14 rounded-xl border-2 font-bold text-center text-lg"
+                    autoFocus
+                  />
+                  <p className="text-[10px] text-muted-foreground text-center font-bold italic">Buscaremos si tu pareja ya ha creado la familia.</p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <Button type="submit" disabled={isSearching} className="h-14 rounded-xl font-black text-lg shadow-lg">
+                    {isSearching ? <Loader2 className="animate-spin" /> : 'BUSCAR O CONTINUAR'}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setStep('role')} className="text-xs font-black uppercase text-muted-foreground">Volver</Button>
+                </div>
               </form>
-            </div>
+            )}
+
+            {step === 'confirm' && (
+              <div className="space-y-6 animate-in zoom-in-95 duration-300">
+                {foundFamily ? (
+                  <div className="text-center space-y-6">
+                    <div className="bg-primary/5 p-6 rounded-2xl border-2 border-primary/20 space-y-2">
+                      <p className="text-xs font-black uppercase text-primary tracking-widest italic">Familia Encontrada</p>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter">{foundFamily.name}</h3>
+                      <div className="pt-4 flex flex-col items-center gap-2">
+                        <p className="text-[10px] font-black uppercase text-muted-foreground">Miembros actuales:</p>
+                        <div className="flex -space-x-2">
+                          {foundMembers.map((m, i) => (
+                            <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-primary/20 flex items-center justify-center text-[10px] font-black uppercase">
+                              {m.displayName?.[0]}
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-sm font-bold">{foundMembers.map(m => m.displayName).join(' y ')}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      <Button onClick={() => joinFamily(foundFamily.id, selectedRole)} className="h-16 rounded-2xl font-black text-lg shadow-xl uppercase tracking-tighter">
+                        ¡SÍ, ES MI FAMILIA! UNIRME
+                      </Button>
+                      <Button variant="outline" onClick={() => setStep('search')} className="h-12 rounded-xl font-black text-xs uppercase border-2">
+                        NO ES MI FAMILIA, BUSCAR OTRA
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-6">
+                    <div className="bg-muted/10 p-6 rounded-2xl border-2 border-dashed border-muted-foreground/30 space-y-2">
+                      <p className="text-xs font-black uppercase text-muted-foreground tracking-widest italic">Nueva Familia</p>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter">Familia {familySurnames}</h3>
+                      <p className="text-sm font-bold text-muted-foreground">No hemos encontrado ninguna familia con estos apellidos.</p>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      <Button onClick={() => createFamily(familySurnames, selectedRole)} className="h-16 rounded-2xl font-black text-lg shadow-xl uppercase tracking-tighter">
+                        CREAR ESTA FAMILIA
+                      </Button>
+                      <Button variant="ghost" onClick={() => setStep('search')} className="text-xs font-black uppercase text-muted-foreground">Revisar apellidos</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
           </CardContent>
         </Card>
       </div>
