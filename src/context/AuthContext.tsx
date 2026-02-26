@@ -9,16 +9,17 @@ import {
   signOut, 
   User 
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface UserData {
-  id: string; // Changed from uid to id to match backend.json and firestore.rules
+  id: string;
   displayName: string | null;
   email: string | null;
   photoURL: string | null;
   role: 'parent' | 'admin';
+  familyId: string;
   createdAt: any;
 }
 
@@ -28,6 +29,7 @@ interface AuthContextType {
   loading: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  joinFamily: (familyId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,19 +44,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      
       if (currentUser) {
+        setUser(currentUser);
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         
         if (!userDoc.exists()) {
+          // Create a new Family for the new user
+          const familyRef = await addDoc(collection(db, 'families'), {
+            name: `Familia de ${currentUser.displayName}`,
+            members: [currentUser.uid],
+            createdAt: serverTimestamp(),
+          });
+
           const newData: UserData = {
-            id: currentUser.uid, // Changed from uid to id
+            id: currentUser.uid,
             displayName: currentUser.displayName,
             email: currentUser.email,
             photoURL: currentUser.photoURL,
             role: 'parent',
+            familyId: familyRef.id,
             createdAt: serverTimestamp(),
           };
           await setDoc(userDocRef, newData);
@@ -63,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserData(userDoc.data() as UserData);
         }
       } else {
+        setUser(null);
         setUserData(null);
       }
       setLoading(false);
@@ -76,15 +86,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (error: any) {
-      console.error("Login error:", error);
-      let message = "No se pudo iniciar sesión.";
-      if (error.code === 'auth/operation-not-allowed') {
-        message = "El inicio de sesión con Google no está habilitado en la consola de Firebase.";
-      }
       toast({
         variant: "destructive",
-        title: "Error de Autenticación",
-        description: message,
+        title: "Error",
+        description: "No se pudo iniciar sesión.",
       });
     }
   };
@@ -93,8 +98,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
+  const joinFamily = async (familyId: string) => {
+    if (!user || !userData) return;
+    try {
+      const familyRef = doc(db, 'families', familyId);
+      const familySnap = await getDoc(familyRef);
+      
+      if (!familySnap.exists()) {
+        throw new Error("La familia no existe");
+      }
+
+      // 1. Update family members
+      await updateDoc(familyRef, {
+        members: arrayUnion(user.uid)
+      });
+
+      // 2. Update user's familyId
+      await updateDoc(doc(db, 'users', user.uid), {
+        familyId: familyId
+      });
+
+      // 3. Update local state
+      setUserData({ ...userData, familyId });
+      
+      toast({ title: "¡Familia unida!", description: "Ahora compartes perfiles con tu pareja." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, userData, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, userData, loading, login, logout, joinFamily }}>
       {children}
     </AuthContext.Provider>
   );
