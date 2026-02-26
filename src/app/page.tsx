@@ -9,11 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home, Heart, ShieldCheck, ArrowRight, Settings, LayoutDashboard } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home, Heart, ShieldCheck, ArrowRight, Settings, LayoutDashboard, Clock } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { formatDate, isRegistrationOpen, calculateAgeInMonths } from '@/lib/utils/date';
+import { formatDate, isRegistrationOpen, calculateAgeInMonths, getRegistrationOpeningDate, isTooEarlyForRegistration } from '@/lib/utils/date';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -51,9 +51,11 @@ export default function ParentDashboard() {
 
   const upcomingMeetingsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
+    const now = new Date();
+    // Buscamos la primera reunión que no sea pasada
     return query(
       collection(db, 'meetings'), 
-      where('status', '==', 'upcoming'), 
+      where('date', '>=', Timestamp.fromDate(now)), 
       orderBy('date', 'asc'), 
       limit(1)
     );
@@ -275,6 +277,10 @@ export default function ParentDashboard() {
     if (b.role === 'padre') return 1;
     return 0;
   });
+
+  const registrationOpeningDate = upcomingMeeting ? getRegistrationOpeningDate((upcomingMeeting.date as any).toDate()) : null;
+  const isRegistrationYetOpen = registrationOpeningDate ? !isTooEarlyForRegistration(registrationOpeningDate) : false;
+  const isRegistrationCurrentlyOpen = upcomingMeeting ? isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate(), registrationOpeningDate) : false;
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -499,20 +505,21 @@ export default function ParentDashboard() {
                   <CardTitle className="text-3xl text-primary font-black leading-tight uppercase tracking-tighter">
                     {upcomingMeeting.title}
                   </CardTitle>
-                  <Badge className="bg-primary text-white font-black px-4 py-1 text-xs rounded-full uppercase">Abierta</Badge>
+                  <Badge className="bg-primary text-white font-black px-4 py-1 text-xs rounded-full uppercase">Próxima</Badge>
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2 text-lg font-bold text-muted-foreground">
                     <CalendarIcon className="w-5 h-5" />
-                    {formatDate(upcomingMeeting.date)}
+                    {formatDateTime(upcomingMeeting.date)}
                   </div>
-                  <div className="text-xs font-black text-destructive uppercase tracking-[0.2em] bg-destructive/10 self-start px-3 py-1 rounded-lg">
-                    Límite: {formatDate(upcomingMeeting.registrationDeadline)}
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] bg-destructive/10 text-destructive self-start px-3 py-1 rounded-lg">
+                    <Clock className="w-3 h-3" />
+                    Cierre: {formatDate(upcomingMeeting.registrationDeadline)}
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-8">
-                {isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate()) ? (
+                {isRegistrationCurrentlyOpen ? (
                   <div className="space-y-8">
                     <div className="bg-muted/30 p-6 rounded-2xl border-l-4 border-primary">
                       <p className="text-base font-bold text-foreground italic">"Selecciona a los peques que vendrán a la guardería"</p>
@@ -552,6 +559,14 @@ export default function ParentDashboard() {
                       )}
                     </div>
                   </div>
+                ) : isTooEarlyForRegistration(registrationOpeningDate!) ? (
+                   <div className="py-20 text-center space-y-6">
+                    <Clock className="text-primary w-16 h-16 mx-auto animate-pulse" />
+                    <p className="text-2xl font-black text-primary uppercase tracking-tighter">Inscripciones Próximamente</p>
+                    <p className="text-muted-foreground font-bold max-w-sm mx-auto">
+                      Las listas para esta reunión se abrirán el <span className="text-primary">{formatDate(registrationOpeningDate!)}</span> a las 00:00h.
+                    </p>
+                  </div>
                 ) : (
                   <div className="py-20 text-center space-y-6">
                     <AlertCircle className="text-destructive w-16 h-16 mx-auto" />
@@ -560,7 +575,7 @@ export default function ParentDashboard() {
                   </div>
                 )}
               </CardContent>
-              {isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate()) && sortedChildren && sortedChildren.length > 0 && (
+              {isRegistrationCurrentlyOpen && sortedChildren && sortedChildren.length > 0 && (
                 <CardFooter className="p-8 pt-0 flex flex-col gap-6">
                   <Button onClick={handleRegister} className="w-full h-20 text-2xl rounded-3xl font-black shadow-2xl uppercase tracking-tighter hover:scale-[1.01] transition-transform">
                     {registration ? 'Actualizar Inscripción' : 'Confirmar Asistencia'}
