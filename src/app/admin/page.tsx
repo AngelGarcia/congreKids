@@ -162,7 +162,7 @@ export default function AdminDashboard() {
         ) : nextMeeting ? (
           <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden group">
             <div className="flex flex-col lg:flex-row">
-              <div className={`p-10 lg:w-2/3 flex flex-col justify-between transition-colors duration-500 ${status?.label === 'CERRADA' ? 'bg-slate-900 text-white' : 'bg-primary text-white'}`}>
+              <div className={`p-10 lg:w-2/3 flex flex-col justify-between transition-colors duration-500 ${status?.label === 'CERRADA' ? 'bg-slate-600 text-white' : 'bg-primary text-white'}`}>
                 <div className="space-y-6">
                   <Badge variant="secondary" className="bg-white/20 text-white border-none font-black uppercase px-4 py-1.5 text-xs tracking-widest">
                     {status?.icon}

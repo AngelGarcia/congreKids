@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -81,10 +80,10 @@ export default function MeetingsAdmin() {
             <Clock className="w-5 h-5" />
             <h2 className="text-sm font-black uppercase tracking-widest">Siguiente Encuentro</h2>
           </div>
-          <Card className={`border-none shadow-2xl rounded-[2.5rem] overflow-hidden text-white transition-colors duration-500 ${nextStatus.label === 'CERRADA' ? 'bg-slate-800' : 'bg-primary'}`}>
+          <Card className={`border-none shadow-2xl rounded-[2.5rem] overflow-hidden text-white transition-colors duration-500 ${nextStatus.label === 'CERRADA' ? 'bg-slate-600' : 'bg-primary'}`}>
             <CardContent className="p-10 flex flex-col md:flex-row justify-between items-center gap-8">
               <div className="space-y-4 text-center md:text-left">
-                <Badge variant="secondary" className="bg-white/20 text-white border-none font-black uppercase px-4 py-1">
+                <Badge variant="secondary" className="bg-white/20 text-white border-none font-black uppercase px-4 py-1.5">
                   {nextStatus.icon}
                   {nextStatus.label}
                 </Badge>
