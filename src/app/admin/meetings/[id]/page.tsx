@@ -11,11 +11,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, CheckSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Checkbox } from '@/components/ui/checkbox';
+
+const EXPORT_COLUMNS = [
+  { id: 'parentName', label: 'Padre/Madre' },
+  { id: 'parentEmail', label: 'Email' },
+  { id: 'childName', label: 'Nombre Hijo' },
+  { id: 'ageGroup', label: 'Grupo Edad' },
+  { id: 'birthDate', label: 'F. Nacimiento' },
+  { id: 'familyName', label: 'Familia' },
+  { id: 'guitar', label: 'Guitarra' },
+];
 
 export default function MeetingDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -24,6 +43,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [isNextMeeting, setIsNextMeeting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [selectedColumns, setSelectedColumns] = useState<string[]>(EXPORT_COLUMNS.map(c => c.id));
   const { toast } = useToast();
 
   // State for editing
@@ -121,32 +142,46 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     setEditAgeGroups(newGroups);
   };
 
+  const toggleColumnSelection = (columnId: string) => {
+    setSelectedColumns(prev => 
+      prev.includes(columnId) 
+        ? prev.filter(c => c !== columnId) 
+        : [...prev, columnId]
+    );
+  };
+
   const exportToCSV = () => {
-    const rows = [
-      ['Padre/Madre', 'Email', 'Nombre Hijo', 'Grupo Edad', 'F. Nacimiento', 'Familia', 'Guitarra']
-    ];
+    const headers = EXPORT_COLUMNS.filter(c => selectedColumns.includes(c.id)).map(c => c.label);
+    const rows = [headers];
 
     registrations.forEach(reg => {
       reg.children?.forEach((child: any) => {
-        rows.push([
-          reg.parentName,
-          reg.parentEmail,
-          child.name,
-          child.ageGroupLabel,
-          child.birthDate.toDate().toLocaleDateString(),
-          reg.familyName || '',
-          child.guitarSelected ? 'SI' : 'NO'
-        ]);
+        const rowData: string[] = [];
+        if (selectedColumns.includes('parentName')) rowData.push(reg.parentName || '');
+        if (selectedColumns.includes('parentEmail')) rowData.push(reg.parentEmail || '');
+        if (selectedColumns.includes('childName')) rowData.push(child.name || '');
+        if (selectedColumns.includes('ageGroup')) rowData.push(child.ageGroupLabel || '');
+        if (selectedColumns.includes('birthDate')) rowData.push(formatDate(child.birthDate));
+        if (selectedColumns.includes('familyName')) rowData.push(reg.familyName || '');
+        if (selectedColumns.includes('guitar')) rowData.push(child.guitarSelected ? 'SÍ' : 'NO');
+        rows.push(rowData);
       });
     });
 
-    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
+    // Añadimos el BOM (Byte Order Mark) para UTF-8 para que Excel reconozca eñes y tildes
+    const BOM = '\uFEFF';
+    const csvContent = rows.map(e => e.map(val => `"${val}"`).join(",")).join("\n");
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", `inscripciones_${meeting?.title || 'reunion'}.csv`);
     document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+    setIsExportDialogOpen(false);
+    toast({ title: "Archivo generado", description: "La exportación se ha descargado correctamente." });
   };
 
   if (loading) return <div className="p-8">Cargando detalles de la reunión...</div>;
@@ -211,7 +246,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                   {meeting.status === 'closed' ? <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</> : <><Lock className="w-4 h-4 mr-2" /> Cerrar Plazo</>}
                 </Button>
               )}
-              <Button size="sm" onClick={exportToCSV} className="rounded-xl font-bold uppercase shadow-md">
+              <Button size="sm" onClick={() => setIsExportDialogOpen(true)} className="rounded-xl font-bold uppercase shadow-md">
                 <FileDown className="w-4 h-4 mr-2" /> Exportar CSV
               </Button>
             </>
@@ -380,6 +415,52 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           </div>
         </div>
       </div>
+
+      {/* DIÁLOGO DE EXPORTACIÓN */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="rounded-3xl border-none shadow-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-2">
+              <FileDown className="w-6 h-6" />
+              Configurar Exportación
+            </DialogTitle>
+            <DialogDescription className="font-bold">
+              Selecciona las columnas que deseas incluir en el archivo CSV.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 gap-3 py-6">
+            {EXPORT_COLUMNS.map((col) => (
+              <div 
+                key={col.id} 
+                className={`flex items-center space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                  selectedColumns.includes(col.id) ? 'border-primary/20 bg-primary/5' : 'border-transparent bg-muted/5 opacity-60'
+                }`}
+                onClick={() => toggleColumnSelection(col.id)}
+              >
+                <Checkbox 
+                  id={col.id} 
+                  checked={selectedColumns.includes(col.id)} 
+                  onCheckedChange={() => toggleColumnSelection(col.id)}
+                  className="w-5 h-5 rounded-md"
+                />
+                <Label htmlFor={col.id} className="text-sm font-black uppercase cursor-pointer flex-1">
+                  {col.label}
+                </Label>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-3">
+            <Button variant="ghost" onClick={() => setIsExportDialogOpen(false)} className="rounded-xl font-bold uppercase w-full sm:w-auto">
+              Cancelar
+            </Button>
+            <Button onClick={exportToCSV} className="rounded-xl font-black uppercase shadow-lg w-full sm:w-auto" disabled={selectedColumns.length === 0}>
+              <Download className="w-4 h-4 mr-2" /> Descargar CSV
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
