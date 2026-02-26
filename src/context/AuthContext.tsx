@@ -57,50 +57,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [familyMembers, setFamilyMembers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Auth state listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        const unsubUser = onSnapshot(
-          userDocRef, 
-          (snap) => {
-            if (snap.exists()) {
-              setUserData(snap.data() as UserData);
-            } else {
-              setUserData(null);
-            }
-          },
-          async (err) => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-              path: userDocRef.path,
-              operation: 'get'
-            }));
-          }
-        );
-        return () => unsubUser();
-      } else {
-        setUser(null);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (!currentUser) {
         setUserData(null);
         setFamilyData(null);
         setFamilyMembers([]);
         setLoading(false);
       }
     });
-
     return () => unsubscribe();
-  }, [auth, db]);
+  }, [auth]);
 
+  // User data listener
   useEffect(() => {
-    if (!userData?.familyId) {
+    if (!user) return;
+
+    const userDocRef = doc(db, 'users', user.uid);
+    const unsubUser = onSnapshot(
+      userDocRef, 
+      (snap) => {
+        if (snap.exists()) {
+          setUserData(snap.data() as UserData);
+        } else {
+          setUserData(null);
+        }
+        setLoading(false);
+      },
+      async (err) => {
+        // Ignore permission errors if we are logging out
+        if (auth.currentUser) {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'get'
+          }));
+        }
+      }
+    );
+
+    return () => unsubUser();
+  }, [db, user, auth]);
+
+  // Family data listener
+  useEffect(() => {
+    if (!userData?.familyId || !user) {
       setFamilyData(null);
       setFamilyMembers([]);
-      if (user && userData === null) setLoading(false);
       return;
     }
 
-    setLoading(true);
-    
     const familyDocRef = doc(db, 'families', userData.familyId);
     const unsubFamily = onSnapshot(
       familyDocRef, 
@@ -108,14 +115,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (snap.exists()) {
           setFamilyData({ id: snap.id, ...snap.data() } as FamilyData);
         }
-        setLoading(false);
       },
       async (err) => {
-        setLoading(false);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: familyDocRef.path,
-          operation: 'get'
-        }));
+        if (auth.currentUser) {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: familyDocRef.path,
+            operation: 'get'
+          }));
+        }
       }
     );
 
@@ -128,10 +135,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setFamilyMembers(members);
       },
       async (err) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: 'users',
-          operation: 'list'
-        }));
+        if (auth.currentUser) {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'users',
+            operation: 'list'
+          }));
+        }
       }
     );
 
@@ -139,19 +148,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       unsubFamily();
       unsubMembers();
     };
-  }, [db, userData?.familyId, user]);
+  }, [db, userData?.familyId, user, auth]);
 
   const login = async () => {
     try {
+      setLoading(true);
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (error: any) {
+      setLoading(false);
       toast({ variant: "destructive", title: "Error", description: "No se pudo iniciar sesión." });
     }
   };
 
   const logout = async () => {
-    await signOut(auth);
+    try {
+      setLoading(true);
+      // Stop all data syncing first
+      setUserData(null);
+      setFamilyData(null);
+      setFamilyMembers([]);
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const createFamily = async (name: string, role: 'padre' | 'madre') => {
