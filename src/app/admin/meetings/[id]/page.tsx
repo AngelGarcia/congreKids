@@ -366,26 +366,26 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               
               {/* LISTADO GENERAL */}
               <AccordionItem value="general" className="rounded-2xl shadow-sm border overflow-hidden bg-white px-0">
-                <AccordionTrigger className="hover:no-underline py-4 px-6 bg-primary/5 group">
-                  <div className="flex items-center justify-between w-full pr-4">
+                <div className="flex items-center justify-between bg-primary/5 pr-4">
+                  <AccordionTrigger className="flex-1 hover:no-underline py-4 px-6 group border-none">
                     <div className="flex items-center gap-3">
                       <ListFilter className="w-5 h-5 text-primary" />
                       <h2 className="text-sm font-black uppercase tracking-widest text-primary">Listado General (Todos)</h2>
                       <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary font-black">{allChildren.length}</Badge>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openExportDialog(allChildren, "General");
-                      }}
-                      className="h-8 rounded-lg font-black uppercase text-[10px] bg-white shadow-sm border-primary/20 hover:bg-primary/5"
-                    >
-                      <FileDown className="w-3 h-3 mr-2" /> Exportar
-                    </Button>
-                  </div>
-                </AccordionTrigger>
+                  </AccordionTrigger>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openExportDialog(allChildren, "General");
+                    }}
+                    className="h-8 rounded-lg font-black uppercase text-[10px] bg-white shadow-sm border-primary/20 hover:bg-primary/5 shrink-0 z-10 relative"
+                  >
+                    <FileDown className="w-3 h-3 mr-2" /> Exportar
+                  </Button>
+                </div>
                 <AccordionContent className="p-0">
                   <Table>
                     <TableHeader className="bg-muted/5">
@@ -427,8 +427,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 const childrenInGroup = allChildren.filter(c => (c.ageGroupLabel || 'Sin grupo') === group.label);
                 return (
                   <AccordionItem key={group.label} value={group.label} className="rounded-2xl shadow-sm border overflow-hidden bg-white px-0">
-                    <AccordionTrigger className="hover:no-underline py-4 px-6 bg-muted/5">
-                      <div className="flex items-center justify-between w-full pr-4">
+                    <div className="flex items-center justify-between bg-muted/5 pr-4">
+                      <AccordionTrigger className="flex-1 hover:no-underline py-4 px-6 group border-none">
                         <div className="flex items-center gap-3">
                           <Baby className="w-5 h-5 text-muted-foreground" />
                           <h2 className="text-sm font-black uppercase tracking-widest">Categoría: {group.label}</h2>
@@ -437,19 +437,19 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                             ({group.minMonths / 12} - {group.maxMonths / 12} años)
                           </span>
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openExportDialog(childrenInGroup, group.label);
-                          }}
-                          className="h-8 rounded-lg font-black uppercase text-[10px] bg-white shadow-sm hover:bg-muted/5"
-                        >
-                          <FileDown className="w-3 h-3 mr-2" /> Exportar
-                        </Button>
-                      </div>
-                    </AccordionTrigger>
+                      </AccordionTrigger>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openExportDialog(childrenInGroup, group.label);
+                        }}
+                        className="h-8 rounded-lg font-black uppercase text-[10px] bg-white shadow-sm hover:bg-muted/5 shrink-0 z-10 relative"
+                      >
+                        <FileDown className="w-3 h-3 mr-2" /> Exportar
+                      </Button>
+                    </div>
                     <AccordionContent className="p-0">
                       <Table>
                         <TableHeader className="bg-muted/5">
