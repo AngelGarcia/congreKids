@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home, Heart } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -18,6 +18,7 @@ import { formatDate, isRegistrationOpen, calculateAgeInMonths } from '@/lib/util
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export default function ParentDashboard() {
   const { user, userData, familyData, familyMembers, login, joinFamily, createFamily, updateFamilyName, loading: authLoading } = useAuth();
@@ -29,6 +30,7 @@ export default function ParentDashboard() {
   const [isEditingFamilyName, setIsEditingFamilyName] = useState(false);
   const [isManagingFamily, setIsManagingFamily] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'padre' | 'madre'>('padre');
   
   // Forms state
   const [newFamilyName, setNewFamilyName] = useState('');
@@ -38,12 +40,10 @@ export default function ParentDashboard() {
   const [joinFamilyId, setJoinFamilyId] = useState('');
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
 
-  // Sync edit field with family data
   useEffect(() => {
     if (familyData?.name) setEditFamilyName(familyData.name);
   }, [familyData]);
 
-  // Memoized Queries
   const childrenQuery = useMemoFirebase(() => {
     if (!db || !userData?.familyId) return null;
     return collection(db, 'families', userData.familyId, 'children');
@@ -79,7 +79,14 @@ export default function ParentDashboard() {
   const handleCreateFamily = (e: React.FormEvent) => {
     e.preventDefault();
     if (newFamilyName.trim()) {
-      createFamily(newFamilyName.trim());
+      createFamily(newFamilyName.trim(), selectedRole);
+    }
+  };
+
+  const handleJoinFamily = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (joinFamilyId.trim()) {
+      joinFamily(joinFamilyId.trim(), selectedRole);
     }
   };
 
@@ -182,7 +189,6 @@ export default function ParentDashboard() {
     );
   }
 
-  // Pantalla de Onboarding: Si el usuario no tiene familia asignada
   if (!userData?.familyId) {
     return (
       <div className="min-h-screen bg-background p-6 flex flex-col items-center justify-center">
@@ -192,9 +198,33 @@ export default function ParentDashboard() {
               <Home className="w-8 h-8" />
             </div>
             <CardTitle className="text-3xl font-black uppercase tracking-tighter">Bienvenido</CardTitle>
-            <CardDescription className="text-base font-bold">Para empezar, crea tu unidad familiar o únete a una existente.</CardDescription>
+            <CardDescription className="text-base font-bold">Para empezar, define tu unidad familiar o únete a una existente.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 p-8">
+            <div className="space-y-6">
+              <Label className="text-xs font-black uppercase text-primary">Primero, ¿quién eres?</Label>
+              <RadioGroup value={selectedRole} onValueChange={(val: any) => setSelectedRole(val)} className="flex gap-4">
+                <div className="flex-1">
+                  <RadioGroupItem value="padre" id="padre" className="peer sr-only" />
+                  <Label
+                    htmlFor="padre"
+                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  >
+                    <span className="text-sm font-black uppercase">Padre</span>
+                  </Label>
+                </div>
+                <div className="flex-1">
+                  <RadioGroupItem value="madre" id="madre" className="peer sr-only" />
+                  <Label
+                    htmlFor="madre"
+                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  >
+                    <span className="text-sm font-black uppercase">Madre</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
             <div className="space-y-4">
               <Label className="text-xs font-black uppercase text-primary">Crear Nueva Familia</Label>
               <form onSubmit={handleCreateFamily} className="flex flex-col gap-3">
@@ -215,15 +245,15 @@ export default function ParentDashboard() {
 
             <div className="space-y-4">
               <Label className="text-xs font-black uppercase text-primary">Unirse con código</Label>
-              <div className="flex flex-col gap-3">
+              <form onSubmit={handleJoinFamily} className="flex flex-col gap-3">
                 <Input 
                   placeholder="Pega el código de tu pareja" 
                   value={joinFamilyId}
                   onChange={e => setJoinFamilyId(e.target.value)}
                   className="h-14 rounded-xl border-2 font-bold"
                 />
-                <Button variant="outline" onClick={() => joinFamily(joinFamilyId)} className="h-14 rounded-xl font-black text-lg border-2">UNIRSE A MI PAREJA</Button>
-              </div>
+                <Button variant="outline" type="submit" className="h-14 rounded-xl font-black text-lg border-2">UNIRSE A MI PAREJA</Button>
+              </form>
             </div>
           </CardContent>
         </Card>
@@ -231,71 +261,89 @@ export default function ParentDashboard() {
     );
   }
 
+  const sortedMembers = [...familyMembers].sort((a, b) => {
+    if (a.role === 'padre') return -1;
+    if (b.role === 'padre') return 1;
+    return 0;
+  });
+
   return (
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
       <main className="container mx-auto px-4 py-8 space-y-12">
         
-        {/* Family Identity Hero */}
-        <section className="space-y-6">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
+        {/* Family Tree Header Section */}
+        <section className="flex flex-col items-center text-center space-y-8 relative">
+          <div className="space-y-2">
+            <div className="flex items-center justify-center gap-2">
               {isEditingFamilyName ? (
-                <form onSubmit={handleUpdateFamilyName} className="flex-1 flex gap-2">
+                <form onSubmit={handleUpdateFamilyName} className="flex gap-2 max-w-sm">
                   <Input 
                     value={editFamilyName} 
                     onChange={e => setEditFamilyName(e.target.value)}
-                    className="h-12 text-2xl font-black border-2 rounded-xl"
+                    className="h-12 text-2xl font-black border-2 rounded-xl text-center"
                     autoFocus
                   />
                   <Button type="submit" size="icon" className="h-12 w-12 rounded-xl"><Check /></Button>
                 </form>
               ) : (
                 <>
-                  <h1 className="text-4xl sm:text-5xl font-black tracking-tighter uppercase text-primary">
+                  <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase text-primary drop-shadow-sm">
                     {familyData?.name || '...'}
                   </h1>
-                  <Button variant="ghost" size="icon" onClick={() => setIsEditingFamilyName(true)} className="text-muted-foreground hover:text-primary">
+                  <Button variant="ghost" size="icon" onClick={() => setIsEditingFamilyName(true)} className="text-muted-foreground hover:text-primary mb-4">
                     <Edit2 className="w-5 h-5" />
                   </Button>
                 </>
               )}
             </div>
-            <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Unidad Familiar</p>
+            <p className="text-sm font-black text-muted-foreground uppercase tracking-[0.3em]">Unidad Familiar</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="flex -space-x-3">
-              {familyMembers.map((member) => (
-                <Avatar key={member.id} className="w-14 h-14 border-4 border-background ring-2 ring-primary/20">
+          <div className="flex items-center justify-center gap-8 relative">
+            {/* Connection Line Parent Row */}
+            {sortedMembers.length > 1 && (
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-primary/10 -z-10 rounded-full" />
+            )}
+            
+            {sortedMembers.map((member) => (
+              <div key={member.id} className="flex flex-col items-center gap-2">
+                <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-white shadow-xl ring-4 ring-primary/5">
                   <AvatarImage src={member.photoURL || ''} />
-                  <AvatarFallback className="bg-primary/10 text-primary font-black">{member.displayName?.[0]}</AvatarFallback>
+                  <AvatarFallback className="bg-primary/10 text-primary font-black text-2xl uppercase">
+                    {member.role?.[0]}
+                  </AvatarFallback>
                 </Avatar>
-              ))}
-              {familyMembers.length < 2 && (
+                <div className="flex flex-col">
+                  <span className="text-xs font-black uppercase text-primary tracking-widest">{member.role}</span>
+                  <span className="text-sm font-bold text-foreground">{member.displayName?.split(' ')[0]}</span>
+                </div>
+              </div>
+            ))}
+
+            {familyMembers.length < 2 && (
+              <div className="flex flex-col items-center gap-2">
                 <Button 
                   variant="outline" 
                   size="icon" 
                   onClick={() => setIsManagingFamily(true)}
-                  className="w-14 h-14 rounded-full border-2 border-dashed border-primary/40 bg-primary/5 text-primary"
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-dashed border-primary/20 bg-primary/5 text-primary shadow-inner hover:bg-primary/10 transition-all"
                 >
-                  <UserPlus className="w-6 h-6" />
+                  <UserPlus className="w-8 h-8" />
                 </Button>
-              )}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-black">{familyMembers.length === 2 ? 'Equipo completo' : 'Invita a tu pareja'}</span>
-              <span className="text-xs font-bold text-muted-foreground">
-                {familyMembers.map(m => m.displayName?.split(' ')[0]).join(' & ')}
-              </span>
-            </div>
+                <span className="text-xs font-black uppercase text-muted-foreground tracking-widest">Invitar</span>
+              </div>
+            )}
           </div>
 
+          {/* Tree Connection Line to Children */}
+          <div className="w-1 h-12 bg-primary/10 rounded-full" />
+
           {isManagingFamily && (
-            <Card className="rounded-2xl border-2 border-primary/20 bg-primary/5 animate-in slide-in-from-top-2">
+            <Card className="w-full max-w-md rounded-2xl border-2 border-primary/20 bg-primary/5 animate-in slide-in-from-top-2">
               <CardContent className="p-6 space-y-6">
                 <div className="flex justify-between items-start">
-                  <div className="flex-1">
+                  <div className="flex-1 text-left">
                     <Label className="text-xs uppercase font-black text-primary mb-2 block">Código de Enlace</Label>
                     <div className="flex gap-2">
                       <Input readOnly value={userData?.familyId || ''} className="bg-white font-mono text-sm h-12 rounded-xl border-2" />
@@ -303,7 +351,7 @@ export default function ParentDashboard() {
                         {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
                       </Button>
                     </div>
-                    <p className="mt-2 text-xs text-muted-foreground font-medium italic">Tu pareja debe pegar este código al entrar por primera vez.</p>
+                    <p className="mt-2 text-xs text-muted-foreground font-medium italic">Tu pareja debe pegar este código para unirse a vuestra familia.</p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => setIsManagingFamily(false)}><X /></Button>
                 </div>
@@ -313,10 +361,13 @@ export default function ParentDashboard() {
         </section>
 
         {/* Children Section */}
-        <section className="space-y-6">
-          <h2 className="text-2xl font-black flex items-center gap-3">
-            <Baby className="text-primary w-8 h-8" /> Nuestros Hijos
-          </h2>
+        <section className="space-y-8">
+          <div className="flex flex-col items-center gap-2">
+            <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
+              <Baby className="text-primary w-8 h-8" /> Nuestros Hijos
+            </h2>
+            <div className="w-16 h-1.5 bg-primary/20 rounded-full" />
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {loadingChildren ? (
@@ -338,7 +389,7 @@ export default function ParentDashboard() {
                         </Button>
                       </div>
                       <CardDescription className="text-base font-bold text-muted-foreground">
-                        {formatDate(child.birthDate)}
+                        Nacido el {formatDate(child.birthDate)}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="px-6 pb-6 pt-0">
@@ -364,18 +415,18 @@ export default function ParentDashboard() {
           </div>
 
           {isAddingChild && (
-            <Card className="shadow-2xl border-2 border-primary/10 rounded-3xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <Card className="shadow-2xl border-2 border-primary/10 rounded-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-w-xl mx-auto">
               <CardHeader className="bg-primary/5 p-8 flex flex-row items-center justify-between">
-                <CardTitle className="text-xl font-black">Nuevo Perfil</CardTitle>
+                <CardTitle className="text-xl font-black uppercase tracking-tighter">Nuevo Perfil</CardTitle>
                 <Button variant="ghost" size="icon" onClick={() => setIsAddingChild(false)} className="rounded-full h-12 w-12"><X /></Button>
               </CardHeader>
               <form onSubmit={handleAddChild}>
                 <CardContent className="p-8 space-y-8">
                   <div className="space-y-3">
-                    <Label htmlFor="name" className="text-base font-black uppercase text-muted-foreground">Nombre completo</Label>
+                    <Label htmlFor="name" className="text-xs font-black uppercase text-muted-foreground tracking-widest">Nombre del niño/a</Label>
                     <Input 
                       id="name" 
-                      placeholder="Ej. Pablo García" 
+                      placeholder="Ej. Pablo" 
                       value={newChildName}
                       onChange={(e) => setNewChildName(e.target.value)}
                       required
@@ -383,7 +434,7 @@ export default function ParentDashboard() {
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label htmlFor="birthDate" className="text-base font-black uppercase text-muted-foreground">Fecha de nacimiento</Label>
+                    <Label htmlFor="birthDate" className="text-xs font-black uppercase text-muted-foreground tracking-widest">Fecha de nacimiento</Label>
                     <Input 
                       id="birthDate" 
                       type="date" 
@@ -395,8 +446,8 @@ export default function ParentDashboard() {
                   </div>
                 </CardContent>
                 <CardFooter className="p-8 pt-0 flex flex-col gap-4">
-                  <Button type="submit" className="w-full h-16 text-xl rounded-2xl font-black shadow-xl uppercase">
-                    Guardar Hijo
+                  <Button type="submit" className="w-full h-16 text-xl rounded-2xl font-black shadow-xl uppercase tracking-tighter">
+                    Guardar Perfil
                   </Button>
                 </CardFooter>
               </form>
@@ -405,28 +456,31 @@ export default function ParentDashboard() {
         </section>
 
         {/* Meeting Section */}
-        <section className="space-y-6">
-          <h2 className="text-2xl font-black flex items-center gap-3">
-            <CalendarIcon className="text-primary w-8 h-8" /> Próxima Cita
-          </h2>
+        <section className="space-y-8">
+          <div className="flex flex-col items-center gap-2">
+            <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
+              <CalendarIcon className="text-primary w-8 h-8" /> Inscripción Guardería
+            </h2>
+            <div className="w-16 h-1.5 bg-primary/20 rounded-full" />
+          </div>
 
           {loadingMeetings ? (
             <Skeleton className="h-80 w-full rounded-3xl" />
           ) : upcomingMeeting ? (
-            <Card className="border-4 border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
+            <Card className="border-4 border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white max-w-4xl mx-auto">
               <CardHeader className="bg-primary/5 p-8 space-y-4">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-3xl text-primary font-black leading-tight uppercase">
+                  <CardTitle className="text-3xl text-primary font-black leading-tight uppercase tracking-tighter">
                     {upcomingMeeting.title}
                   </CardTitle>
-                  <Badge className="bg-primary text-white font-black px-4 py-1 text-sm rounded-full">ABIERTA</Badge>
+                  <Badge className="bg-primary text-white font-black px-4 py-1 text-xs rounded-full uppercase">Abierta</Badge>
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2 text-lg font-bold text-muted-foreground">
                     <CalendarIcon className="w-5 h-5" />
                     {formatDate(upcomingMeeting.date)}
                   </div>
-                  <div className="text-sm font-black text-destructive uppercase tracking-widest bg-destructive/10 self-start px-3 py-1 rounded-lg">
+                  <div className="text-xs font-black text-destructive uppercase tracking-[0.2em] bg-destructive/10 self-start px-3 py-1 rounded-lg">
                     Límite: {formatDate(upcomingMeeting.registrationDeadline)}
                   </div>
                 </div>
@@ -435,8 +489,7 @@ export default function ParentDashboard() {
                 {isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate()) ? (
                   <div className="space-y-8">
                     <div className="bg-muted/30 p-6 rounded-2xl border-l-4 border-primary">
-                      <p className="text-base font-bold text-foreground">Selecciona a los niños que asistirán:</p>
-                      <p className="text-xs font-medium text-muted-foreground mt-1 italic">La inscripción es compartida para toda la familia.</p>
+                      <p className="text-base font-bold text-foreground italic">"Selecciona a los peques que vendrán a la guardería"</p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
@@ -460,12 +513,12 @@ export default function ParentDashboard() {
                           >
                             <Checkbox 
                               checked={selectedChildren.includes(child.id)}
-                              className="w-8 h-8 rounded-xl border-3 data-[state=checked]:bg-primary"
+                              className="w-10 h-10 rounded-xl border-4 data-[state=checked]:bg-primary"
                             />
                             <div className="flex-1">
-                              <p className="text-xl font-black">{child.name}</p>
+                              <p className="text-2xl font-black">{child.name}</p>
                               <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                                {Math.floor(calculateAgeInMonths((child.birthDate as any).toDate(), (upcomingMeeting.date as any).toDate()))} meses aprox.
+                                {Math.floor(calculateAgeInMonths((child.birthDate as any).toDate(), (upcomingMeeting.date as any).toDate()))} meses
                               </p>
                             </div>
                           </div>
@@ -487,9 +540,9 @@ export default function ParentDashboard() {
                     {registration ? 'Actualizar Inscripción' : 'Confirmar Asistencia'}
                   </Button>
                   {registration && (
-                    <div className="flex items-center gap-3 text-green-600 font-black justify-center bg-green-50 p-4 rounded-2xl w-full">
-                      <CheckCircle2 className="w-6 h-6" />
-                      <span className="text-sm uppercase">Inscripción familiar guardada con éxito</span>
+                    <div className="flex items-center gap-3 text-green-600 font-black justify-center bg-green-50 p-4 rounded-2xl w-full border-2 border-green-100">
+                      <Heart className="w-6 h-6 fill-green-600" />
+                      <span className="text-sm uppercase tracking-widest">Inscripción familiar guardada</span>
                     </div>
                   )}
                 </CardFooter>

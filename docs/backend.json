@@ -26,7 +26,8 @@
         },
         "role": {
           "type": "string",
-          "description": "The user's role ('parent' or 'admin')."
+          "description": "The user's role ('padre', 'madre' or 'admin').",
+          "enum": ["padre", "madre", "admin"]
         },
         "familyId": {
           "type": "string",

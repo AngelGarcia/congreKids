@@ -20,7 +20,7 @@ interface UserData {
   displayName: string | null;
   email: string | null;
   photoURL: string | null;
-  role: 'parent' | 'admin';
+  role: 'padre' | 'madre' | 'admin';
   familyId: string;
   createdAt: any;
 }
@@ -39,8 +39,8 @@ interface AuthContextType {
   loading: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
-  joinFamily: (familyId: string) => Promise<void>;
-  createFamily: (name: string) => Promise<void>;
+  joinFamily: (familyId: string, role: 'padre' | 'madre') => Promise<void>;
+  createFamily: (name: string, role: 'padre' | 'madre') => Promise<void>;
   updateFamilyName: (newName: string) => Promise<void>;
 }
 
@@ -57,12 +57,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [familyMembers, setFamilyMembers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Manejar el estado de Auth y el documento de User
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        // Suscribirse al documento del usuario en tiempo real
         const userDocRef = doc(db, 'users', currentUser.uid);
         const unsubUser = onSnapshot(
           userDocRef, 
@@ -93,7 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [auth, db]);
 
-  // 2. Sincronizar Familia y Miembros cuando cambie el familyId del usuario
   useEffect(() => {
     if (!userData?.familyId) {
       setFamilyData(null);
@@ -157,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
-  const createFamily = async (name: string) => {
+  const createFamily = async (name: string, role: 'padre' | 'madre') => {
     if (!user) return;
     try {
       const familyRef = await addDoc(collection(db, 'families'), {
@@ -171,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         displayName: user.displayName,
         email: user.email,
         photoURL: user.photoURL,
-        role: 'parent',
+        role: role,
         familyId: familyRef.id,
         createdAt: serverTimestamp(),
       };
@@ -193,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const joinFamily = async (familyId: string) => {
+  const joinFamily = async (familyId: string, role: 'padre' | 'madre') => {
     if (!user) return;
     try {
       const familyRef = doc(db, 'families', familyId.trim());
@@ -208,7 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         displayName: user.displayName,
         email: user.email,
         photoURL: user.photoURL,
-        role: 'parent',
+        role: role,
         familyId: familyId.trim(),
         createdAt: serverTimestamp(),
       };
