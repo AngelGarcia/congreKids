@@ -79,7 +79,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const exportToCSV = () => {
     const rows = [
-      ['Padre/Madre', 'Email', 'Nombre Hijo', 'Grupo Edad', 'F. Nacimiento']
+      ['Padre/Madre', 'Email', 'Nombre Hijo', 'Grupo Edad', 'F. Nacimiento', 'Familia']
     ];
 
     registrations.forEach(reg => {
@@ -89,7 +89,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           reg.parentEmail,
           child.name,
           child.ageGroupLabel,
-          child.birthDate.toDate().toLocaleDateString()
+          child.birthDate.toDate().toLocaleDateString(),
+          reg.familyName || ''
         ]);
       });
     });
@@ -205,7 +206,9 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               {registrations.flatMap((reg) => 
                 reg.children.map((child: any, idx: number) => (
                   <TableRow key={`${reg.id}-${idx}`}>
-                    <TableCell className="font-medium">{child.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {child.name} <span className="text-muted-foreground font-normal ml-1">({reg.familyName || 'Sin apellidos'})</span>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{child.ageGroupLabel || 'Sin grupo'}</Badge>
                     </TableCell>

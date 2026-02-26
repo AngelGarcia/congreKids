@@ -32,13 +32,13 @@ export function isTooEarlyForRegistration(openingDate: Date): boolean {
 export function formatDate(date: Date | any): string {
   if (!date) return '';
   const d = date instanceof Date ? date : date.toDate();
-  return format(d, "eeee, d 'de' MMMM", { locale: es });
+  return format(d, "eeee, d 'de' MMMM 'de' yyyy", { locale: es });
 }
 
 export function formatDateTime(date: Date | any): string {
   if (!date) return '';
   const d = date instanceof Date ? date : date.toDate();
-  return format(d, "eeee, d 'de' MMMM 'a las' HH:mm", { locale: es });
+  return format(d, "eeee, d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es });
 }
 
 /**

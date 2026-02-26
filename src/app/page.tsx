@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -112,6 +111,7 @@ export default function ParentDashboard() {
     setDocumentNonBlocking(registrationRef, {
       meetingId: upcomingMeeting.id,
       familyId: userData.familyId,
+      familyName: familyData?.name || '',
       registeredBy: user.uid,
       parentName: user.displayName,
       parentEmail: user.email,
