@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs, limit, doc, getDoc, onSnapshot, collectionGroup } from 'firebase/firestore';
+import { collection, query, getDocs, doc, onSnapshot, collectionGroup } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
@@ -11,29 +10,47 @@ import { Calendar, Users, ArrowRight, Clock, ShieldCheck, CheckCircle2, AlertCir
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthContext';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function AdminDashboard() {
+  const { userData } = useAuth();
   const [nextMeeting, setNextMeeting] = useState<any>(null);
   const [nextMeetingStats, setNextMeetingStats] = useState({ childCount: 0 });
   const [stats, setStats] = useState({ upcoming: 0, total: 0, totalFamilies: 0, totalChildren: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Solo intentar cargar si sabemos que es admin
+    if (!userData?.isAdmin) return;
+
     const fetchDashboardData = async () => {
       try {
         const now = new Date();
         
-        // Fetch All Stats
-        const allMeetingsSnap = await getDocs(collection(db, 'meetings'));
-        const upcomingMeetings = allMeetingsSnap.docs
-          .map(d => ({ id: d.id, ...d.data() }))
+        // Fetch Meetings
+        const meetingsRef = collection(db, 'meetings');
+        const allMeetingsSnap = await getDocs(meetingsRef).catch(err => {
+          throw new FirestorePermissionError({ path: 'meetings', operation: 'list' });
+        });
+
+        const allMeetings = allMeetingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const upcomingMeetings = allMeetings
           .filter((m: any) => (m.date as any).toDate() >= now)
           .sort((a: any, b: any) => (a.date as any).toDate().getTime() - (b.date as any).toDate().getTime());
         
-        const familiesSnap = await getDocs(collection(db, 'families'));
+        // Fetch Families
+        const familiesRef = collection(db, 'families');
+        const familiesSnap = await getDocs(familiesRef).catch(err => {
+           throw new FirestorePermissionError({ path: 'families', operation: 'list' });
+        });
         
-        // Obtener el total de niños usando una consulta de grupo de colecciones
-        const childrenSnap = await getDocs(collectionGroup(db, 'children'));
+        // Fetch All Children (Collection Group)
+        const childrenGroupRef = collectionGroup(db, 'children');
+        const childrenSnap = await getDocs(childrenGroupRef).catch(err => {
+           throw new FirestorePermissionError({ path: 'children (group)', operation: 'list' });
+        });
 
         setStats({
           upcoming: upcomingMeetings.length,
@@ -55,14 +72,17 @@ export default function AdminDashboard() {
           });
           setNextMeetingStats({ childCount: count });
         }
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+      } catch (error: any) {
+        if (error instanceof FirestorePermissionError) {
+          errorEmitter.emit('permission-error', error);
+        }
       } finally {
         setLoading(false);
       }
     };
+
     fetchDashboardData();
-  }, []);
+  }, [userData]);
 
   const getStatus = (meeting: any) => {
     if (!meeting) return null;
@@ -90,13 +110,13 @@ export default function AdminDashboard() {
         <Card className="border-b-4 border-b-primary shadow-lg rounded-2xl overflow-hidden hover:bg-primary/5 transition-colors cursor-pointer group">
           <Link href="/admin/families">
             <CardHeader className="flex flex-row items-center justify-between pb-2 bg-primary/5">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Niños</CardTitle>
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Niños Totales</CardTitle>
               <Baby className="w-5 h-5 text-primary" />
             </CardHeader>
             <CardContent className="pt-4 flex justify-between items-end">
               <div>
                 {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.totalChildren}</div>}
-                <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Niños registrados en total</p>
+                <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Censo infantil actual</p>
               </div>
               <ArrowRight className="w-5 h-5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
             </CardContent>
@@ -112,7 +132,7 @@ export default function AdminDashboard() {
             <CardContent className="pt-4 flex justify-between items-end">
               <div>
                 {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.totalFamilies}</div>}
-                <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Unidades familiares registradas</p>
+                <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Unidades familiares</p>
               </div>
               <ArrowRight className="w-5 h-5 text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
             </CardContent>
@@ -121,12 +141,12 @@ export default function AdminDashboard() {
 
         <Card className="border-b-4 border-b-muted-foreground shadow-lg rounded-2xl overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between pb-2 bg-muted/5">
-            <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground">Historial</CardTitle>
+            <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground">Reuniones</CardTitle>
             <Calendar className="w-5 h-5 text-muted-foreground" />
           </CardHeader>
           <CardContent className="pt-4">
             {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.total}</div>}
-            <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Total reuniones creadas</p>
+            <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Encuentros en el historial</p>
           </CardContent>
         </Card>
       </div>
