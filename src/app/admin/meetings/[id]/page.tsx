@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, use } from 'react';
@@ -12,6 +11,8 @@ import { formatDate } from '@/lib/utils/date';
 import { Download, FileDown, Lock, ChevronLeft, Unlock } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function MeetingDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -23,44 +24,57 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   useEffect(() => {
     const fetchData = async () => {
-      const mDoc = await getDoc(doc(db, 'meetings', id));
-      if (mDoc.exists()) {
-        const data = { id: mDoc.id, ...mDoc.data() };
-        setMeeting(data);
+      try {
+        const mDoc = await getDoc(doc(db, 'meetings', id));
+        if (mDoc.exists()) {
+          const data = { id: mDoc.id, ...mDoc.data() };
+          setMeeting(data);
 
-        // Comprobar si es la próxima reunión
-        const now = new Date();
-        const q = query(
-          collection(db, 'meetings'),
-          where('date', '>=', Timestamp.fromDate(now)),
-          orderBy('date', 'asc'),
-          limit(1)
-        );
-        const snap = await getDocs(q);
-        if (!snap.empty && snap.docs[0].id === id) {
-          setIsNextMeeting(true);
+          // Comprobar si es la próxima reunión
+          const now = new Date();
+          const q = query(
+            collection(db, 'meetings'),
+            where('date', '>=', Timestamp.fromDate(now)),
+            orderBy('date', 'asc'),
+            limit(1)
+          );
+          const snap = await getDocs(q);
+          if (!snap.empty && snap.docs[0].id === id) {
+            setIsNextMeeting(true);
+          }
         }
-      }
 
-      const rSnap = await getDocs(collection(db, 'meetings', id, 'registrations'));
-      setRegistrations(rSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
+        const rSnap = await getDocs(collection(db, 'meetings', id, 'registrations'));
+        setRegistrations(rSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (error) {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'meetings/' + id,
+          operation: 'get'
+        }));
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [id]);
 
   const handleToggleStatus = async () => {
     const newStatus = meeting.status === 'closed' ? 'upcoming' : 'closed';
-    try {
-      await updateDoc(doc(db, 'meetings', id), { status: newStatus });
-      setMeeting({ ...meeting, status: newStatus });
-      toast({ 
-        title: newStatus === 'closed' ? "Plazo cerrado" : "Plazo abierto", 
-        description: newStatus === 'closed' ? "Ya no se aceptan más inscripciones." : "Se han vuelto a habilitar las inscripciones." 
+    updateDoc(doc(db, 'meetings', id), { status: newStatus })
+      .then(() => {
+        setMeeting({ ...meeting, status: newStatus });
+        toast({ 
+          title: newStatus === 'closed' ? "Plazo cerrado" : "Plazo abierto", 
+          description: newStatus === 'closed' ? "Ya no se aceptan más inscripciones." : "Se han vuelto a habilitar las inscripciones." 
+        });
+      })
+      .catch((error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'meetings/' + id,
+          operation: 'update',
+          requestResourceData: { status: newStatus }
+        }));
       });
-    } catch (error) {
-      console.error(error);
-    }
   };
 
   const exportToCSV = () => {

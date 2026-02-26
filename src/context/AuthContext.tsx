@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -168,7 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setFamilyMembers([]);
       await signOut(auth);
     } catch (error) {
-      console.error("Error signing out:", error);
+      // Handled globally
     } finally {
       setLoading(false);
     }
@@ -190,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: user.email,
         photoURL: user.photoURL,
         role: role,
-        isAdmin: false, // Default to false, manual update for first admin
+        isAdmin: false,
         familyId: familyRef.id,
         createdAt: serverTimestamp(),
       };
@@ -200,51 +199,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "¡Familia Creada!", 
         description: `Bienvenidos, Familia ${name}` 
       });
-    } catch (error) {
+    } catch (error: any) {
       setLoading(false);
-      toast({ variant: "destructive", title: "Error", description: "No se pudo crear el perfil." });
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'users/' + user.uid,
+        operation: 'write'
+      }));
     }
   };
 
   const updateFamilyName = async (newName: string) => {
     if (!userData?.familyId) return;
-    try {
-      await updateDoc(doc(db, 'families', userData.familyId), { name: newName });
-      toast({ title: "Nombre actualizado", description: `Ahora sois la ${newName}` });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el nombre." });
-    }
+    updateDoc(doc(db, 'families', userData.familyId), { name: newName })
+      .then(() => {
+        toast({ title: "Nombre actualizado", description: `Ahora sois la ${newName}` });
+      })
+      .catch((error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'families/' + userData.familyId,
+          operation: 'update',
+          requestResourceData: { name: newName }
+        }));
+      });
   };
 
   const joinFamily = async (familyId: string, role: 'padre' | 'madre') => {
     if (!user) return;
-    try {
-      setLoading(true);
-      const familyRef = doc(db, 'families', familyId.trim());
-      const familySnap = await getDoc(familyRef);
-      
-      if (!familySnap.exists()) {
-        throw new Error("El código de familia no es válido.");
-      }
+    setLoading(true);
+    const familyRef = doc(db, 'families', familyId.trim());
+    
+    getDoc(familyRef)
+      .then(async (familySnap) => {
+        if (!familySnap.exists()) {
+          setLoading(false);
+          toast({ variant: "destructive", title: "Error", description: "El código de familia no es válido." });
+          return;
+        }
 
-      const newUser: UserData = {
-        id: user.uid,
-        displayName: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
-        role: role,
-        isAdmin: false,
-        familyId: familyId.trim(),
-        createdAt: serverTimestamp(),
-      };
+        const newUser: UserData = {
+          id: user.uid,
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          role: role,
+          isAdmin: false,
+          familyId: familyId.trim(),
+          createdAt: serverTimestamp(),
+        };
 
-      await updateDoc(familyRef, { members: arrayUnion(user.uid) });
-      await setDoc(doc(db, 'users', user.uid), newUser);
-      toast({ title: "¡Perfil unido!", description: "Ahora compartes perfiles con tu familia." });
-    } catch (error: any) {
-      setLoading(false);
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    }
+        try {
+          await updateDoc(familyRef, { members: arrayUnion(user.uid) });
+          await setDoc(doc(db, 'users', user.uid), newUser);
+          toast({ title: "¡Perfil unido!", description: "Ahora compartes perfiles con tu familia." });
+        } catch (e) {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: familyRef.path,
+            operation: 'update'
+          }));
+        }
+      })
+      .catch((error) => {
+        setLoading(false);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: familyRef.path,
+          operation: 'get'
+        }));
+      });
   };
 
   return (
