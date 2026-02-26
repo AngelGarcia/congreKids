@@ -1,9 +1,8 @@
-
 {
   "entities": {
     "User": {
       "title": "User",
-      "description": "Represents a user profile, identifying their family affiliation and administrative privileges.",
+      "description": "Perfil de usuario con rol familiar y privilegios de administración.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -19,12 +18,12 @@
     },
     "Family": {
       "title": "Family",
-      "description": "A unit representing a family household, sharing children and meeting registrations.",
+      "description": "Unidad familiar que agrupa a padres e hijos.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "searchName": { "type": "string", "description": "Normalized name for insensitive searching." },
+        "searchName": { "type": "string", "description": "Nombre normalizado para búsquedas sin tildes ni mayúsculas." },
         "members": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },
@@ -32,7 +31,7 @@
     },
     "Child": {
       "title": "Child",
-      "description": "A child profile associated with a family.",
+      "description": "Perfil de un niño asociado a una familia.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -41,6 +40,56 @@
         "birthDate": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "familyId", "name", "birthDate"]
+    },
+    "Meeting": {
+      "title": "Meeting",
+      "description": "Detalles de una reunión o encuentro programado.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "registrationDeadline": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["upcoming", "closed"] },
+        "ageGroups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": { "type": "string" },
+              "minMonths": { "type": "number" },
+              "maxMonths": { "type": "number" },
+              "allowsGuitar": { "type": "boolean" }
+            }
+          }
+        },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Registration": {
+      "title": "Registration",
+      "description": "Registro de asistencia de una familia a una reunión específica.",
+      "type": "object",
+      "properties": {
+        "meetingId": { "type": "string" },
+        "familyId": { "type": "string" },
+        "familyName": { "type": "string" },
+        "registeredBy": { "type": "string" },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "childId": { "type": "string" },
+              "name": { "type": "string" },
+              "ageGroupLabel": { "type": "string" },
+              "guitarSelected": { "type": "boolean" }
+            }
+          }
+        },
+        "registeredAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -49,23 +98,23 @@
   "firestore": {
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/User" },
-      "description": "User profile data."
+      "description": "Perfiles de usuario."
     },
     "/families/{familyId}": {
       "schema": { "$ref": "#/entities/Family" },
-      "description": "Family group data."
+      "description": "Datos de unidades familiares."
     },
     "/families/{familyId}/children/{childId}": {
       "schema": { "$ref": "#/entities/Child" },
-      "description": "Children within a family."
+      "description": "Hijos de cada familia."
     },
     "/meetings/{meetingId}": {
       "schema": { "$ref": "#/entities/Meeting" },
-      "description": "Meeting details."
+      "description": "Reuniones programadas."
     },
     "/meetings/{meetingId}/registrations/{familyId}": {
       "schema": { "$ref": "#/entities/Registration" },
-      "description": "Family registrations for a meeting."
+      "description": "Inscripciones de familias por reunión."
     }
   }
 }
