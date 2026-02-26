@@ -316,20 +316,22 @@ export default function NewMeeting() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">Mín (meses)</Label>
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground">Mín (años)</Label>
                         <Input 
                           type="number" 
-                          value={group.minMonths} 
-                          onChange={e => updateAgeGroup(idx, 'minMonths', parseInt(e.target.value))}
+                          step="0.1"
+                          value={group.minMonths / 12} 
+                          onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)}
                           className="h-9 font-bold rounded-lg border-2"
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">Máx (meses)</Label>
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground">Máx (años)</Label>
                         <Input 
                           type="number" 
-                          value={group.maxMonths} 
-                          onChange={e => updateAgeGroup(idx, 'maxMonths', parseInt(e.target.value))}
+                          step="0.1"
+                          value={group.maxMonths / 12} 
+                          onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)}
                           className="h-9 font-bold rounded-lg border-2"
                         />
                       </div>
@@ -344,12 +346,12 @@ export default function NewMeeting() {
           </Card>
           
           <div className="bg-accent/10 p-6 rounded-2xl border-2 border-accent/20">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-accent mb-2">Ayuda con los meses</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-accent mb-2">Ayuda con los años</h4>
             <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-muted-foreground">
-              <p>• 18 meses = 1.5 años</p>
-              <p>• 36 meses = 3 años</p>
-              <p>• 72 meses = 6 años</p>
-              <p>• 144 meses = 12 años</p>
+              <p>• 1.5 años = 18 meses</p>
+              <p>• 3.0 años = 36 meses</p>
+              <p>• 6.0 años = 72 meses</p>
+              <p>• 12.0 años = 144 meses</p>
             </div>
           </div>
         </div>
