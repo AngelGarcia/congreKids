@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -8,11 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home, Heart, ShieldCheck, ArrowRight, Settings, LayoutDashboard, Clock } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Check, Heart, ShieldCheck, ArrowRight, Clock } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { formatDate, formatDateTime, isRegistrationOpen, calculateAgeInMonths, getRegistrationOpeningDate, isTooEarlyForRegistration } from '@/lib/utils/date';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -21,28 +21,17 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Link from 'next/link';
 
 export default function ParentDashboard() {
-  const { user, userData, familyData, familyMembers, login, joinFamily, createFamily, updateFamilyName, loading: authLoading } = useAuth();
+  const { user, userData, familyData, login, joinFamily, createFamily, loading: authLoading } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
   
   // UI State
-  const [isAddingChild, setIsAddingChild] = useState(false);
-  const [isEditingFamilyName, setIsEditingFamilyName] = useState(false);
-  const [isManagingFamily, setIsManagingFamily] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'padre' | 'madre'>('padre');
   
   // Forms state
   const [newFamilyName, setNewFamilyName] = useState('');
-  const [newChildName, setNewChildName] = useState('');
-  const [newChildBirthDate, setNewChildBirthDate] = useState('');
-  const [editFamilyName, setEditFamilyName] = useState('');
   const [joinFamilyId, setJoinFamilyId] = useState('');
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (familyData?.name) setEditFamilyName(familyData.name);
-  }, [familyData]);
 
   const childrenQuery = useMemoFirebase(() => {
     if (!db || !userData?.familyId || !user) return null;
@@ -52,7 +41,6 @@ export default function ParentDashboard() {
   const upcomingMeetingsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     const now = new Date();
-    // Buscamos la primera reunión que no sea pasada
     return query(
       collection(db, 'meetings'), 
       where('date', '>=', Timestamp.fromDate(now)), 
@@ -65,7 +53,6 @@ export default function ParentDashboard() {
   const { data: upcomingMeetings, isLoading: loadingMeetings } = useCollection(upcomingMeetingsQuery);
   const upcomingMeeting = upcomingMeetings?.[0] || null;
 
-  // Ordenar hijos de mayor a menor (fecha de nacimiento más antigua primero)
   const sortedChildren = children ? [...children].sort((a, b) => {
     const dateA = a.birthDate instanceof Date ? a.birthDate : (a.birthDate as any).toDate();
     const dateB = b.birthDate instanceof Date ? b.birthDate : (b.birthDate as any).toDate();
@@ -95,37 +82,6 @@ export default function ParentDashboard() {
     if (joinFamilyId.trim()) {
       joinFamily(joinFamilyId.trim(), selectedRole);
     }
-  };
-
-  const handleAddChild = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userData?.familyId || !newChildName || !newChildBirthDate || !childrenQuery) return;
-
-    const birthDate = new Date(newChildBirthDate);
-    addDocumentNonBlocking(childrenQuery, {
-      familyId: userData.familyId,
-      name: newChildName,
-      birthDate: Timestamp.fromDate(birthDate),
-    });
-    
-    setNewChildName('');
-    setNewChildBirthDate('');
-    setIsAddingChild(false);
-    toast({ title: "¡Hijo añadido!", description: "Ahora es visible para ambos padres." });
-  };
-
-  const handleUpdateFamilyName = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editFamilyName.trim()) {
-      updateFamilyName(editFamilyName.trim());
-      setIsEditingFamilyName(false);
-    }
-  };
-
-  const handleDeleteChild = (childId: string) => {
-    if (!userData?.familyId || !db) return;
-    const childDocRef = doc(db, 'families', userData.familyId, 'children', childId);
-    deleteDocumentNonBlocking(childDocRef);
   };
 
   const handleRegister = () => {
@@ -170,16 +126,7 @@ export default function ParentDashboard() {
     });
   };
 
-  const copyFamilyId = () => {
-    if (userData?.familyId) {
-      navigator.clipboard.writeText(userData.familyId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast({ title: "Copiado", description: "Envía este código a tu pareja para uniros." });
-    }
-  };
-
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center font-black text-primary text-2xl uppercase tracking-tighter">CongreKids...</div>;
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center font-black text-primary text-2xl uppercase tracking-tighter">Cargando CongreKids...</div>;
 
   if (!user) {
     return (
@@ -188,7 +135,7 @@ export default function ParentDashboard() {
           <Baby className="w-12 h-12" />
         </div>
         <h1 className="text-5xl font-black text-primary tracking-tighter mb-4">CongreKids</h1>
-        <p className="text-xl text-muted-foreground max-w-sm mb-12 font-medium">Gestiona el cuidado infantil de tu parroquia.</p>
+        <p className="text-xl text-muted-foreground max-w-sm mb-12 font-medium">Gestiona el cuidado infantil de tu parroquia de forma sencilla.</p>
         <Button size="lg" onClick={login} className="w-full max-w-xs h-16 text-xl rounded-2xl shadow-xl font-black">
           Entrar con Google
         </Button>
@@ -202,7 +149,7 @@ export default function ParentDashboard() {
         <Card className="w-full max-w-md rounded-3xl border-4 border-primary/10 shadow-2xl">
           <CardHeader className="text-center space-y-2">
             <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
-              <Home className="w-8 h-8" />
+              <Users className="w-8 h-8" />
             </div>
             <CardTitle className="text-3xl font-black uppercase tracking-tighter">Bienvenido</CardTitle>
             <CardDescription className="text-base font-bold">Para empezar, define tu unidad familiar o únete a una existente.</CardDescription>
@@ -215,7 +162,7 @@ export default function ParentDashboard() {
                   <RadioGroupItem value="padre" id="padre" className="peer sr-only" />
                   <Label
                     htmlFor="padre"
-                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
+                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary transition-all cursor-pointer"
                   >
                     <span className="text-base font-black uppercase">Padre</span>
                   </Label>
@@ -224,7 +171,7 @@ export default function ParentDashboard() {
                   <RadioGroupItem value="madre" id="madre" className="peer sr-only" />
                   <Label
                     htmlFor="madre"
-                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
+                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary transition-all cursor-pointer"
                   >
                     <span className="text-base font-black uppercase">Madre</span>
                   </Label>
@@ -233,9 +180,7 @@ export default function ParentDashboard() {
             </div>
 
             <div className="space-y-4">
-              <Label className="text-xs font-black uppercase text-primary">
-                Crear Nueva Familia
-              </Label>
+              <Label className="text-xs font-black uppercase text-primary">Crear Nueva Familia</Label>
               <form onSubmit={handleCreateFamily} className="flex flex-col gap-3">
                 <Input 
                   placeholder="Apellidos (ej. García Medina)" 
@@ -243,9 +188,7 @@ export default function ParentDashboard() {
                   onChange={e => setNewFamilyName(e.target.value)}
                   className="h-14 rounded-xl border-2 font-bold"
                 />
-                <Button type="submit" className="h-14 rounded-xl font-black text-lg">
-                  CREAR FAMILIA
-                </Button>
+                <Button type="submit" className="h-14 rounded-xl font-black text-lg">CREAR FAMILIA</Button>
               </form>
             </div>
             
@@ -272,236 +215,44 @@ export default function ParentDashboard() {
     );
   }
 
-  const sortedMembers = [...familyMembers].sort((a, b) => {
-    if (a.role === 'padre') return -1;
-    if (b.role === 'padre') return 1;
-    return 0;
-  });
-
   const registrationOpeningDate = upcomingMeeting ? getRegistrationOpeningDate((upcomingMeeting.date as any).toDate()) : null;
   const isRegistrationCurrentlyOpen = upcomingMeeting ? isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate(), registrationOpeningDate) : false;
 
   return (
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
-      <main className="container mx-auto px-4 py-8 space-y-12">
+      <main className="container mx-auto px-4 py-12 space-y-12 max-w-4xl">
         
         {/* Admin Quick Access (Discrete) */}
         {userData.isAdmin && (
-          <div className="flex justify-center">
-            <Button asChild variant="outline" className="rounded-full border-primary/20 bg-primary/5 font-bold hover:bg-primary/10">
-              <Link href="/admin">
-                <ShieldCheck className="mr-2 h-4 w-4 text-primary" />
-                Ir al área de Administración
-              </Link>
-            </Button>
+          <div className="flex justify-center -mt-4 mb-4">
+            <Link href="/admin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary flex items-center gap-2 transition-colors">
+              <ShieldCheck className="w-3 h-3" />
+              Ir al área de Administración
+            </Link>
           </div>
         )}
 
-        {/* Family Tree Header Section */}
-        <section className="flex flex-col items-center text-center space-y-8 relative">
-          <div className="space-y-2">
-            <div className="flex items-center justify-center gap-2">
-              {isEditingFamilyName ? (
-                <form onSubmit={handleUpdateFamilyName} className="flex gap-2 max-w-sm">
-                  <Input 
-                    value={editFamilyName} 
-                    onChange={e => setEditFamilyName(e.target.value)}
-                    className="h-12 text-2xl font-black border-2 rounded-xl text-center"
-                    autoFocus
-                  />
-                  <Button type="submit" size="icon" className="h-12 w-12 rounded-xl"><Check /></Button>
-                </form>
-              ) : (
-                <>
-                  <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase text-primary drop-shadow-sm">
-                    {familyData?.name || '...'}
-                  </h1>
-                  <Button variant="ghost" size="icon" onClick={() => setIsEditingFamilyName(true)} className="text-muted-foreground hover:text-primary mb-4">
-                    <Edit2 className="w-5 h-5" />
-                  </Button>
-                </>
-              )}
-            </div>
-            <p className="text-sm font-black text-muted-foreground uppercase tracking-[0.3em]">Unidad Familiar</p>
-          </div>
+        <div className="text-center space-y-2">
+          <h1 className="text-5xl font-black tracking-tighter uppercase text-primary drop-shadow-sm">
+            {familyData?.name || '...'}
+          </h1>
+          <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.3em]">Unidad Familiar</p>
+        </div>
 
-          <div className="flex items-center justify-center gap-8 relative">
-            {sortedMembers.length > 1 && (
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-primary/10 -z-10 rounded-full" />
-            )}
-            
-            {sortedMembers.map((member) => (
-              <div key={member.id} className="flex flex-col items-center gap-2">
-                <div className="relative">
-                  <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-white shadow-xl ring-4 ring-primary/5">
-                    <AvatarImage src={member.photoURL || ''} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-black text-2xl uppercase">
-                      {member.role?.[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  {member.isAdmin && (
-                    <div className="absolute -top-1 -right-1 bg-accent text-white p-1 rounded-lg shadow-lg">
-                      <ShieldCheck className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-black uppercase text-primary tracking-widest">{member.role}</span>
-                  <span className="text-sm font-bold text-foreground">{member.displayName?.split(' ')[0]}</span>
-                </div>
-              </div>
-            ))}
-
-            {familyMembers.length < 2 && (
-              <div className="flex flex-col items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={() => setIsManagingFamily(true)}
-                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-dashed border-primary/20 bg-primary/5 text-primary shadow-inner hover:bg-primary/10 transition-all"
-                >
-                  <UserPlus className="w-8 h-8" />
-                </Button>
-                <span className="text-xs font-black uppercase text-muted-foreground tracking-widest">Invitar</span>
-              </div>
-            )}
-          </div>
-
-          <div className="w-1 h-12 bg-primary/10 rounded-full" />
-
-          {isManagingFamily && (
-            <Card className="w-full max-w-md rounded-2xl border-2 border-primary/20 bg-primary/5 animate-in slide-in-from-top-2">
-              <CardContent className="p-6 space-y-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 text-left">
-                    <Label className="text-xs uppercase font-black text-primary mb-2 block">Código de Enlace</Label>
-                    <div className="flex gap-2">
-                      <Input readOnly value={userData?.familyId || ''} className="bg-white font-mono text-sm h-12 rounded-xl border-2" />
-                      <Button onClick={copyFamilyId} variant="outline" size="icon" className="h-12 w-12 rounded-xl">
-                        {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
-                      </Button>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground font-medium italic">Tu pareja debe pegar este código para unirse a vuestra familia.</p>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => setIsManagingFamily(false)}><X /></Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </section>
-
-        {/* Children Section */}
-        <section className="space-y-8">
+        {/* Meeting Section - MAIN HERO */}
+        <section className="space-y-6">
           <div className="flex flex-col items-center gap-2">
-            <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
-              <Baby className="text-primary w-8 h-8" /> Nuestros Hijos
+            <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
+              <CalendarIcon className="text-primary w-6 h-6" /> Próxima Reunión
             </h2>
-            <div className="w-16 h-1.5 bg-primary/20 rounded-full" />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {loadingChildren ? (
-              [1, 2].map(i => <Skeleton key={i} className="h-44 w-full rounded-3xl" />)
-            ) : (
-              <>
-                {sortedChildren.map(child => {
-                  const ageMonths = calculateAgeInMonths((child.birthDate as any).toDate(), new Date());
-                  return (
-                    <Card key={child.id} className="relative overflow-hidden border-2 border-primary/5 hover:border-primary/20 transition-all shadow-lg rounded-3xl bg-white group">
-                      <CardHeader className="p-6">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-2xl font-black">{child.name}</CardTitle>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleDeleteChild(child.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-10 w-10 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </Button>
-                        </div>
-                        <CardDescription className="text-base font-bold text-muted-foreground">
-                          Nacido el {formatDate(child.birthDate)}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="px-6 pb-6 pt-0">
-                        <Badge variant="secondary" className="px-4 py-1 text-sm rounded-xl bg-primary/10 text-primary border-none font-black">
-                          {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
-                        </Badge>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-                
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsAddingChild(true)}
-                  className="h-44 w-full border-dashed border-3 rounded-3xl flex flex-col gap-4 hover:bg-primary/5 hover:border-primary/40 transition-all group"
-                >
-                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner">
-                    <Plus className="w-8 h-8" />
-                  </div>
-                  <span className="font-black text-lg text-primary uppercase">Añadir hijo</span>
-                </Button>
-              </>
-            )}
-          </div>
-
-          {isAddingChild && (
-            <Card className="shadow-2xl border-2 border-primary/10 rounded-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-w-xl mx-auto">
-              <CardHeader className="bg-primary/5 p-8 flex flex-row items-center justify-between">
-                <CardTitle className="text-xl font-black uppercase tracking-tighter">Nuevo Perfil</CardTitle>
-                <Button variant="ghost" size="icon" onClick={() => setIsAddingChild(false)} className="rounded-full h-12 w-12"><X /></Button>
-              </CardHeader>
-              <form onSubmit={handleAddChild}>
-                <CardContent className="p-8 space-y-8">
-                  <div className="space-y-3">
-                    <Label htmlFor="name" className="text-xs font-black uppercase text-muted-foreground tracking-widest">Nombre del niño/a</Label>
-                    <Input 
-                      id="name" 
-                      placeholder="Ej. Pablo" 
-                      value={newChildName}
-                      onChange={(e) => setNewChildName(e.target.value)}
-                      required
-                      className="h-16 text-lg rounded-2xl border-2 bg-muted/20"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="birthDate" className="text-xs font-black uppercase text-muted-foreground tracking-widest">Fecha de nacimiento</Label>
-                    <Input 
-                      id="birthDate" 
-                      type="date" 
-                      value={newChildBirthDate}
-                      onChange={(e) => setNewChildBirthDate(e.target.value)}
-                      required
-                      className="h-16 text-lg rounded-2xl border-2 bg-muted/20"
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter className="p-8 pt-0 flex flex-col gap-4">
-                  <Button type="submit" className="w-full h-16 text-xl rounded-2xl font-black shadow-xl uppercase tracking-tighter">
-                    Guardar Hijo
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          )}
-        </section>
-
-        {/* Meeting Section */}
-        <section className="space-y-8">
-          <div className="flex flex-col items-center gap-2">
-            <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
-              <CalendarIcon className="text-primary w-8 h-8" /> Inscripción Guardería
-            </h2>
-            <div className="w-16 h-1.5 bg-primary/20 rounded-full" />
+            <div className="w-12 h-1 bg-primary/20 rounded-full" />
           </div>
 
           {loadingMeetings ? (
             <Skeleton className="h-80 w-full rounded-3xl" />
           ) : upcomingMeeting ? (
-            <Card className="border-4 border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white max-w-2xl mx-auto">
+            <Card className="border-4 border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
               <CardHeader className="bg-primary/5 p-8 space-y-4">
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-2xl text-primary font-black leading-tight uppercase tracking-tighter">
@@ -516,7 +267,7 @@ export default function ParentDashboard() {
                   </div>
                   <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] bg-destructive/10 text-destructive self-start px-2 py-1 rounded-lg">
                     <Clock className="w-3 h-3" />
-                    Cierre: {formatDate(upcomingMeeting.registrationDeadline)}
+                    Cierre de lista: {formatDate(upcomingMeeting.registrationDeadline)}
                   </div>
                 </div>
               </CardHeader>
@@ -529,8 +280,11 @@ export default function ParentDashboard() {
 
                     <div className="grid grid-cols-1 gap-2">
                       {(!sortedChildren || sortedChildren.length === 0) ? (
-                        <div className="py-12 text-center border-3 border-dashed rounded-3xl bg-muted/10">
-                          <p className="text-muted-foreground font-bold px-10">Primero añade a tus hijos arriba para poder inscribirlos.</p>
+                        <div className="py-8 text-center border-2 border-dashed rounded-2xl bg-muted/5 space-y-3">
+                          <p className="text-muted-foreground font-bold text-sm px-6">Para inscribir a tus hijos, primero debes añadirlos en tu perfil familiar.</p>
+                          <Button asChild variant="outline" size="sm" className="rounded-xl font-black uppercase tracking-tighter text-[10px]">
+                            <Link href="/family">Gestionar Familia</Link>
+                          </Button>
                         </div>
                       ) : (
                         sortedChildren.map(child => {
@@ -554,7 +308,7 @@ export default function ParentDashboard() {
                                 onClick={(e) => e.stopPropagation()}
                               />
                               <div className="flex-1">
-                                <p className="text-lg font-black">{child.name}</p>
+                                <p className="text-lg font-black leading-none mb-1">{child.name}</p>
                                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
                                   {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
                                 </p>
@@ -589,7 +343,7 @@ export default function ParentDashboard() {
                   {registration && (
                     <div className="flex items-center gap-2 text-green-600 font-black justify-center bg-green-50 p-2 rounded-xl w-full border border-green-100">
                       <Heart className="w-4 h-4 fill-green-600" />
-                      <span className="text-[10px] uppercase tracking-widest">Inscripción guardada</span>
+                      <span className="text-[10px] uppercase tracking-widest">Inscripción guardada correctamente</span>
                     </div>
                   )}
                 </CardFooter>
@@ -597,9 +351,29 @@ export default function ParentDashboard() {
             </Card>
           ) : (
             <div className="py-24 text-center border-4 border-dashed rounded-[2.5rem] bg-muted/10">
-              <p className="text-muted-foreground font-black text-xl uppercase opacity-40">No hay reuniones próximas</p>
+              <p className="text-muted-foreground font-black text-xl uppercase opacity-40">No hay reuniones próximas programadas</p>
             </div>
           )}
+        </section>
+
+        {/* Family Summary Card (Secondary) */}
+        <section className="pt-8">
+          <Card className="rounded-3xl border-2 bg-muted/5 border-dashed hover:bg-white transition-all group overflow-hidden">
+            <Link href="/family" className="p-8 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                  <Plus className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-tight">Mi Familia</h3>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {children?.length || 0} hijos registrados • Gestionar perfiles y pareja
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-1" />
+            </Link>
+          </Card>
         </section>
 
       </main>

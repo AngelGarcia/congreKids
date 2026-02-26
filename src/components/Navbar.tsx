@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, LayoutDashboard, User } from 'lucide-react';
+import { LogOut, LayoutDashboard, User, Home } from 'lucide-react';
 
 export default function Navbar() {
   const { user, userData, logout } = useAuth();
@@ -30,13 +30,9 @@ export default function Navbar() {
 
         {user ? (
           <div className="flex items-center gap-3">
-            {userData?.isAdmin && (
-              <Link href="/admin">
-                <Button variant="ghost" size="sm" className="hidden sm:flex font-bold">
-                  Admin
-                </Button>
-              </Link>
-            )}
+            <Link href="/family" className="hidden sm:flex items-center text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors mr-2">
+              Mi Familia
+            </Link>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -55,6 +51,12 @@ export default function Navbar() {
                   <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild className="rounded-xl h-12">
+                  <Link href="/family">
+                    <Home className="mr-3 h-5 w-5" />
+                    <span className="font-bold">Mi Familia</span>
+                  </Link>
+                </DropdownMenuItem>
                 {userData?.isAdmin && (
                   <DropdownMenuItem asChild className="rounded-xl h-12">
                     <Link href="/admin">
@@ -63,6 +65,7 @@ export default function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => logout()} className="rounded-xl h-12 text-destructive focus:text-destructive">
                   <LogOut className="mr-3 h-5 w-5" />
                   <span className="font-bold">Cerrar sesión</span>
