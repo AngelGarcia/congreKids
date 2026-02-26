@@ -3,52 +3,54 @@
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs, limit, where, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, limit, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/utils/date';
-import { Calendar, Users, ArrowRight, UserCheck, Clock, Home, Lock, Unlock } from 'lucide-react';
+import { formatDate, formatDateTime } from '@/lib/utils/date';
+import { Calendar, Users, ArrowRight, Clock, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminDashboard() {
-  const [meetings, setMeetings] = useState<any[]>([]);
+  const [nextMeeting, setNextMeeting] = useState<any>(null);
+  const [nextMeetingStats, setNextMeetingStats] = useState({ childCount: 0 });
   const [stats, setStats] = useState({ upcoming: 0, total: 0, totalFamilies: 0 });
   const [loading, setLoading] = useState(true);
-  const [nextMeetingId, setNextMeetingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const now = new Date();
-        // Fetch Meetings
-        const q = query(collection(db, 'meetings'), orderBy('date', 'desc'), limit(10));
-        const snap = await getDocs(q);
-        const meetingsList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setMeetings(meetingsList);
-
-        // Identificar la próxima reunión (la más cercana al futuro)
-        const upcomingList = meetingsList
-          .filter(m => (m.date as any).toDate() >= now)
-          .sort((a, b) => (a.date as any).toDate().getTime() - (b.date as any).toDate().getTime());
         
-        if (upcomingList.length > 0) {
-          setNextMeetingId(upcomingList[0].id);
-        }
-
-        // Fetch Stats
+        // Fetch All Stats
         const allMeetingsSnap = await getDocs(collection(db, 'meetings'));
-        const upcomingCount = allMeetingsSnap.docs.filter(d => (d.data().date as any).toDate() >= now).length;
+        const upcomingMeetings = allMeetingsSnap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter((m: any) => (m.date as any).toDate() >= now)
+          .sort((a: any, b: any) => (a.date as any).toDate().getTime() - (b.date as any).toDate().getTime());
         
         const familiesSnap = await getDocs(collection(db, 'families'));
 
         setStats({
-          upcoming: upcomingCount,
+          upcoming: upcomingMeetings.length,
           total: allMeetingsSnap.size,
           totalFamilies: familiesSnap.size
         });
+
+        if (upcomingMeetings.length > 0) {
+          const next = upcomingMeetings[0];
+          setNextMeeting(next);
+
+          // Fetch child count for this next meeting
+          const regSnap = await getDocs(collection(db, 'meetings', next.id, 'registrations'));
+          let count = 0;
+          regSnap.forEach(doc => {
+            const data = doc.data();
+            if (data.children) count += data.children.length;
+          });
+          setNextMeetingStats({ childCount: count });
+        }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -58,11 +60,26 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, []);
 
+  const getStatus = (meeting: any) => {
+    if (!meeting) return null;
+    const now = new Date();
+    const deadline = (meeting.registrationDeadline as any).toDate();
+    const isClosed = now > deadline || meeting.status === 'closed';
+    
+    return {
+      label: isClosed ? 'CERRADA' : 'ABIERTA',
+      variant: isClosed ? 'destructive' : 'default',
+      icon: isClosed ? <AlertCircle className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />
+    };
+  };
+
+  const status = getStatus(nextMeeting);
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-10 max-w-7xl mx-auto">
       <div className="flex flex-col gap-2">
         <h1 className="text-4xl font-black tracking-tighter uppercase text-primary">Resumen General</h1>
-        <p className="text-muted-foreground font-medium">Control de actividad y próximas reuniones de la congregación.</p>
+        <p className="text-muted-foreground font-medium text-lg">Control de actividad y próximas reuniones de la congregación.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -111,96 +128,74 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-8">
-        <Card className="rounded-2xl shadow-xl border-none">
-          <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/10 p-6">
-            <div>
-              <CardTitle className="text-xl font-black uppercase tracking-tighter">Actividad Reciente</CardTitle>
-              <CardDescription className="font-medium">Últimas reuniones programadas o realizadas.</CardDescription>
-            </div>
-            <Button asChild variant="outline" size="sm" className="font-bold rounded-xl border-2">
-              <Link href="/admin/meetings">Ver todas</Link>
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-muted/5">
-                <TableRow className="hover:bg-transparent border-none">
-                  <TableHead className="font-black uppercase text-xs">Título</TableHead>
-                  <TableHead className="font-black uppercase text-xs">Fecha</TableHead>
-                  <TableHead className="font-black uppercase text-xs">Estado</TableHead>
-                  <TableHead className="text-right font-black uppercase text-xs">Acción</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  [1, 2, 3].map(i => (
-                    <TableRow key={i}>
-                      <TableCell colSpan={4}><Skeleton className="h-12 w-full" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  meetings.map((meeting) => {
-                    const now = new Date();
-                    const isPast = (meeting.date as any).toDate() < now;
-                    const isNext = meeting.id === nextMeetingId;
-                    
-                    let statusLabel = "Pasada";
-                    let badgeVariant: "secondary" | "default" | "outline" | "destructive" = "secondary";
-                    
-                    if (!isPast) {
-                      if (isNext) {
-                        const deadline = (meeting.registrationDeadline as any).toDate();
-                        if (now > deadline || meeting.status === 'closed') {
-                          statusLabel = "CERRADA";
-                          badgeVariant = "destructive";
-                        } else {
-                          statusLabel = "ABIERTA";
-                          badgeVariant = "default";
-                        }
-                      } else {
-                        statusLabel = "Programada";
-                        badgeVariant = "outline";
-                      }
-                    }
+        <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5" />
+          Operativa Actual
+        </h2>
 
-                    return (
-                      <TableRow key={meeting.id} className="hover:bg-primary/5 transition-colors">
-                        <TableCell className="font-bold py-4">{meeting.title}</TableCell>
-                        <TableCell className="font-medium">{formatDate(meeting.date)}</TableCell>
-                        <TableCell>
-                          <Badge variant={badgeVariant} className="rounded-lg font-black uppercase px-3">
-                            {statusLabel}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button asChild variant="ghost" size="icon" className="hover:bg-primary/10 text-primary">
-                            <Link href={`/admin/meetings/${meeting.id}`}>
-                              <ArrowRight className="w-5 h-5" />
-                            </Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-                {!loading && meetings.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-16 text-muted-foreground font-bold italic">
-                      Todavía no has creado ninguna reunión.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        {loading ? (
+          <Skeleton className="h-64 w-full rounded-[2.5rem]" />
+        ) : nextMeeting ? (
+          <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden group">
+            <div className="flex flex-col lg:flex-row">
+              <div className={`p-10 lg:w-2/3 flex flex-col justify-between transition-colors duration-500 ${status?.label === 'CERRADA' ? 'bg-slate-900 text-white' : 'bg-primary text-white'}`}>
+                <div className="space-y-6">
+                  <Badge variant="secondary" className="bg-white/20 text-white border-none font-black uppercase px-4 py-1.5 text-xs tracking-widest">
+                    {status?.icon}
+                    {status?.label}
+                  </Badge>
+                  <div className="space-y-2">
+                    <h3 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none">
+                      {nextMeeting.title}
+                    </h3>
+                    <p className="text-xl font-medium opacity-80">
+                      {formatDateTime(nextMeeting.date)}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="mt-10 flex items-center gap-6">
+                   <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase opacity-60 tracking-[0.2em]">Plazo límite</span>
+                    <span className="text-sm font-bold">{formatDateTime(nextMeeting.registrationDeadline)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-10 lg:w-1/3 bg-white flex flex-col justify-between border-y lg:border-y-0 lg:border-l">
+                <div className="space-y-1">
+                  <span className="text-xs font-black uppercase text-muted-foreground tracking-widest">Estado de Inscripción</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-6xl font-black text-primary">{nextMeetingStats.childCount}</span>
+                    <span className="text-xl font-bold text-muted-foreground">niños</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium pt-2">Registrados hasta el momento para esta reunión.</p>
+                </div>
+
+                <Button asChild size="lg" className="w-full h-16 rounded-2xl font-black text-lg uppercase tracking-tighter shadow-xl mt-8">
+                  <Link href={`/admin/meetings/${nextMeeting.id}`}>
+                    Ver Listado de Niños
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <Card className="p-20 text-center border-4 border-dashed rounded-[2.5rem] bg-muted/10">
+            <p className="text-muted-foreground font-black uppercase text-xl opacity-40 italic">No hay ninguna reunión programada próximamente.</p>
+            <Button asChild variant="outline" className="mt-6 rounded-xl font-black uppercase border-2">
+              <Link href="/admin/meetings/new">Crear Calendario</Link>
+            </Button>
+          </Card>
+        )}
       </div>
 
-      <div className="flex justify-center pt-4">
-        <Button asChild size="lg" className="h-16 px-12 rounded-2xl text-lg font-black shadow-xl uppercase tracking-tighter">
-          <Link href="/admin/meetings/new">
-            <Calendar className="mr-2 h-6 w-6" />
-            Programar Nueva Reunión
+      <div className="flex justify-center pt-6">
+        <Button asChild size="lg" variant="outline" className="h-14 px-8 rounded-xl text-sm font-black border-2 uppercase tracking-tighter">
+          <Link href="/admin/meetings">
+            <Calendar className="mr-2 h-5 w-5" />
+            Gestionar Todo el Calendario
           </Link>
         </Button>
       </div>
