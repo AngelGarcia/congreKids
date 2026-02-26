@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -14,6 +15,7 @@ import { getDefaultDeadline, generateFridaysForMonth, formatDate } from '@/lib/u
 import { Plus, Trash2, Save, X, Calendar as CalendarIcon, Wand2, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const DEFAULT_AGE_GROUPS = [
   { label: 'Bebés', minMonths: 0, maxMonths: 18 },
@@ -37,16 +39,38 @@ export default function NewMeeting() {
   const [automationYear, setAutomationYear] = useState(new Date().getFullYear());
   const [automationMonth, setAutomationMonth] = useState(new Date().getMonth());
   const [previewFridays, setPreviewFridays] = useState<Date[]>([]);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
 
   const handleGeneratePreview = () => {
     const fridays = generateFridaysForMonth(automationYear, automationMonth);
     setPreviewFridays(fridays);
+    // Seleccionar todos por defecto al generar la lista
+    setSelectedIndices(new Set(fridays.map((_, i) => i)));
+  };
+
+  const toggleSelection = (index: number) => {
+    const newSelection = new Set(selectedIndices);
+    if (newSelection.has(index)) {
+      newSelection.delete(index);
+    } else {
+      newSelection.add(index);
+    }
+    setSelectedIndices(newSelection);
   };
 
   const handleCreateBatch = () => {
-    if (!user || previewFridays.length === 0) return;
+    const fridaysToCreate = previewFridays.filter((_, i) => selectedIndices.has(i));
 
-    previewFridays.forEach(friday => {
+    if (!user || fridaysToCreate.length === 0) {
+      toast({ 
+        variant: "destructive", 
+        title: "Atención", 
+        description: "Debes seleccionar al menos una fecha para crear el calendario." 
+      });
+      return;
+    }
+
+    fridaysToCreate.forEach(friday => {
       const deadlineDate = getDefaultDeadline(friday);
       addDocumentNonBlocking(collection(db, 'meetings'), {
         title: formatDate(friday), // Título automático: Viernes, X de Mes
@@ -59,7 +83,7 @@ export default function NewMeeting() {
       });
     });
 
-    toast({ title: "Calendario generado", description: `Se han creado ${previewFridays.length} reuniones para el mes.` });
+    toast({ title: "Calendario generado", description: `Se han creado ${fridaysToCreate.length} reuniones para el mes.` });
     router.push('/admin/meetings');
   };
 
@@ -144,18 +168,46 @@ export default function NewMeeting() {
               </Button>
 
               {previewFridays.length > 0 && (
-                <div className="space-y-4 pt-4">
-                  <Label className="text-xs font-black uppercase text-muted-foreground">Reuniones a crear:</Label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {previewFridays.map((date, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/10">
-                        <Check className="w-4 h-4 text-primary" />
-                        <span className="font-bold">{formatDate(date)} - 17:30h</span>
-                      </div>
-                    ))}
+                <div className="space-y-4 pt-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <div className="flex items-center justify-between px-2">
+                    <Label className="text-xs font-black uppercase text-muted-foreground">Selecciona los viernes a programar:</Label>
+                    <span className="text-xs font-black text-primary uppercase">{selectedIndices.size} seleccionados</span>
                   </div>
-                  <Button onClick={handleCreateBatch} className="w-full h-16 rounded-2xl font-black text-xl shadow-2xl uppercase tracking-tighter">
-                    Confirmar y Crear {previewFridays.length} Reuniones
+                  <div className="grid grid-cols-1 gap-3">
+                    {previewFridays.map((date, idx) => {
+                      const isSelected = selectedIndices.has(idx);
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`group flex items-center gap-4 p-5 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md ${
+                            isSelected ? 'bg-primary/5 border-primary/20' : 'bg-muted/10 border-transparent opacity-60'
+                          }`}
+                          onClick={() => toggleSelection(idx)}
+                        >
+                          <Checkbox 
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelection(idx)}
+                            className="w-7 h-7 rounded-lg border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div className="flex flex-col">
+                            <span className={`text-lg font-black uppercase tracking-tight leading-none ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
+                              {formatDate(date)}
+                            </span>
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">
+                              17:30H • Inscripciones abren el lunes anterior
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <Button 
+                    onClick={handleCreateBatch} 
+                    className="w-full h-16 rounded-2xl font-black text-xl shadow-2xl uppercase tracking-tighter mt-6"
+                    disabled={selectedIndices.size === 0}
+                  >
+                    Confirmar y Crear {selectedIndices.size} {selectedIndices.size === 1 ? 'Reunión' : 'Reuniones'}
                   </Button>
                 </div>
               )}
