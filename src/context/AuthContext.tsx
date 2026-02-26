@@ -12,6 +12,8 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, updateDoc, arrayUnion, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface UserData {
   id: string;
@@ -62,21 +64,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser);
         // Suscribirse al documento del usuario en tiempo real
         const userDocRef = doc(db, 'users', currentUser.uid);
-        const unsubUser = onSnapshot(userDocRef, (snap) => {
-          if (snap.exists()) {
-            setUserData(snap.data() as UserData);
-          } else {
-            setUserData(null); // Usuario nuevo, necesita inicialización
+        const unsubUser = onSnapshot(
+          userDocRef, 
+          (snap) => {
+            if (snap.exists()) {
+              setUserData(snap.data() as UserData);
+            } else {
+              setUserData(null);
+            }
+          },
+          async (err) => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+              path: userDocRef.path,
+              operation: 'get'
+            }));
           }
-        });
+        );
         return () => unsubUser();
       } else {
         setUser(null);
         setUserData(null);
         setFamilyData(null);
         setFamilyMembers([]);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -87,24 +98,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!userData?.familyId) {
       setFamilyData(null);
       setFamilyMembers([]);
-      if (user && userData === null) setLoading(false); // Estamos en estado de nuevo usuario
+      if (user && userData === null) setLoading(false);
       return;
     }
 
     setLoading(true);
-    const unsubFamily = onSnapshot(doc(db, 'families', userData.familyId), (snap) => {
-      if (snap.exists()) {
-        setFamilyData({ id: snap.id, ...snap.data() } as FamilyData);
+    
+    const familyDocRef = doc(db, 'families', userData.familyId);
+    const unsubFamily = onSnapshot(
+      familyDocRef, 
+      (snap) => {
+        if (snap.exists()) {
+          setFamilyData({ id: snap.id, ...snap.data() } as FamilyData);
+        }
+        setLoading(false);
+      },
+      async (err) => {
+        setLoading(false);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: familyDocRef.path,
+          operation: 'get'
+        }));
       }
-      setLoading(false);
-    });
+    );
 
     const membersQuery = query(collection(db, 'users'), where('familyId', '==', userData.familyId));
-    const unsubMembers = onSnapshot(membersQuery, (snap) => {
-      const members: UserData[] = [];
-      snap.forEach(doc => members.push(doc.data() as UserData));
-      setFamilyMembers(members);
-    });
+    const unsubMembers = onSnapshot(
+      membersQuery, 
+      (snap) => {
+        const members: UserData[] = [];
+        snap.forEach(doc => members.push(doc.data() as UserData));
+        setFamilyMembers(members);
+      },
+      async (err) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'users',
+          operation: 'list'
+        }));
+      }
+    );
 
     return () => {
       unsubFamily();

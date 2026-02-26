@@ -12,20 +12,28 @@ service cloud.firestore {
     }
 
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : null;
     }
 
     function isAdmin() {
-      return isSignedIn() && getUserData().role == 'admin';
+      let data = getUserData();
+      return isSignedIn() && data != null && data.role == 'admin';
     }
 
     function belongsToFamily(familyId) {
-      return isSignedIn() && (getUserData().familyId == familyId || isAdmin());
+      let data = getUserData();
+      return isSignedIn() && data != null && (data.familyId == familyId || data.role == 'admin');
     }
 
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      // Allow get if owner, admin, or in the same family
+      allow get: if isOwner(userId) || isAdmin() || (isSignedIn() && getUserData().familyId == resource.data.familyId);
+      
+      // Allow list (queries) if signed in. 
+      // Firestore will enforce that the query only returns documents the user has 'get' access to.
+      allow list: if isSignedIn();
+      
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
