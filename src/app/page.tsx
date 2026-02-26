@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, Music, CheckCircle2 } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, Music, CheckCircle2, Lock } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -311,7 +312,16 @@ export default function ParentDashboard() {
           ) : upcomingMeeting ? (
             <Card className="border-4 border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
               <CardHeader className="bg-primary/5 p-8 space-y-4">
-                <CardTitle className="text-2xl text-primary font-black leading-tight uppercase tracking-tighter">{upcomingMeeting.title}</CardTitle>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <CardTitle className="text-2xl text-primary font-black leading-tight uppercase tracking-tighter">
+                    {upcomingMeeting.title}
+                  </CardTitle>
+                  {!isRegistrationCurrentlyOpen && (
+                    <Badge variant="destructive" className="w-fit font-black uppercase px-3 py-1 text-[10px] tracking-widest shadow-md">
+                      <Lock className="w-3 h-3 mr-1" /> Inscripción Cerrada
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 text-base font-bold text-muted-foreground">
                   <CalendarIcon className="w-4 h-4" /> {formatDateTime(upcomingMeeting.date)}
                 </div>
