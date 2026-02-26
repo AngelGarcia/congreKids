@@ -196,7 +196,11 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     
     const childrenList = data.map(child => {
       const guitarEmoji = child.guitarSelected ? ' 🎸' : '';
-      return `• *${child.name}* (Fam. ${child.familyName})${guitarEmoji}`;
+      // Limpiamos "Familia " del nombre para evitar redundancia (Fam. Familia Surnames -> Fam. Surnames)
+      const cleanFamilyName = child.familyName?.startsWith('Familia ') 
+        ? child.familyName.replace('Familia ', '') 
+        : child.familyName;
+      return `• *${child.name}* (Fam. ${cleanFamilyName})${guitarEmoji}`;
     }).join('\n');
 
     const footer = `\n\n_Generado desde CongreKids_`;
