@@ -11,27 +11,27 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function getUserData() {
-      let path = /databases/$(database)/documents/users/$(request.auth.uid);
-      return exists(path) ? get(path).data : null;
+    // Obtiene los datos del usuario autenticado de forma segura.
+    // Al usar isOwner() como primera regla en el match de usuarios, 
+    // evitamos la recursión infinita.
+    function getAuthData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
-      let data = getUserData();
-      return isSignedIn() && data != null && data.role == 'admin';
+      return isSignedIn() && getAuthData().role == 'admin';
     }
 
     function belongsToFamily(familyId) {
-      let data = getUserData();
+      let data = getAuthData();
       return isSignedIn() && data != null && (data.familyId == familyId || data.role == 'admin');
     }
 
     match /users/{userId} {
-      // Allow get if owner, admin, or in the same family
-      allow get: if isOwner(userId) || isAdmin() || (isSignedIn() && getUserData().familyId == resource.data.familyId);
+      // REGLA CRÍTICA: isOwner debe ir primero para romper la recursión de getAuthData()
+      allow get: if isOwner(userId) || isAdmin();
       
-      // Allow list (queries) if signed in. 
-      // Firestore will enforce that the query only returns documents the user has 'get' access to.
+      // Permitir listado para que los padres vean a su pareja
       allow list: if isSignedIn();
       
       allow create: if isOwner(userId);

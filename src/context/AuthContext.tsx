@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       },
       async (err) => {
-        // Only emit if still logged in
+        // Only emit if still logged in to avoid race conditions on logout
         if (auth.currentUser) {
           errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: userDocRef.path,
@@ -172,7 +172,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       setLoading(true);
-      // Clean up states BEFORE sign out to avoid permission errors in listeners
       setUserData(null);
       setFamilyData(null);
       setFamilyMembers([]);
@@ -187,8 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const createFamily = async (name: string, role: 'padre' | 'madre' | 'admin') => {
     if (!user) return;
     try {
-      // For admins, we still create/assign a dummy family or a generic one
-      // but they primarily use the admin role for cross-family access
+      setLoading(true);
       const familyRef = await addDoc(collection(db, 'families'), {
         name: role === 'admin' ? `Gestión Admin` : `Familia ${name}`,
         members: [user.uid],
@@ -211,6 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: role === 'admin' ? "Ya puedes gestionar las reuniones." : `Bienvenidos, Familia ${name}` 
       });
     } catch (error) {
+      setLoading(false);
       toast({ variant: "destructive", title: "Error", description: "No se pudo crear el perfil." });
     }
   };
@@ -228,6 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const joinFamily = async (familyId: string, role: 'padre' | 'madre' | 'admin') => {
     if (!user) return;
     try {
+      setLoading(true);
       const familyRef = doc(db, 'families', familyId.trim());
       const familySnap = await getDoc(familyRef);
       
@@ -249,6 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await setDoc(doc(db, 'users', user.uid), newUser);
       toast({ title: "¡Perfil unido!", description: "Ahora compartes perfiles con tu familia." });
     } catch (error: any) {
+      setLoading(false);
       toast({ variant: "destructive", title: "Error", description: error.message });
     }
   };
