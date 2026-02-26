@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, use, useMemo } from 'react';
@@ -341,19 +340,19 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               return (
                 <Card key={group.label} className="border-muted bg-white rounded-2xl shadow-sm">
                   <CardHeader className="p-4 pb-1">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex justify-between">
+                    <CardTitle className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex justify-between">
                       {group.label}
-                      <span className="text-[8px] font-black opacity-40">Ratio 1:{ratio}</span>
+                      <span className="text-[10px] font-black opacity-30">Ratio 1:{ratio}</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="flex items-baseline gap-2">
-                      <div className="text-2xl font-black">{count}</div>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">niños</span>
+                      <div className="text-3xl font-black">{count}</div>
+                      <span className="text-[11px] font-bold text-muted-foreground uppercase">niños</span>
                     </div>
-                    <div className="flex items-center gap-1 mt-1 text-primary">
-                      <UserCheck className="w-3 h-3" />
-                      <span className="text-[10px] font-black uppercase tracking-tight">{monitorsNeeded} {monitorsNeeded === 1 ? 'monitor' : 'monitores'}</span>
+                    <div className="flex items-center gap-1.5 mt-2 text-primary">
+                      <UserCheck className="w-4 h-4" />
+                      <span className="text-sm font-black uppercase tracking-tight">{monitorsNeeded} {monitorsNeeded === 1 ? 'monitor' : 'monitores'}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -576,32 +575,35 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 <AccordionContent className="p-6 pt-6 space-y-4">
                   {(isEditing ? editAgeGroups : meeting.ageGroups)?.map((group: any, idx: number) => (
                     <div key={idx} className={cn(
-                      "flex flex-col gap-2 pb-4 last:pb-0 last:border-0 border-b",
-                      isEditing ? 'bg-primary/5 p-3 rounded-xl border-none' : ''
+                      "flex flex-col gap-2 pb-5 last:pb-0 last:border-0 border-b",
+                      isEditing ? 'bg-primary/5 p-4 rounded-xl border-none shadow-sm' : ''
                     )}>
                       {isEditing ? (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           <div className="flex justify-between items-center">
-                            <Input value={group.label} onChange={e => updateAgeGroup(idx, 'label', e.target.value)} className="h-8 font-black text-xs uppercase bg-white" />
-                            <Button variant="ghost" size="icon" onClick={() => setEditAgeGroups(editAgeGroups.filter((_, i) => i !== idx))} className="h-6 w-6 text-destructive"><Trash2 className="w-3 h-3" /></Button>
+                            <Input value={group.label} onChange={e => updateAgeGroup(idx, 'label', e.target.value)} className="h-9 font-black text-sm uppercase bg-white border-2" />
+                            <Button variant="ghost" size="icon" onClick={() => setEditAgeGroups(editAgeGroups.filter((_, i) => i !== idx))} className="h-8 w-8 text-destructive ml-2 shrink-0"><Trash2 className="w-4 h-4" /></Button>
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <Label className="text-[9px] font-black uppercase">Mín (años)</Label>
-                              <Input type="number" step="0.1" value={group.minMonths / 12} onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} className="h-8 text-xs bg-white" />
+                              <Label className="text-[10px] font-black uppercase text-muted-foreground">Mín (años)</Label>
+                              <Input type="number" step="0.1" value={group.minMonths / 12} onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} className="h-9 text-sm font-bold bg-white border-2" />
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-[9px] font-black uppercase">Máx (años)</Label>
-                              <Input type="number" step="0.1" value={group.maxMonths / 12} onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} className="h-8 text-xs bg-white" />
+                              <Label className="text-[10px] font-black uppercase text-muted-foreground">Máx (años)</Label>
+                              <Input type="number" step="0.1" value={group.maxMonths / 12} onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} className="h-9 text-sm font-bold bg-white border-2" />
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-2 pt-1">
-                            <div className="space-y-1">
-                              <Label className="text-[9px] font-black uppercase">Ratio (niños/mon.)</Label>
-                              <Input type="number" value={group.ratio || 8} onChange={e => updateAgeGroup(idx, 'ratio', parseInt(e.target.value))} className="h-8 text-xs bg-white" />
+                          <div className="grid grid-cols-2 gap-3 pt-2">
+                            <div className="space-y-1.5">
+                              <Label className="text-[10px] font-black uppercase text-muted-foreground">Ratio Monitores : Niños</Label>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-black text-primary">1 :</span>
+                                <Input type="number" value={group.ratio || 8} onChange={e => updateAgeGroup(idx, 'ratio', parseInt(e.target.value))} className="h-9 text-sm font-black bg-white border-2" />
+                              </div>
                             </div>
-                            <div className="flex flex-col justify-center items-end">
-                              <Label className="text-[10px] font-black uppercase mb-1">Guitarra</Label>
+                            <div className="flex flex-col justify-center items-end gap-1.5">
+                              <Label className="text-[10px] font-black uppercase text-muted-foreground">Guitarra</Label>
                               <Switch checked={group.allowsGuitar} onCheckedChange={val => updateAgeGroup(idx, 'allowsGuitar', val)} />
                             </div>
                           </div>
@@ -609,33 +611,38 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       ) : (
                         <>
                           <div className="flex justify-between items-center">
-                            <span className="text-xs font-black uppercase">{group.label}</span>
+                            <span className="text-sm font-black uppercase text-primary">{group.label}</span>
                             <div className="flex items-center gap-2">
-                              {group.allowsGuitar && <Music className="w-3 h-3 text-accent" />}
-                              <Badge variant="outline" className="text-[8px] font-black py-0 px-1 border-muted-foreground/30 opacity-60">1:{group.ratio || 8}</Badge>
+                              {group.allowsGuitar && <Music className="w-4 h-4 text-accent" />}
+                              <Badge variant="outline" className="text-[11px] font-black py-0.5 px-2 border-primary/20 bg-primary/5 text-primary">
+                                Ratio 1:{group.ratio || 8}
+                              </Badge>
                             </div>
                           </div>
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">
-                            {group.minMonths / 12} a {group.maxMonths / 12} años
-                          </span>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-[11px] font-bold text-muted-foreground uppercase opacity-80">
+                              De {group.minMonths / 12} a {group.maxMonths / 12} años
+                            </span>
+                            <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">monitores : niños</span>
+                          </div>
                         </>
                       )}
                     </div>
                   ))}
 
                   {isEditing && (
-                    <div className="pt-4 flex flex-col gap-2">
+                    <div className="pt-6 flex flex-col gap-3">
                       <Button 
                         onClick={handleSaveChanges}
-                        className="w-full h-12 rounded-xl font-black uppercase shadow-lg tracking-tighter"
+                        className="w-full h-14 rounded-2xl font-black text-lg uppercase shadow-2xl tracking-tighter"
                       >
-                        <Save className="w-4 h-4 mr-2" />
+                        <Save className="w-5 h-5 mr-2" />
                         Guardar Cambios
                       </Button>
                       <Button 
                         variant="ghost" 
                         onClick={() => setIsEditing(false)}
-                        className="w-full h-10 rounded-xl font-bold uppercase text-xs text-muted-foreground"
+                        className="w-full h-11 rounded-2xl font-black uppercase text-xs text-muted-foreground hover:bg-muted/10"
                       >
                         Cancelar
                       </Button>
