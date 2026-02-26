@@ -32,10 +32,16 @@ export default function FamilyManagement() {
   // Forms state
   const [newChildName, setNewChildName] = useState('');
   const [newChildBirthDate, setNewChildBirthDate] = useState('');
-  const [editFamilyName, setEditFamilyName] = useState('');
+  const [editFamilySurnames, setEditFamilySurnames] = useState('');
 
   useEffect(() => {
-    if (familyData?.name) setEditFamilyName(familyData.name);
+    if (familyData?.name) {
+      // Extraemos solo los apellidos si el nombre empieza por "Familia "
+      const surnames = familyData.name.startsWith('Familia ') 
+        ? familyData.name.replace('Familia ', '') 
+        : familyData.name;
+      setEditFamilySurnames(surnames);
+    }
   }, [familyData]);
 
   const childrenQuery = useMemoFirebase(() => {
@@ -70,8 +76,9 @@ export default function FamilyManagement() {
 
   const handleUpdateFamilyName = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editFamilyName.trim()) {
-      updateFamilyName(editFamilyName.trim());
+    if (editFamilySurnames.trim()) {
+      // Siempre guardamos con el prefijo "Familia "
+      updateFamilyName(`Familia ${editFamilySurnames.trim()}`);
       setIsEditingFamilyName(false);
     }
   };
@@ -116,14 +123,15 @@ export default function FamilyManagement() {
           <div className="space-y-2">
             <div className="flex items-center justify-center gap-2">
               {isEditingFamilyName ? (
-                <form onSubmit={handleUpdateFamilyName} className="flex gap-2 max-w-sm">
+                <form onSubmit={handleUpdateFamilyName} className="flex items-center gap-3 max-w-xl">
+                  <span className="text-3xl font-black uppercase text-primary whitespace-nowrap">Familia</span>
                   <Input 
-                    value={editFamilyName} 
-                    onChange={e => setEditFamilyName(e.target.value)}
-                    className="h-12 text-2xl font-black border-2 rounded-xl text-center"
+                    value={editFamilySurnames} 
+                    onChange={e => setEditFamilySurnames(e.target.value)}
+                    className="h-14 text-2xl font-black border-2 rounded-xl"
                     autoFocus
                   />
-                  <Button type="submit" size="icon" className="h-12 w-12 rounded-xl"><Check /></Button>
+                  <Button type="submit" size="icon" className="h-14 w-14 rounded-xl shrink-0"><Check /></Button>
                 </form>
               ) : (
                 <>
