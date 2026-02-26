@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -186,6 +186,23 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           requestResourceData: updatedData
         }));
       });
+  };
+
+  const shareOnWhatsApp = (data: any[], title: string) => {
+    const header = `*📋 LISTADO ${title.toUpperCase()}*\n`;
+    const meetingInfo = `*Reunión:* ${meeting.title}\n`;
+    const dateInfo = `*Fecha:* ${formatDate(meeting.date)}\n`;
+    const totalInfo = `*Total:* ${data.length} niños\n\n`;
+    
+    const childrenList = data.map(child => {
+      const guitarEmoji = child.guitarSelected ? ' 🎸' : '';
+      return `• *${child.name}* (Fam. ${child.familyName})${guitarEmoji}`;
+    }).join('\n');
+
+    const footer = `\n\n_Generado desde CongreKids_`;
+    
+    const message = encodeURIComponent(header + meetingInfo + dateInfo + totalInfo + childrenList + footer);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
   };
 
   const updateAgeGroup = (index: number, field: string, value: any) => {
@@ -373,17 +390,30 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary font-black">{allChildren.length}</Badge>
                     </div>
                   </AccordionTrigger>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openExportDialog(allChildren, "General");
-                    }}
-                    className="h-9 rounded-lg font-black uppercase text-[11px] bg-white shadow-sm border-primary/20 hover:bg-primary/5 shrink-0 z-10 relative"
-                  >
-                    <FileDown className="w-3.5 h-3.5 mr-2" /> Exportar
-                  </Button>
+                  <div className="flex items-center gap-2 z-10 relative shrink-0">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        shareOnWhatsApp(allChildren, "General");
+                      }}
+                      className="h-9 rounded-lg font-black uppercase text-[11px] bg-white shadow-sm border-green-500/20 text-green-600 hover:bg-green-50 shrink-0"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 mr-2" /> WhatsApp
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openExportDialog(allChildren, "General");
+                      }}
+                      className="h-9 rounded-lg font-black uppercase text-[11px] bg-white shadow-sm border-primary/20 hover:bg-primary/5 shrink-0"
+                    >
+                      <FileDown className="w-3.5 h-3.5 mr-2" /> Exportar
+                    </Button>
+                  </div>
                 </div>
                 <AccordionContent className="p-0">
                   <Table>
@@ -437,17 +467,30 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                           </span>
                         </div>
                       </AccordionTrigger>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openExportDialog(childrenInGroup, group.label);
-                        }}
-                        className="h-9 rounded-lg font-black uppercase text-[11px] bg-white shadow-sm hover:bg-muted/5 shrink-0 z-10 relative"
-                      >
-                        <FileDown className="w-3.5 h-3.5 mr-2" /> Exportar
-                      </Button>
+                      <div className="flex items-center gap-2 z-10 relative shrink-0">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            shareOnWhatsApp(childrenInGroup, group.label);
+                          }}
+                          className="h-9 rounded-lg font-black uppercase text-[11px] bg-white shadow-sm border-green-500/20 text-green-600 hover:bg-green-50 shrink-0"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 mr-2" /> WhatsApp
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openExportDialog(childrenInGroup, group.label);
+                          }}
+                          className="h-9 rounded-lg font-black uppercase text-[11px] bg-white shadow-sm hover:bg-muted/5 shrink-0"
+                        >
+                          <FileDown className="w-3.5 h-3.5 mr-2" /> Exportar
+                        </Button>
+                      </div>
                     </div>
                     <AccordionContent className="p-0">
                       <Table>
@@ -594,7 +637,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                               <Input type="number" step="0.1" value={group.maxMonths / 12} onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} className="h-10 text-sm font-bold bg-white border-2" />
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-3 pt-2">
+                          <div className="grid grid-cols-2 gap-3 pt-2 border-t">
                             <div className="space-y-1.5">
                               <Label className="text-[11px] font-black uppercase text-muted-foreground">Ratio monitores : niños</Label>
                               <div className="flex items-center gap-2">
