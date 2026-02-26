@@ -13,7 +13,7 @@ import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby
 import { collection, query, where, orderBy, limit, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { formatDate, isRegistrationOpen, calculateAgeInMonths, getRegistrationOpeningDate, isTooEarlyForRegistration } from '@/lib/utils/date';
+import { formatDate, formatDateTime, isRegistrationOpen, calculateAgeInMonths, getRegistrationOpeningDate, isTooEarlyForRegistration } from '@/lib/utils/date';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -279,7 +279,6 @@ export default function ParentDashboard() {
   });
 
   const registrationOpeningDate = upcomingMeeting ? getRegistrationOpeningDate((upcomingMeeting.date as any).toDate()) : null;
-  const isRegistrationYetOpen = registrationOpeningDate ? !isTooEarlyForRegistration(registrationOpeningDate) : false;
   const isRegistrationCurrentlyOpen = upcomingMeeting ? isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate(), registrationOpeningDate) : false;
 
   return (
@@ -559,7 +558,7 @@ export default function ParentDashboard() {
                       )}
                     </div>
                   </div>
-                ) : isTooEarlyForRegistration(registrationOpeningDate!) ? (
+                ) : registrationOpeningDate && isTooEarlyForRegistration(registrationOpeningDate) ? (
                    <div className="py-20 text-center space-y-6">
                     <Clock className="text-primary w-16 h-16 mx-auto animate-pulse" />
                     <p className="text-2xl font-black text-primary uppercase tracking-tighter">Inscripciones Próximamente</p>
