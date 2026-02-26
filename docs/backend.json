@@ -26,8 +26,12 @@
         },
         "role": {
           "type": "string",
-          "description": "The user's role ('padre', 'madre' or 'admin').",
-          "enum": ["padre", "madre", "admin"]
+          "description": "The user's family role ('padre' or 'madre').",
+          "enum": ["padre", "madre"]
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Whether the user has administrative privileges."
         },
         "familyId": {
           "type": "string",
@@ -38,7 +42,7 @@
           "format": "date-time"
         }
       },
-      "required": ["id", "displayName", "email", "role", "familyId", "createdAt"]
+      "required": ["id", "displayName", "email", "role", "isAdmin", "familyId", "createdAt"]
     },
     "Family": {
       "$schema": "http://json-schema.org/draft-07/schema#",

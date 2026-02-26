@@ -20,7 +20,8 @@ interface UserData {
   displayName: string | null;
   email: string | null;
   photoURL: string | null;
-  role: 'padre' | 'madre' | 'admin';
+  role: 'padre' | 'madre';
+  isAdmin: boolean;
   familyId: string;
   createdAt: any;
 }
@@ -39,8 +40,8 @@ interface AuthContextType {
   loading: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
-  joinFamily: (familyId: string, role: 'padre' | 'madre' | 'admin') => Promise<void>;
-  createFamily: (name: string, role: 'padre' | 'madre' | 'admin') => Promise<void>;
+  joinFamily: (familyId: string, role: 'padre' | 'madre') => Promise<void>;
+  createFamily: (name: string, role: 'padre' | 'madre') => Promise<void>;
   updateFamilyName: (newName: string) => Promise<void>;
 }
 
@@ -57,7 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [familyMembers, setFamilyMembers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -71,15 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [auth]);
 
-  // User data synchronization
   useEffect(() => {
-    if (!user) {
-      setUserData(null);
-      setFamilyData(null);
-      setFamilyMembers([]);
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
 
     setLoading(true);
     const userDocRef = doc(db, 'users', user.uid);
@@ -87,28 +80,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userDocRef, 
       (snap) => {
         if (snap.exists()) {
-          const data = snap.data() as UserData;
-          setUserData(data);
+          setUserData(snap.data() as UserData);
         } else {
           setUserData(null);
         }
         setLoading(false);
       },
       async (err) => {
-        // Only emit if still logged in to avoid race conditions on logout
         if (auth.currentUser) {
           errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: userDocRef.path,
             operation: 'get'
           }));
         }
+        setLoading(false);
       }
     );
 
     return () => unsubUser();
   }, [db, user, auth]);
 
-  // Family data and members synchronization
   useEffect(() => {
     if (!userData?.familyId || !user) {
       setFamilyData(null);
@@ -183,12 +174,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const createFamily = async (name: string, role: 'padre' | 'madre' | 'admin') => {
+  const createFamily = async (name: string, role: 'padre' | 'madre') => {
     if (!user) return;
     try {
       setLoading(true);
       const familyRef = await addDoc(collection(db, 'families'), {
-        name: role === 'admin' ? `Gestión Admin` : `Familia ${name}`,
+        name: `Familia ${name}`,
         members: [user.uid],
         createdAt: serverTimestamp(),
       });
@@ -199,14 +190,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: user.email,
         photoURL: user.photoURL,
         role: role,
+        isAdmin: false, // Default to false, manual update for first admin
         familyId: familyRef.id,
         createdAt: serverTimestamp(),
       };
       
       await setDoc(doc(db, 'users', user.uid), newUser);
       toast({ 
-        title: role === 'admin' ? "¡Cuenta de Admin Creada!" : "¡Familia Creada!", 
-        description: role === 'admin' ? "Ya puedes gestionar las reuniones." : `Bienvenidos, Familia ${name}` 
+        title: "¡Familia Creada!", 
+        description: `Bienvenidos, Familia ${name}` 
       });
     } catch (error) {
       setLoading(false);
@@ -224,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const joinFamily = async (familyId: string, role: 'padre' | 'madre' | 'admin') => {
+  const joinFamily = async (familyId: string, role: 'padre' | 'madre') => {
     if (!user) return;
     try {
       setLoading(true);
@@ -241,6 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: user.email,
         photoURL: user.photoURL,
         role: role,
+        isAdmin: false,
         familyId: familyId.trim(),
         createdAt: serverTimestamp(),
       };

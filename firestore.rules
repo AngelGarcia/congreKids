@@ -11,30 +11,23 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Obtiene los datos del usuario autenticado de forma segura.
     function getAuthData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
-      return isSignedIn() && getAuthData().role == 'admin';
+      let data = getAuthData();
+      return isSignedIn() && data != null && data.isAdmin == true;
     }
 
     function belongsToFamily(familyId) {
       let data = getAuthData();
-      return isSignedIn() && data != null && (data.familyId == familyId || data.role == 'admin');
+      return isSignedIn() && data != null && (data.familyId == familyId || data.isAdmin == true);
     }
 
     match /users/{userId} {
-      // Regla crítica para evitar recursión: isOwner siempre primero
       allow get: if isOwner(userId) || isAdmin();
-      
-      // Permitir listado global para administradores
-      allow list: if isAdmin();
-      
-      // Permitir listado filtrado por familia para usuarios normales (si Firestore valida la consulta)
-      allow list: if isSignedIn() && resource.data.familyId == getAuthData().familyId;
-      
+      allow list: if isAdmin() || (isSignedIn() && resource.data.familyId == getAuthData().familyId);
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();

@@ -31,7 +31,7 @@ export default function ParentDashboard() {
   const [isEditingFamilyName, setIsEditingFamilyName] = useState(false);
   const [isManagingFamily, setIsManagingFamily] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'padre' | 'madre' | 'admin'>('padre');
+  const [selectedRole, setSelectedRole] = useState<'padre' | 'madre'>('padre');
   
   // Forms state
   const [newFamilyName, setNewFamilyName] = useState('');
@@ -79,7 +79,7 @@ export default function ParentDashboard() {
 
   const handleCreateFamily = (e: React.FormEvent) => {
     e.preventDefault();
-    createFamily(newFamilyName.trim() || (selectedRole === 'admin' ? "Gestión" : ""), selectedRole);
+    createFamily(newFamilyName.trim() || "", selectedRole);
   };
 
   const handleJoinFamily = (e: React.FormEvent) => {
@@ -203,31 +203,22 @@ export default function ParentDashboard() {
             <div className="space-y-6">
               <Label className="text-xs font-black uppercase text-primary">Primero, ¿cuál es tu rol?</Label>
               <RadioGroup value={selectedRole} onValueChange={(val: any) => setSelectedRole(val)} className="flex flex-wrap gap-2">
-                <div className="flex-1 min-w-[100px]">
+                <div className="flex-1 min-w-[120px]">
                   <RadioGroupItem value="padre" id="padre" className="peer sr-only" />
                   <Label
                     htmlFor="padre"
-                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
+                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
                   >
-                    <span className="text-sm font-black uppercase">Padre</span>
+                    <span className="text-base font-black uppercase">Padre</span>
                   </Label>
                 </div>
-                <div className="flex-1 min-w-[100px]">
+                <div className="flex-1 min-w-[120px]">
                   <RadioGroupItem value="madre" id="madre" className="peer sr-only" />
                   <Label
                     htmlFor="madre"
-                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
+                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
                   >
-                    <span className="text-sm font-black uppercase">Madre</span>
-                  </Label>
-                </div>
-                <div className="flex-1 min-w-[100px]">
-                  <RadioGroupItem value="admin" id="admin" className="peer sr-only" />
-                  <Label
-                    htmlFor="admin"
-                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
-                  >
-                    <span className="text-sm font-black uppercase">Admin</span>
+                    <span className="text-base font-black uppercase">Madre</span>
                   </Label>
                 </div>
               </RadioGroup>
@@ -285,7 +276,7 @@ export default function ParentDashboard() {
       <main className="container mx-auto px-4 py-8 space-y-12">
         
         {/* Admin Quick Access Banner */}
-        {userData.role === 'admin' && (
+        {userData.isAdmin && (
           <div className="max-w-4xl mx-auto">
             <Link href="/admin">
               <div className="bg-primary/90 text-white p-6 rounded-[2rem] shadow-xl flex items-center justify-between hover:bg-primary transition-all group">
@@ -346,7 +337,7 @@ export default function ParentDashboard() {
                       {member.role?.[0]}
                     </AvatarFallback>
                   </Avatar>
-                  {member.role === 'admin' && (
+                  {member.isAdmin && (
                     <div className="absolute -top-1 -right-1 bg-accent text-white p-1 rounded-lg shadow-lg">
                       <ShieldCheck className="w-4 h-4" />
                     </div>

@@ -35,17 +35,16 @@ export default function UsersManagement() {
     }
   };
 
-  const toggleAdmin = async (userId: string, currentRole: string) => {
-    const newRole = currentRole === 'admin' ? 'padre' : 'admin';
+  const toggleAdmin = async (userId: string, currentIsAdmin: boolean) => {
     try {
-      await updateDoc(doc(db, 'users', userId), { role: newRole });
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      await updateDoc(doc(db, 'users', userId), { isAdmin: !currentIsAdmin });
+      setUsers(users.map(u => u.id === userId ? { ...u, isAdmin: !currentIsAdmin } : u));
       toast({ 
-        title: "Rol actualizado", 
-        description: `El usuario ahora es ${newRole}.` 
+        title: "Permisos actualizados", 
+        description: `El usuario ahora ${!currentIsAdmin ? 'es' : 'ya no es'} administrador.` 
       });
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "No tienes permisos para cambiar roles." });
+      toast({ variant: "destructive", title: "Error", description: "No tienes permisos para cambiar este campo." });
     }
   };
 
@@ -78,15 +77,16 @@ export default function UsersManagement() {
               <TableRow className="hover:bg-transparent border-none">
                 <TableHead className="font-black uppercase text-xs w-[300px]">Usuario</TableHead>
                 <TableHead className="font-black uppercase text-xs">Email</TableHead>
-                <TableHead className="font-black uppercase text-xs">Rol Actual</TableHead>
-                <TableHead className="text-right font-black uppercase text-xs">Acción Admin</TableHead>
+                <TableHead className="font-black uppercase text-xs">Rol Familiar</TableHead>
+                <TableHead className="font-black uppercase text-xs">Admin</TableHead>
+                <TableHead className="text-right font-black uppercase text-xs">Acción</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 [1, 2, 3].map(i => (
                   <TableRow key={i}>
-                    <TableCell colSpan={4} className="h-20 animate-pulse bg-muted/5" />
+                    <TableCell colSpan={5} className="h-20 animate-pulse bg-muted/5" />
                   </TableRow>
                 ))
               ) : (
@@ -107,18 +107,29 @@ export default function UsersManagement() {
                       {user.email}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'outline'} className="rounded-lg font-black uppercase px-3">
+                      <Badge variant="outline" className="rounded-lg font-black uppercase px-3">
                         {user.role}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      {user.isAdmin ? (
+                        <Badge className="bg-primary text-white font-black uppercase rounded-lg px-3">
+                          SÍ
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="font-black uppercase rounded-lg px-3">
+                          NO
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button 
-                        variant={user.role === 'admin' ? 'destructive' : 'default'} 
+                        variant={user.isAdmin ? 'destructive' : 'default'} 
                         size="sm"
-                        onClick={() => toggleAdmin(user.id, user.role)}
+                        onClick={() => toggleAdmin(user.id, user.isAdmin)}
                         className="rounded-xl font-bold uppercase"
                       >
-                        {user.role === 'admin' ? (
+                        {user.isAdmin ? (
                           <><ArrowDownCircle className="w-4 h-4 mr-2" /> Quitar Admin</>
                         ) : (
                           <><ArrowUpCircle className="w-4 h-4 mr-2" /> Hacer Admin</>
@@ -130,7 +141,7 @@ export default function UsersManagement() {
               )}
               {!loading && filteredUsers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-16 text-muted-foreground font-bold italic">
+                  <TableCell colSpan={5} className="text-center py-16 text-muted-foreground font-bold italic">
                     No se han encontrado usuarios con ese criterio.
                   </TableCell>
                 </TableRow>

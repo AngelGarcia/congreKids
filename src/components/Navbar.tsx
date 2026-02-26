@@ -30,7 +30,7 @@ export default function Navbar() {
 
         {user ? (
           <div className="flex items-center gap-3">
-            {userData?.role === 'admin' && (
+            {userData?.isAdmin && (
               <Link href="/admin">
                 <Button variant="ghost" size="sm" className="hidden sm:flex font-bold">
                   Admin
@@ -55,7 +55,7 @@ export default function Navbar() {
                   <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {userData?.role === 'admin' && (
+                {userData?.isAdmin && (
                   <DropdownMenuItem asChild className="rounded-xl h-12">
                     <Link href="/admin">
                       <LayoutDashboard className="mr-3 h-5 w-5" />

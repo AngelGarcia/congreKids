@@ -25,12 +25,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && (!userData || userData.role !== 'admin')) {
+    if (!loading && (!userData || !userData.isAdmin)) {
       router.push('/');
     }
   }, [userData, loading, router]);
 
-  if (loading || !userData || userData.role !== 'admin') {
+  if (loading || !userData || !userData.isAdmin) {
     return <div className="h-screen flex items-center justify-center">Protegiendo área de administración...</div>;
   }
 
