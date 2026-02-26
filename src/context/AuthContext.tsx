@@ -39,8 +39,8 @@ interface AuthContextType {
   loading: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
-  joinFamily: (familyId: string, role: 'padre' | 'madre') => Promise<void>;
-  createFamily: (name: string, role: 'padre' | 'madre') => Promise<void>;
+  joinFamily: (familyId: string, role: 'padre' | 'madre' | 'admin') => Promise<void>;
+  createFamily: (name: string, role: 'padre' | 'madre' | 'admin') => Promise<void>;
   updateFamilyName: (newName: string) => Promise<void>;
 }
 
@@ -71,23 +71,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [auth]);
 
-  // User data listener
+  // User data synchronization
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setUserData(null);
+      setFamilyData(null);
+      setFamilyMembers([]);
+      setLoading(false);
+      return;
+    }
 
+    setLoading(true);
     const userDocRef = doc(db, 'users', user.uid);
     const unsubUser = onSnapshot(
       userDocRef, 
       (snap) => {
         if (snap.exists()) {
-          setUserData(snap.data() as UserData);
+          const data = snap.data() as UserData;
+          setUserData(data);
         } else {
           setUserData(null);
         }
         setLoading(false);
       },
       async (err) => {
-        // Ignore permission errors if we are logging out
+        // Only emit if still logged in
         if (auth.currentUser) {
           errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: userDocRef.path,
@@ -100,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubUser();
   }, [db, user, auth]);
 
-  // Family data listener
+  // Family data and members synchronization
   useEffect(() => {
     if (!userData?.familyId || !user) {
       setFamilyData(null);
@@ -164,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       setLoading(true);
-      // Stop all data syncing first
+      // Clean up states BEFORE sign out to avoid permission errors in listeners
       setUserData(null);
       setFamilyData(null);
       setFamilyMembers([]);
@@ -176,11 +184,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const createFamily = async (name: string, role: 'padre' | 'madre') => {
+  const createFamily = async (name: string, role: 'padre' | 'madre' | 'admin') => {
     if (!user) return;
     try {
+      // For admins, we still create/assign a dummy family or a generic one
+      // but they primarily use the admin role for cross-family access
       const familyRef = await addDoc(collection(db, 'families'), {
-        name: `Familia ${name}`,
+        name: role === 'admin' ? `Gestión Admin` : `Familia ${name}`,
         members: [user.uid],
         createdAt: serverTimestamp(),
       });
@@ -196,9 +206,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       
       await setDoc(doc(db, 'users', user.uid), newUser);
-      toast({ title: "¡Familia Creada!", description: `Bienvenidos, Familia ${name}` });
+      toast({ 
+        title: role === 'admin' ? "¡Cuenta de Admin Creada!" : "¡Familia Creada!", 
+        description: role === 'admin' ? "Ya puedes gestionar las reuniones." : `Bienvenidos, Familia ${name}` 
+      });
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "No se pudo crear la familia." });
+      toast({ variant: "destructive", title: "Error", description: "No se pudo crear el perfil." });
     }
   };
 
@@ -212,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const joinFamily = async (familyId: string, role: 'padre' | 'madre') => {
+  const joinFamily = async (familyId: string, role: 'padre' | 'madre' | 'admin') => {
     if (!user) return;
     try {
       const familyRef = doc(db, 'families', familyId.trim());
@@ -234,7 +247,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await updateDoc(familyRef, { members: arrayUnion(user.uid) });
       await setDoc(doc(db, 'users', user.uid), newUser);
-      toast({ title: "¡Familia unida!", description: "Ahora compartes perfiles con tu pareja." });
+      toast({ title: "¡Perfil unido!", description: "Ahora compartes perfiles con tu familia." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     }

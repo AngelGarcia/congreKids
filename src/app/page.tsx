@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home, Heart } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home, Heart, ShieldCheck } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -30,7 +30,7 @@ export default function ParentDashboard() {
   const [isEditingFamilyName, setIsEditingFamilyName] = useState(false);
   const [isManagingFamily, setIsManagingFamily] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'padre' | 'madre'>('padre');
+  const [selectedRole, setSelectedRole] = useState<'padre' | 'madre' | 'admin'>('padre');
   
   // Forms state
   const [newFamilyName, setNewFamilyName] = useState('');
@@ -45,9 +45,9 @@ export default function ParentDashboard() {
   }, [familyData]);
 
   const childrenQuery = useMemoFirebase(() => {
-    if (!db || !userData?.familyId) return null;
+    if (!db || !userData?.familyId || !user) return null;
     return collection(db, 'families', userData.familyId, 'children');
-  }, [db, userData?.familyId]);
+  }, [db, userData?.familyId, user]);
 
   const upcomingMeetingsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -64,9 +64,9 @@ export default function ParentDashboard() {
   const upcomingMeeting = upcomingMeetings?.[0] || null;
 
   const registrationRef = useMemoFirebase(() => {
-    if (!db || !upcomingMeeting || !userData?.familyId) return null;
+    if (!db || !upcomingMeeting || !userData?.familyId || !user) return null;
     return doc(db, 'meetings', upcomingMeeting.id, 'registrations', userData.familyId);
-  }, [db, upcomingMeeting, userData?.familyId]);
+  }, [db, upcomingMeeting, userData?.familyId, user]);
 
   const { data: registration } = useDoc(registrationRef);
 
@@ -78,8 +78,8 @@ export default function ParentDashboard() {
 
   const handleCreateFamily = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newFamilyName.trim()) {
-      createFamily(newFamilyName.trim(), selectedRole);
+    if (selectedRole === 'admin' || newFamilyName.trim()) {
+      createFamily(newFamilyName.trim() || "Admin", selectedRole);
     }
   };
 
@@ -202,61 +202,103 @@ export default function ParentDashboard() {
           </CardHeader>
           <CardContent className="space-y-8 p-8">
             <div className="space-y-6">
-              <Label className="text-xs font-black uppercase text-primary">Primero, ¿quién eres?</Label>
-              <RadioGroup value={selectedRole} onValueChange={(val: any) => setSelectedRole(val)} className="flex gap-4">
-                <div className="flex-1">
+              <Label className="text-xs font-black uppercase text-primary">Primero, ¿cuál es tu rol?</Label>
+              <RadioGroup value={selectedRole} onValueChange={(val: any) => setSelectedRole(val)} className="flex flex-wrap gap-2">
+                <div className="flex-1 min-w-[100px]">
                   <RadioGroupItem value="padre" id="padre" className="peer sr-only" />
                   <Label
                     htmlFor="padre"
-                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
                   >
                     <span className="text-sm font-black uppercase">Padre</span>
                   </Label>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-[100px]">
                   <RadioGroupItem value="madre" id="madre" className="peer sr-only" />
                   <Label
                     htmlFor="madre"
-                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
                   >
                     <span className="text-sm font-black uppercase">Madre</span>
+                  </Label>
+                </div>
+                <div className="flex-1 min-w-[100px]">
+                  <RadioGroupItem value="admin" id="admin" className="peer sr-only" />
+                  <Label
+                    htmlFor="admin"
+                    className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
+                  >
+                    <span className="text-sm font-black uppercase">Admin</span>
                   </Label>
                 </div>
               </RadioGroup>
             </div>
 
             <div className="space-y-4">
-              <Label className="text-xs font-black uppercase text-primary">Crear Nueva Familia</Label>
+              <Label className="text-xs font-black uppercase text-primary">
+                {selectedRole === 'admin' ? 'Finalizar Configuración' : 'Crear Nueva Familia'}
+              </Label>
               <form onSubmit={handleCreateFamily} className="flex flex-col gap-3">
-                <Input 
-                  placeholder="Apellidos (ej. García Medina)" 
-                  value={newFamilyName}
-                  onChange={e => setNewFamilyName(e.target.value)}
-                  className="h-14 rounded-xl border-2 font-bold"
-                />
-                <Button type="submit" className="h-14 rounded-xl font-black text-lg">CREAR FAMILIA</Button>
+                {selectedRole !== 'admin' && (
+                  <Input 
+                    placeholder="Apellidos (ej. García Medina)" 
+                    value={newFamilyName}
+                    onChange={e => setNewFamilyName(e.target.value)}
+                    className="h-14 rounded-xl border-2 font-bold"
+                  />
+                )}
+                <Button type="submit" className="h-14 rounded-xl font-black text-lg">
+                  {selectedRole === 'admin' ? 'ACCEDER COMO ADMIN' : 'CREAR FAMILIA'}
+                </Button>
               </form>
             </div>
             
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-muted-foreground/20" /></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground font-black">O TAMBIÉN</span></div>
-            </div>
+            {selectedRole !== 'admin' && (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-muted-foreground/20" /></div>
+                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground font-black">O TAMBIÉN</span></div>
+                </div>
 
-            <div className="space-y-4">
-              <Label className="text-xs font-black uppercase text-primary">Unirse con código</Label>
-              <form onSubmit={handleJoinFamily} className="flex flex-col gap-3">
-                <Input 
-                  placeholder="Pega el código de tu pareja" 
-                  value={joinFamilyId}
-                  onChange={e => setJoinFamilyId(e.target.value)}
-                  className="h-14 rounded-xl border-2 font-bold"
-                />
-                <Button variant="outline" type="submit" className="h-14 rounded-xl font-black text-lg border-2">UNIRSE A MI PAREJA</Button>
-              </form>
-            </div>
+                <div className="space-y-4">
+                  <Label className="text-xs font-black uppercase text-primary">Unirse con código</Label>
+                  <form onSubmit={handleJoinFamily} className="flex flex-col gap-3">
+                    <Input 
+                      placeholder="Pega el código de tu pareja" 
+                      value={joinFamilyId}
+                      onChange={e => setJoinFamilyId(e.target.value)}
+                      className="h-14 rounded-xl border-2 font-bold"
+                    />
+                    <Button variant="outline" type="submit" className="h-14 rounded-xl font-black text-lg border-2">UNIRSE A MI PAREJA</Button>
+                  </form>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Admin Dashboard view
+  if (userData.role === 'admin') {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-16 flex flex-col items-center justify-center text-center space-y-8">
+          <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center text-primary shadow-xl">
+            <ShieldCheck className="w-12 h-12" />
+          </div>
+          <div className="space-y-4">
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase text-primary">Panel de Control</h1>
+            <p className="text-xl text-muted-foreground font-medium max-w-lg mx-auto">
+              Has iniciado sesión como administrador. Desde aquí puedes gestionar las reuniones y ver todas las inscripciones.
+            </p>
+          </div>
+          <Button asChild size="lg" className="h-16 px-12 rounded-2xl text-xl font-black shadow-2xl uppercase">
+            <a href="/admin">Ir a Administración</a>
+          </Button>
+        </main>
       </div>
     );
   }
@@ -447,7 +489,7 @@ export default function ParentDashboard() {
                 </CardContent>
                 <CardFooter className="p-8 pt-0 flex flex-col gap-4">
                   <Button type="submit" className="w-full h-16 text-xl rounded-2xl font-black shadow-xl uppercase tracking-tighter">
-                    Guardar Perfil
+                    Guardar Hijo
                   </Button>
                 </CardFooter>
               </form>
