@@ -204,8 +204,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="ml-1 w-3 h-3 opacity-30" />;
-    return sortOrder === 'asc' ? <ChevronUp className="ml-1 w-3 h-3 text-primary" /> : <ChevronDown className="ml-1 w-3 h-3 text-primary" />;
+    if (sortField !== field) return <ArrowUpDown className="ml-1 w-3.5 h-3.5 opacity-30" />;
+    return sortOrder === 'asc' ? <ChevronUp className="ml-1 w-3.5 h-3.5 text-primary" /> : <ChevronDown className="ml-1 w-3.5 h-3.5 text-primary" />;
   };
 
   const openExportDialog = (data: any[], title: string) => {
@@ -319,7 +319,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <div className="text-3xl font-black text-accent">{guitarCount}</div>
-                <p className="text-[9px] text-muted-foreground font-bold uppercase">Niños apuntados</p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase">Niños apuntados</p>
               </CardContent>
             </Card>
             <Card className="border-primary/20 bg-primary/5 rounded-2xl shadow-sm">
@@ -330,7 +330,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <div className="text-3xl font-black text-primary">{totalChildrenCount}</div>
-                <p className="text-[9px] text-muted-foreground font-bold uppercase">Niños confirmados</p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase">Niños confirmados</p>
               </CardContent>
             </Card>
             {meeting.ageGroups?.map((group: any) => {
@@ -348,7 +348,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                   <CardContent className="p-4 pt-0">
                     <div className="flex items-baseline gap-2">
                       <div className="text-3xl font-black">{count}</div>
-                      <span className="text-[11px] font-bold text-muted-foreground uppercase">niños</span>
+                      <span className="text-xs font-bold text-muted-foreground uppercase">niños</span>
                     </div>
                     <div className="flex items-center gap-1.5 mt-2 text-primary">
                       <UserCheck className="w-4 h-4" />
@@ -366,7 +366,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               {/* LISTADO GENERAL */}
               <AccordionItem value="general" className="rounded-2xl shadow-sm border overflow-hidden bg-white px-0">
                 <div className="flex items-center justify-between bg-primary/5 pr-4">
-                  <AccordionTrigger className="flex-1 hover:no-underline py-4 px-6 group border-none">
+                  <AccordionTrigger className="flex-1 hover:no-underline py-5 px-6 group border-none">
                     <div className="flex items-center gap-3">
                       <ListFilter className="w-5 h-5 text-primary" />
                       <h2 className="text-sm font-black uppercase tracking-widest text-primary">Listado General (Todos)</h2>
@@ -380,38 +380,38 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       e.stopPropagation();
                       openExportDialog(allChildren, "General");
                     }}
-                    className="h-8 rounded-lg font-black uppercase text-[10px] bg-white shadow-sm border-primary/20 hover:bg-primary/5 shrink-0 z-10 relative"
+                    className="h-9 rounded-lg font-black uppercase text-[11px] bg-white shadow-sm border-primary/20 hover:bg-primary/5 shrink-0 z-10 relative"
                   >
-                    <FileDown className="w-3 h-3 mr-2" /> Exportar
+                    <FileDown className="w-3.5 h-3.5 mr-2" /> Exportar
                   </Button>
                 </div>
                 <AccordionContent className="p-0">
                   <Table>
                     <TableHeader className="bg-muted/5">
-                      <TableRow className="hover:bg-transparent border-none h-10">
-                        <TableHead className="font-black uppercase text-[9px] tracking-widest cursor-pointer group" onClick={() => toggleSort('name')}>
+                      <TableRow className="hover:bg-transparent border-none h-12">
+                        <TableHead className="font-black uppercase text-[11px] tracking-widest cursor-pointer group" onClick={() => toggleSort('name')}>
                           <div className="flex items-center">Nombre <SortIcon field="name" /></div>
                         </TableHead>
-                        <TableHead className="font-black uppercase text-[9px] tracking-widest cursor-pointer group" onClick={() => toggleSort('familyName')}>
+                        <TableHead className="font-black uppercase text-[11px] tracking-widest cursor-pointer group" onClick={() => toggleSort('familyName')}>
                           <div className="flex items-center">Familia <SortIcon field="familyName" /></div>
                         </TableHead>
-                        <TableHead className="font-black uppercase text-[9px] tracking-widest">Grupo</TableHead>
-                        <TableHead className="font-black uppercase text-[9px] tracking-widest cursor-pointer group" onClick={() => toggleSort('guitarSelected')}>
+                        <TableHead className="font-black uppercase text-[11px] tracking-widest">Grupo</TableHead>
+                        <TableHead className="font-black uppercase text-[11px] tracking-widest cursor-pointer group" onClick={() => toggleSort('guitarSelected')}>
                           <div className="flex items-center">Extra <SortIcon field="guitarSelected" /></div>
                         </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {allChildren.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center py-6 italic text-muted-foreground">Sin registros.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="text-center py-8 italic text-muted-foreground">Sin registros.</TableCell></TableRow>
                       ) : (
                         allChildren.map((child, idx) => (
-                          <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-12">
-                            <TableCell className="font-black text-sm">{child.name}</TableCell>
-                            <TableCell className="text-[11px] font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-[8px] font-black">{child.ageGroupLabel}</Badge></TableCell>
+                          <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-14">
+                            <TableCell className="font-black text-base">{child.name}</TableCell>
+                            <TableCell className="text-xs font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
+                            <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase px-2.5 py-0.5 border-primary/20 text-primary bg-primary/5">{child.ageGroupLabel}</Badge></TableCell>
                             <TableCell>
-                              {child.guitarSelected && <Badge className="bg-accent text-white font-black text-[8px]"><Music className="w-2 h-2 mr-1" /> GUITARRA</Badge>}
+                              {child.guitarSelected && <Badge className="bg-accent text-white font-black text-[10px] px-2.5 py-0.5"><Music className="w-3 h-3 mr-1" /> GUITARRA</Badge>}
                             </TableCell>
                           </TableRow>
                         ))
@@ -427,12 +427,12 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 return (
                   <AccordionItem key={group.label} value={group.label} className="rounded-2xl shadow-sm border overflow-hidden bg-white px-0">
                     <div className="flex items-center justify-between bg-muted/5 pr-4">
-                      <AccordionTrigger className="flex-1 hover:no-underline py-4 px-6 group border-none">
+                      <AccordionTrigger className="flex-1 hover:no-underline py-5 px-6 group border-none">
                         <div className="flex items-center gap-3">
                           <Baby className="w-5 h-5 text-muted-foreground" />
                           <h2 className="text-sm font-black uppercase tracking-widest">Categoría: {group.label}</h2>
                           <Badge variant="outline" className="ml-2 font-black">{childrenInGroup.length}</Badge>
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase ml-2 opacity-60">
+                          <span className="text-[11px] font-bold text-muted-foreground uppercase ml-2 opacity-60">
                             ({group.minMonths / 12} - {group.maxMonths / 12} años)
                           </span>
                         </div>
@@ -444,34 +444,34 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                           e.stopPropagation();
                           openExportDialog(childrenInGroup, group.label);
                         }}
-                        className="h-8 rounded-lg font-black uppercase text-[10px] bg-white shadow-sm hover:bg-muted/5 shrink-0 z-10 relative"
+                        className="h-9 rounded-lg font-black uppercase text-[11px] bg-white shadow-sm hover:bg-muted/5 shrink-0 z-10 relative"
                       >
-                        <FileDown className="w-3 h-3 mr-2" /> Exportar
+                        <FileDown className="w-3.5 h-3.5 mr-2" /> Exportar
                       </Button>
                     </div>
                     <AccordionContent className="p-0">
                       <Table>
                         <TableHeader className="bg-muted/5">
-                          <TableRow className="hover:bg-transparent border-none h-10">
-                            <TableHead className="font-black uppercase text-[9px] tracking-widest cursor-pointer group" onClick={() => toggleSort('name')}>
+                          <TableRow className="hover:bg-transparent border-none h-12">
+                            <TableHead className="font-black uppercase text-[11px] tracking-widest cursor-pointer group" onClick={() => toggleSort('name')}>
                               <div className="flex items-center">Nombre <SortIcon field="name" /></div>
                             </TableHead>
-                            <TableHead className="font-black uppercase text-[9px] tracking-widest cursor-pointer group" onClick={() => toggleSort('familyName')}>
+                            <TableHead className="font-black uppercase text-[11px] tracking-widest cursor-pointer group" onClick={() => toggleSort('familyName')}>
                               <div className="flex items-center">Familia <SortIcon field="familyName" /></div>
                             </TableHead>
-                            <TableHead className="font-black uppercase text-[9px] tracking-widest">Extra</TableHead>
+                            <TableHead className="font-black uppercase text-[11px] tracking-widest">Extra</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {childrenInGroup.length === 0 ? (
-                            <TableRow><TableCell colSpan={3} className="text-center py-6 italic text-muted-foreground">Sin niños en esta categoría.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={3} className="text-center py-8 italic text-muted-foreground">Sin niños en esta categoría.</TableCell></TableRow>
                           ) : (
                             childrenInGroup.map((child, idx) => (
-                              <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-12">
-                                <TableCell className="font-black text-sm">{child.name}</TableCell>
-                                <TableCell className="text-[11px] font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
+                              <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-14">
+                                <TableCell className="font-black text-base">{child.name}</TableCell>
+                                <TableCell className="text-xs font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
                                 <TableCell>
-                                  {child.guitarSelected && <Badge className="bg-accent text-white font-black text-[8px]"><Music className="w-2 h-2 mr-1" /> GUITARRA</Badge>}
+                                  {child.guitarSelected && <Badge className="bg-accent text-white font-black text-[10px] px-2.5 py-0.5"><Music className="w-3 h-3 mr-1" /> GUITARRA</Badge>}
                                 </TableCell>
                               </TableRow>
                             ))
@@ -497,7 +497,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                   "flex items-center justify-between px-6 py-2 border-b transition-colors",
                   isEditing ? "bg-primary/5 border-primary/10" : "bg-muted/5 border-muted"
                 )}>
-                  <AccordionTrigger className="flex-1 hover:no-underline py-4 group border-none mr-2">
+                  <AccordionTrigger className="flex-1 hover:no-underline py-5 group border-none mr-2">
                     <div className="flex items-center gap-2 overflow-hidden">
                       <Settings2 className={cn("w-5 h-5 shrink-0", isEditing ? 'text-primary' : 'text-muted-foreground')} />
                       <CardTitle className="text-xs font-black uppercase tracking-widest truncate">Ajustes de Reunión</CardTitle>
@@ -559,7 +559,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                             variant="outline" 
                             size="icon" 
                             onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} 
-                            className="h-8 w-8 rounded-lg bg-white shadow-sm"
+                            className="h-9 w-9 rounded-lg bg-white shadow-sm"
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
@@ -581,29 +581,29 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       {isEditing ? (
                         <div className="space-y-4">
                           <div className="flex justify-between items-center">
-                            <Input value={group.label} onChange={e => updateAgeGroup(idx, 'label', e.target.value)} className="h-9 font-black text-sm uppercase bg-white border-2" />
+                            <Input value={group.label} onChange={e => updateAgeGroup(idx, 'label', e.target.value)} className="h-10 font-black text-sm uppercase bg-white border-2" />
                             <Button variant="ghost" size="icon" onClick={() => setEditAgeGroups(editAgeGroups.filter((_, i) => i !== idx))} className="h-8 w-8 text-destructive ml-2 shrink-0"><Trash2 className="w-4 h-4" /></Button>
                           </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <Label className="text-[10px] font-black uppercase text-muted-foreground">Mín (años)</Label>
-                              <Input type="number" step="0.1" value={group.minMonths / 12} onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} className="h-9 text-sm font-bold bg-white border-2" />
+                              <Label className="text-[11px] font-black uppercase text-muted-foreground">Mín (años)</Label>
+                              <Input type="number" step="0.1" value={group.minMonths / 12} onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} className="h-10 text-sm font-bold bg-white border-2" />
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-[10px] font-black uppercase text-muted-foreground">Máx (años)</Label>
-                              <Input type="number" step="0.1" value={group.maxMonths / 12} onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} className="h-9 text-sm font-bold bg-white border-2" />
+                              <Label className="text-[11px] font-black uppercase text-muted-foreground">Máx (años)</Label>
+                              <Input type="number" step="0.1" value={group.maxMonths / 12} onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} className="h-10 text-sm font-bold bg-white border-2" />
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-3 pt-2">
                             <div className="space-y-1.5">
-                              <Label className="text-[10px] font-black uppercase text-muted-foreground">Ratio Monitores : Niños</Label>
+                              <Label className="text-[11px] font-black uppercase text-muted-foreground">Ratio monitores : niños</Label>
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-black text-primary">1 :</span>
-                                <Input type="number" value={group.ratio || 8} onChange={e => updateAgeGroup(idx, 'ratio', parseInt(e.target.value))} className="h-9 text-sm font-black bg-white border-2" />
+                                <Input type="number" value={group.ratio || 8} onChange={e => updateAgeGroup(idx, 'ratio', parseInt(e.target.value))} className="h-10 text-sm font-black bg-white border-2" />
                               </div>
                             </div>
                             <div className="flex flex-col justify-center items-end gap-1.5">
-                              <Label className="text-[10px] font-black uppercase text-muted-foreground">Guitarra</Label>
+                              <Label className="text-[11px] font-black uppercase text-muted-foreground">Guitarra</Label>
                               <Switch checked={group.allowsGuitar} onCheckedChange={val => updateAgeGroup(idx, 'allowsGuitar', val)} />
                             </div>
                           </div>
@@ -611,19 +611,19 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       ) : (
                         <>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm font-black uppercase text-primary">{group.label}</span>
+                            <span className="text-base font-black uppercase text-primary">{group.label}</span>
                             <div className="flex items-center gap-2">
                               {group.allowsGuitar && <Music className="w-4 h-4 text-accent" />}
-                              <Badge variant="outline" className="text-[11px] font-black py-0.5 px-2 border-primary/20 bg-primary/5 text-primary">
+                              <Badge variant="outline" className="text-[11px] font-black py-0.5 px-2.5 border-primary/20 bg-primary/5 text-primary">
                                 Ratio 1:{group.ratio || 8}
                               </Badge>
                             </div>
                           </div>
                           <div className="flex items-center justify-between mt-1">
-                            <span className="text-[11px] font-bold text-muted-foreground uppercase opacity-80">
+                            <span className="text-[12px] font-bold text-muted-foreground uppercase opacity-80">
                               De {group.minMonths / 12} a {group.maxMonths / 12} años
                             </span>
-                            <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">monitores : niños</span>
+                            <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">monitores : niños</span>
                           </div>
                         </>
                       )}
@@ -668,7 +668,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           </DialogHeader>
           
           <div className="grid grid-cols-1 gap-2 py-6">
-            <Label className="text-[10px] font-black uppercase text-muted-foreground mb-1">Orden y Selección de Columnas:</Label>
+            <Label className="text-[11px] font-black uppercase text-muted-foreground mb-1">Orden y Selección de Columnas:</Label>
             {orderedColumns.map((col, idx) => (
               <div 
                 key={col.id} 
@@ -683,7 +683,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                   onCheckedChange={() => setSelectedColumns(prev => prev.includes(col.id) ? prev.filter(c => c !== col.id) : [...prev, col.id])}
                   className="w-5 h-5 rounded-md" 
                 />
-                <Label htmlFor={`export-${col.id}`} className="text-xs font-black uppercase cursor-pointer flex-1">
+                <Label htmlFor={`export-${col.id}`} className="text-sm font-black uppercase cursor-pointer flex-1">
                   {col.label}
                 </Label>
                 <div className="flex gap-1 shrink-0">
@@ -694,7 +694,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                     onClick={() => moveColumn(idx, 'up')}
                     disabled={idx === 0}
                   >
-                    <ArrowUp className="w-3 h-3" />
+                    <ArrowUp className="w-3.5 h-3.5" />
                   </Button>
                   <Button 
                     variant="ghost" 
@@ -703,7 +703,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                     onClick={() => moveColumn(idx, 'down')}
                     disabled={idx === orderedColumns.length - 1}
                   >
-                    <ArrowDown className="w-3 h-3" />
+                    <ArrowDown className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
