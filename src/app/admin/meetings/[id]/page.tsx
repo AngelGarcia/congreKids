@@ -3,13 +3,13 @@
 
 import { useEffect, useState, use } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, getDocs, updateDoc, query, where, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, updateDoc, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
@@ -49,11 +49,15 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     fetchData();
   }, [id]);
 
-  const handleCloseRegistration = async () => {
+  const handleToggleStatus = async () => {
+    const newStatus = meeting.status === 'closed' ? 'upcoming' : 'closed';
     try {
-      await updateDoc(doc(db, 'meetings', id), { status: 'closed' });
-      setMeeting({ ...meeting, status: 'closed' });
-      toast({ title: "Plazo cerrado", description: "Ya no se aceptan más inscripciones." });
+      await updateDoc(doc(db, 'meetings', id), { status: newStatus });
+      setMeeting({ ...meeting, status: newStatus });
+      toast({ 
+        title: newStatus === 'closed' ? "Plazo cerrado" : "Plazo abierto", 
+        description: newStatus === 'closed' ? "Ya no se aceptan más inscripciones." : "Se han vuelto a habilitar las inscripciones." 
+      });
     } catch (error) {
       console.error(error);
     }
@@ -88,25 +92,23 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   if (loading) return <div className="p-8">Cargando detalles de la reunión...</div>;
   if (!meeting) return <div className="p-8">Reunión no encontrada.</div>;
 
-  // Group children by age group for summary
-  const groupedChildren: Record<string, any[]> = {};
-  registrations.forEach(reg => {
-    reg.children.forEach((child: any) => {
-      const group = child.ageGroupLabel || 'Sin grupo';
-      if (!groupedChildren[group]) groupedChildren[group] = [];
-      groupedChildren[group].push({ ...child, parentName: reg.parentName });
-    });
-  });
+  const now = new Date();
+  const isPast = (meeting.date as any).toDate() < now;
+  const deadline = (meeting.registrationDeadline as any).toDate();
+  const hasPassedDeadline = now > deadline;
 
-  const isPast = (meeting.date as any).toDate() < new Date();
-  
   let statusText = "Pasada";
-  let badgeVariant: "secondary" | "default" | "outline" = "secondary";
+  let badgeVariant: "secondary" | "default" | "outline" | "destructive" = "secondary";
   
   if (!isPast) {
     if (isNextMeeting) {
-      statusText = "Abierta / Próxima";
-      badgeVariant = "default";
+      if (hasPassedDeadline || meeting.status === 'closed') {
+        statusText = "CERRADA";
+        badgeVariant = "destructive";
+      } else {
+        statusText = "ABIERTA";
+        badgeVariant = "default";
+      }
     } else {
       statusText = "Programada";
       badgeVariant = "outline";
@@ -129,10 +131,13 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           </div>
         </div>
         <div className="flex gap-2">
-          {isNextMeeting && meeting.status !== 'closed' && (
-            <Button variant="outline" size="sm" onClick={handleCloseRegistration}>
-              <Lock className="w-4 h-4 mr-2" />
-              Cerrar Plazo
+          {!isPast && isNextMeeting && (
+            <Button variant="outline" size="sm" onClick={handleToggleStatus}>
+              {meeting.status === 'closed' ? (
+                <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</>
+              ) : (
+                <><Lock className="w-4 h-4 mr-2" /> Cerrar Plazo</>
+              )}
             </Button>
           )}
           <Button size="sm" onClick={exportToCSV}>
@@ -143,17 +148,28 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {Object.entries(groupedChildren).map(([group, list]) => (
-          <Card key={group} className="border-primary/20">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-sm font-medium">{group}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="text-3xl font-bold">{list.length}</div>
-              <p className="text-xs text-muted-foreground">Niños registrados</p>
-            </CardContent>
-          </Card>
-        ))}
+        {/* Resumen por grupos de edad si existen registros */}
+        {Object.keys(registrations.reduce((acc: any, reg) => {
+          reg.children.forEach((c: any) => {
+            acc[c.ageGroupLabel || 'Sin grupo'] = true;
+          });
+          return acc;
+        }, {})).map((group) => {
+          const count = registrations.reduce((acc, reg) => 
+            acc + reg.children.filter((c: any) => (c.ageGroupLabel || 'Sin grupo') === group).length, 0
+          );
+          return (
+            <Card key={group} className="border-primary/20">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-sm font-medium">{group}</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="text-3xl font-bold">{count}</div>
+                <p className="text-xs text-muted-foreground">Niños registrados</p>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <Card>
@@ -172,14 +188,14 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Object.entries(groupedChildren).flatMap(([group, list]) => 
-                list.map((child, idx) => (
-                  <TableRow key={`${group}-${idx}`}>
+              {registrations.flatMap((reg) => 
+                reg.children.map((child: any, idx: number) => (
+                  <TableRow key={`${reg.id}-${idx}`}>
                     <TableCell className="font-medium">{child.name}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{group}</Badge>
+                      <Badge variant="outline">{child.ageGroupLabel || 'Sin grupo'}</Badge>
                     </TableCell>
-                    <TableCell>{child.parentName}</TableCell>
+                    <TableCell>{reg.parentName}</TableCell>
                     <TableCell>{formatDate(child.birthDate)}</TableCell>
                   </TableRow>
                 ))

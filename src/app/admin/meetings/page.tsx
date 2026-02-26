@@ -6,8 +6,8 @@ import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firesto
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { ArrowRight, Calendar, Plus, Clock, History, CalendarDays, Users } from 'lucide-react';
+import { formatDate, formatDateTime, isRegistrationOpen, getRegistrationOpeningDate } from '@/lib/utils/date';
+import { ArrowRight, Calendar, Plus, Clock, History, CalendarDays, Users, Lock, Unlock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,6 +28,28 @@ export default function MeetingsAdmin() {
 
   const nextMeeting = upcoming[0];
   const otherFuture = upcoming.slice(1);
+
+  const getMeetingStatus = (meeting: any, isNext: boolean) => {
+    if (!meeting) return { label: '', variant: 'secondary' as const, icon: null };
+    
+    const isPast = (meeting.date as any).toDate() < now;
+    if (isPast) return { label: 'PASADA', variant: 'secondary' as const, icon: <History className="w-3 h-3 mr-1" /> };
+
+    if (isNext) {
+      const deadline = (meeting.registrationDeadline as any).toDate();
+      const hasPassedDeadline = now > deadline || meeting.status === 'closed';
+      
+      if (hasPassedDeadline) {
+        return { label: 'CERRADA', variant: 'destructive' as const, icon: <Lock className="w-3 h-3 mr-1" /> };
+      }
+      
+      return { label: 'ABIERTA', variant: 'default' as const, icon: <Unlock className="w-3 h-3 mr-1" /> };
+    }
+
+    return { label: 'PROGRAMADA', variant: 'outline' as const, icon: <Calendar className="w-3 h-3 mr-1" /> };
+  };
+
+  const nextStatus = getMeetingStatus(nextMeeting, true);
 
   return (
     <div className="space-y-10 max-w-7xl mx-auto">
@@ -51,10 +73,13 @@ export default function MeetingsAdmin() {
             <Clock className="w-5 h-5" />
             <h2 className="text-sm font-black uppercase tracking-widest">Siguiente Encuentro</h2>
           </div>
-          <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-primary text-white">
+          <Card className={`border-none shadow-2xl rounded-[2.5rem] overflow-hidden text-white transition-colors duration-500 ${nextStatus.label === 'CERRADA' ? 'bg-slate-800' : 'bg-primary'}`}>
             <CardContent className="p-10 flex flex-col md:flex-row justify-between items-center gap-8">
               <div className="space-y-4 text-center md:text-left">
-                <Badge variant="secondary" className="bg-white/20 text-white border-none font-black uppercase px-4 py-1">Inscripciones Abiertas</Badge>
+                <Badge variant="secondary" className="bg-white/20 text-white border-none font-black uppercase px-4 py-1">
+                  {nextStatus.icon}
+                  {nextStatus.label}
+                </Badge>
                 <h3 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none">
                   {nextMeeting.title}
                 </h3>
@@ -69,7 +94,9 @@ export default function MeetingsAdmin() {
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Link>
                 </Button>
-                <p className="text-[10px] text-center font-black uppercase opacity-60">Límite: {formatDate(nextMeeting.registrationDeadline)}</p>
+                <p className="text-[10px] text-center font-black uppercase opacity-60">
+                  Plazo inscripción: {formatDate(nextMeeting.registrationDeadline)}
+                </p>
               </div>
             </CardContent>
           </Card>

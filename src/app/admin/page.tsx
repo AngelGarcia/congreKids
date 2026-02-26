@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils/date';
-import { Calendar, Users, ArrowRight, UserCheck, Clock, Home } from 'lucide-react';
+import { Calendar, Users, ArrowRight, UserCheck, Clock, Home, Lock, Unlock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -140,16 +140,23 @@ export default function AdminDashboard() {
                   ))
                 ) : (
                   meetings.map((meeting) => {
-                    const isPast = (meeting.date as any).toDate() < new Date();
+                    const now = new Date();
+                    const isPast = (meeting.date as any).toDate() < now;
                     const isNext = meeting.id === nextMeetingId;
                     
                     let statusLabel = "Pasada";
-                    let badgeVariant: "secondary" | "default" | "outline" = "secondary";
+                    let badgeVariant: "secondary" | "default" | "outline" | "destructive" = "secondary";
                     
                     if (!isPast) {
                       if (isNext) {
-                        statusLabel = "Próxima / Abierta";
-                        badgeVariant = "default";
+                        const deadline = (meeting.registrationDeadline as any).toDate();
+                        if (now > deadline || meeting.status === 'closed') {
+                          statusLabel = "CERRADA";
+                          badgeVariant = "destructive";
+                        } else {
+                          statusLabel = "ABIERTA";
+                          badgeVariant = "default";
+                        }
                       } else {
                         statusLabel = "Programada";
                         badgeVariant = "outline";
