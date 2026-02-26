@@ -8,6 +8,7 @@ service cloud.firestore {
     
     function isAdmin() {
       return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     
@@ -17,12 +18,15 @@ service cloud.firestore {
     
     function isFamilyMember(familyId) {
       return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyId == familyId;
     }
 
     // Regla para permitir consultas de grupo de colecciones (ej. contar todos los niños)
+    // Se separa 'list' para administradores para facilitar consultas globales
     match /{path=**}/children/{childId} {
-      allow read: if isAdmin() || (isSignedIn() && isFamilyMember(resource.data.familyId));
+      allow list: if isAdmin();
+      allow get: if isAdmin() || (isSignedIn() && isFamilyMember(resource.data.familyId));
       allow write: if isAdmin() || (isSignedIn() && isFamilyMember(resource.data.familyId));
     }
 
@@ -38,8 +42,6 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update: if isFamilyMember(familyId) || isAdmin();
       allow list, delete: if isAdmin();
-      
-      // La regla de children arriba ya cubre las subcolecciones de forma global
     }
 
     match /meetings/{meetingId} {
