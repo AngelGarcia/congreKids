@@ -9,7 +9,7 @@ import {
   signOut, 
   User 
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, updateDoc, arrayUnion, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, updateDoc, arrayUnion, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -38,6 +38,7 @@ interface AuthContextType {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   joinFamily: (familyId: string) => Promise<void>;
+  createFamily: (name: string) => Promise<void>;
   updateFamilyName: (newName: string) => Promise<void>;
 }
 
@@ -47,28 +48,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useFirebaseAuth();
   const db = useFirestore();
   const { toast } = useToast();
+  
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [familyData, setFamilyData] = useState<FamilyData | null>(null);
   const [familyMembers, setFamilyMembers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sync family and members in real-time
+  // 1. Manejar el estado de Auth y el documento de User
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        // Suscribirse al documento del usuario en tiempo real
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const unsubUser = onSnapshot(userDocRef, (snap) => {
+          if (snap.exists()) {
+            setUserData(snap.data() as UserData);
+          } else {
+            setUserData(null); // Usuario nuevo, necesita inicialización
+          }
+        });
+        return () => unsubUser();
+      } else {
+        setUser(null);
+        setUserData(null);
+        setFamilyData(null);
+        setFamilyMembers([]);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth, db]);
+
+  // 2. Sincronizar Familia y Miembros cuando cambie el familyId del usuario
   useEffect(() => {
     if (!userData?.familyId) {
       setFamilyData(null);
       setFamilyMembers([]);
+      if (user && userData === null) setLoading(false); // Estamos en estado de nuevo usuario
       return;
     }
 
-    // Listen to Family changes
+    setLoading(true);
     const unsubFamily = onSnapshot(doc(db, 'families', userData.familyId), (snap) => {
       if (snap.exists()) {
         setFamilyData({ id: snap.id, ...snap.data() } as FamilyData);
       }
+      setLoading(false);
     });
 
-    // Listen to Family Members
     const membersQuery = query(collection(db, 'users'), where('familyId', '==', userData.familyId));
     const unsubMembers = onSnapshot(membersQuery, (snap) => {
       const members: UserData[] = [];
@@ -80,55 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       unsubFamily();
       unsubMembers();
     };
-  }, [db, userData?.familyId]);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (!userDoc.exists()) {
-          const familyRef = await addDoc(collection(db, 'families'), {
-            name: `Familia de ${currentUser.displayName?.split(' ')[0]}`,
-            members: [currentUser.uid],
-            createdAt: serverTimestamp(),
-          });
-
-          const newData: UserData = {
-            id: currentUser.uid,
-            displayName: currentUser.displayName,
-            email: currentUser.email,
-            photoURL: currentUser.photoURL,
-            role: 'parent',
-            familyId: familyRef.id,
-            createdAt: serverTimestamp(),
-          };
-          await setDoc(userDocRef, newData);
-          setUserData(newData);
-        } else {
-          const data = userDoc.data() as UserData;
-          // Refresh profile if needed
-          if (data.photoURL !== currentUser.photoURL || data.displayName !== currentUser.displayName) {
-            await updateDoc(userDocRef, {
-              photoURL: currentUser.photoURL,
-              displayName: currentUser.displayName
-            });
-            setUserData({ ...data, photoURL: currentUser.photoURL, displayName: currentUser.displayName });
-          } else {
-            setUserData(data);
-          }
-        }
-      } else {
-        setUser(null);
-        setUserData(null);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [auth, db]);
+  }, [db, userData?.familyId, user]);
 
   const login = async () => {
     try {
@@ -143,6 +125,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
+  const createFamily = async (name: string) => {
+    if (!user) return;
+    try {
+      const familyRef = await addDoc(collection(db, 'families'), {
+        name: `Familia ${name}`,
+        members: [user.uid],
+        createdAt: serverTimestamp(),
+      });
+
+      const newUser: UserData = {
+        id: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+        role: 'parent',
+        familyId: familyRef.id,
+        createdAt: serverTimestamp(),
+      };
+      
+      await setDoc(doc(db, 'users', user.uid), newUser);
+      toast({ title: "¡Familia Creada!", description: `Bienvenidos, Familia ${name}` });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "No se pudo crear la familia." });
+    }
+  };
+
   const updateFamilyName = async (newName: string) => {
     if (!userData?.familyId) return;
     try {
@@ -154,18 +162,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const joinFamily = async (familyId: string) => {
-    if (!user || !userData) return;
+    if (!user) return;
     try {
-      const familyRef = doc(db, 'families', familyId);
+      const familyRef = doc(db, 'families', familyId.trim());
       const familySnap = await getDoc(familyRef);
       
       if (!familySnap.exists()) {
         throw new Error("El código de familia no es válido.");
       }
 
+      const newUser: UserData = {
+        id: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+        role: 'parent',
+        familyId: familyId.trim(),
+        createdAt: serverTimestamp(),
+      };
+
       await updateDoc(familyRef, { members: arrayUnion(user.uid) });
-      await updateDoc(doc(db, 'users', user.uid), { familyId: familyId });
-      setUserData({ ...userData, familyId });
+      await setDoc(doc(db, 'users', user.uid), newUser);
       toast({ title: "¡Familia unida!", description: "Ahora compartes perfiles con tu pareja." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
@@ -173,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, familyData, familyMembers, loading, login, logout, joinFamily, updateFamilyName }}>
+    <AuthContext.Provider value={{ user, userData, familyData, familyMembers, loading, login, logout, joinFamily, createFamily, updateFamilyName }}>
       {children}
     </AuthContext.Provider>
   );

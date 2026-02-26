@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, CheckCircle2, AlertCircle, Baby, X, Users, Copy, Check, Edit2, UserPlus, Home } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -20,7 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 
 export default function ParentDashboard() {
-  const { user, userData, familyData, familyMembers, login, joinFamily, updateFamilyName, loading: authLoading } = useAuth();
+  const { user, userData, familyData, familyMembers, login, joinFamily, createFamily, updateFamilyName, loading: authLoading } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
   
@@ -31,6 +31,7 @@ export default function ParentDashboard() {
   const [copied, setCopied] = useState(false);
   
   // Forms state
+  const [newFamilyName, setNewFamilyName] = useState('');
   const [newChildName, setNewChildName] = useState('');
   const [newChildBirthDate, setNewChildBirthDate] = useState('');
   const [editFamilyName, setEditFamilyName] = useState('');
@@ -43,7 +44,6 @@ export default function ParentDashboard() {
   }, [familyData]);
 
   // Memoized Queries
-  // Ensure we check for 'user' before creating queries that require authentication
   const childrenQuery = useMemoFirebase(() => {
     if (!db || !userData?.familyId) return null;
     return collection(db, 'families', userData.familyId, 'children');
@@ -75,6 +75,13 @@ export default function ParentDashboard() {
       setSelectedChildren(registration.children.map((c: any) => c.childId));
     }
   }, [registration]);
+
+  const handleCreateFamily = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newFamilyName.trim()) {
+      createFamily(newFamilyName.trim());
+    }
+  };
 
   const handleAddChild = (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,7 +165,7 @@ export default function ParentDashboard() {
     }
   };
 
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center font-bold text-primary">Cargando...</div>;
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center font-black text-primary text-2xl uppercase tracking-tighter">CongreKids...</div>;
 
   if (!user) {
     return (
@@ -171,6 +178,55 @@ export default function ParentDashboard() {
         <Button size="lg" onClick={login} className="w-full max-w-xs h-16 text-xl rounded-2xl shadow-xl font-black">
           Entrar con Google
         </Button>
+      </div>
+    );
+  }
+
+  // Pantalla de Onboarding: Si el usuario no tiene familia asignada
+  if (!userData?.familyId) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex flex-col items-center justify-center">
+        <Card className="w-full max-w-md rounded-3xl border-4 border-primary/10 shadow-2xl">
+          <CardHeader className="text-center space-y-2">
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
+              <Home className="w-8 h-8" />
+            </div>
+            <CardTitle className="text-3xl font-black uppercase tracking-tighter">Bienvenido</CardTitle>
+            <CardDescription className="text-base font-bold">Para empezar, crea tu unidad familiar o únete a una existente.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8 p-8">
+            <div className="space-y-4">
+              <Label className="text-xs font-black uppercase text-primary">Crear Nueva Familia</Label>
+              <form onSubmit={handleCreateFamily} className="flex flex-col gap-3">
+                <Input 
+                  placeholder="Apellidos (ej. García Medina)" 
+                  value={newFamilyName}
+                  onChange={e => setNewFamilyName(e.target.value)}
+                  className="h-14 rounded-xl border-2 font-bold"
+                />
+                <Button type="submit" className="h-14 rounded-xl font-black text-lg">CREAR FAMILIA</Button>
+              </form>
+            </div>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-muted-foreground/20" /></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground font-black">O TAMBIÉN</span></div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-xs font-black uppercase text-primary">Unirse con código</Label>
+              <div className="flex flex-col gap-3">
+                <Input 
+                  placeholder="Pega el código de tu pareja" 
+                  value={joinFamilyId}
+                  onChange={e => setJoinFamilyId(e.target.value)}
+                  className="h-14 rounded-xl border-2 font-bold"
+                />
+                <Button variant="outline" onClick={() => joinFamily(joinFamilyId)} className="h-14 rounded-xl font-black text-lg border-2">UNIRSE A MI PAREJA</Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -197,7 +253,7 @@ export default function ParentDashboard() {
               ) : (
                 <>
                   <h1 className="text-4xl sm:text-5xl font-black tracking-tighter uppercase text-primary">
-                    {familyData?.name || 'Cargando familia...'}
+                    {familyData?.name || '...'}
                   </h1>
                   <Button variant="ghost" size="icon" onClick={() => setIsEditingFamilyName(true)} className="text-muted-foreground hover:text-primary">
                     <Edit2 className="w-5 h-5" />
@@ -239,7 +295,7 @@ export default function ParentDashboard() {
             <Card className="rounded-2xl border-2 border-primary/20 bg-primary/5 animate-in slide-in-from-top-2">
               <CardContent className="p-6 space-y-6">
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1">
                     <Label className="text-xs uppercase font-black text-primary mb-2 block">Código de Enlace</Label>
                     <div className="flex gap-2">
                       <Input readOnly value={userData?.familyId || ''} className="bg-white font-mono text-sm h-12 rounded-xl border-2" />
@@ -247,20 +303,9 @@ export default function ParentDashboard() {
                         {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
                       </Button>
                     </div>
+                    <p className="mt-2 text-xs text-muted-foreground font-medium italic">Tu pareja debe pegar este código al entrar por primera vez.</p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => setIsManagingFamily(false)}><X /></Button>
-                </div>
-                <div className="pt-4 border-t border-primary/10">
-                  <Label className="text-xs uppercase font-black text-primary mb-2 block">¿Tienes un código?</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Pega aquí el código de tu pareja" 
-                      value={joinFamilyId}
-                      onChange={(e) => setJoinFamilyId(e.target.value)}
-                      className="bg-white h-12 rounded-xl border-2" 
-                    />
-                    <Button onClick={() => joinFamily(joinFamilyId)} className="h-12 rounded-xl font-black">Unirse</Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>
