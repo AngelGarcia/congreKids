@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -24,6 +24,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 
@@ -67,7 +73,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           const data = { id: mDoc.id, ...mDoc.data() };
           setMeeting(data);
           
-          // Pre-fill edit states
           setEditTitle(data.title);
           setEditDate(new Date((data.date as any).toDate().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
           setEditDeadline(new Date((data.registrationDeadline as any).toDate().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
@@ -100,7 +105,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     fetchData();
   }, [id]);
 
-  // Procesar todos los niños en una lista plana con metadatos de familia
   const allChildren = useMemo(() => {
     const children: any[] = [];
     registrations.forEach(reg => {
@@ -115,7 +119,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       });
     });
 
-    // Ordenar
     return children.sort((a, b) => {
       let valA = a[sortField] || '';
       let valB = b[sortField] || '';
@@ -295,7 +298,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-8">
           {/* Tarjetas de Resumen */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="border-accent/40 bg-accent/5 rounded-2xl shadow-sm">
               <CardHeader className="p-4 pb-1">
                 <CardTitle className="text-xs font-black uppercase tracking-widest text-accent flex items-center gap-2">
@@ -318,123 +321,135 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 <p className="text-[9px] text-muted-foreground font-bold uppercase">Niños confirmados</p>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Listados segmentados por Categoría */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 border-b pb-2">
-              <Baby className="w-5 h-5 text-primary" />
-              <h2 className="text-sm font-black uppercase tracking-widest">Listados por Sala / Grupo</h2>
-            </div>
-
+            {/* Tarjetas por categoría (dinámicas) */}
             {meeting.ageGroups?.map((group: any) => {
-              const childrenInGroup = allChildren.filter(c => (c.ageGroupLabel || 'Sin grupo') === group.label);
-              
+              const count = allChildren.filter(c => c.ageGroupLabel === group.label).length;
               return (
-                <Card key={group.label} className="rounded-2xl shadow-sm border overflow-hidden">
-                  <CardHeader className="bg-muted/5 py-3 px-6 flex flex-row items-center justify-between border-b">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="rounded-lg font-black uppercase text-[10px] bg-white border-primary/30 text-primary">
-                        {group.label}
-                      </Badge>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                        ({group.minMonths / 12} - {group.maxMonths / 12} años)
-                      </span>
-                    </div>
-                    <Badge variant="secondary" className="font-black text-[10px]">{childrenInGroup.length} NIÑOS</Badge>
+                <Card key={group.label} className="border-muted bg-white rounded-2xl shadow-sm">
+                  <CardHeader className="p-4 pb-1">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      {group.label}
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader className="bg-muted/5">
-                        <TableRow className="hover:bg-transparent border-none h-10">
-                          <TableHead 
-                            className="font-black uppercase text-[9px] tracking-widest cursor-pointer group"
-                            onClick={() => toggleSort('name')}
-                          >
-                            <div className="flex items-center">
-                              Nombre del Niño <SortIcon field="name" />
-                            </div>
-                          </TableHead>
-                          <TableHead 
-                            className="font-black uppercase text-[9px] tracking-widest cursor-pointer group"
-                            onClick={() => toggleSort('familyName')}
-                          >
-                            <div className="flex items-center">
-                              Familia <SortIcon field="familyName" />
-                            </div>
-                          </TableHead>
-                          <TableHead 
-                            className="font-black uppercase text-[9px] tracking-widest cursor-pointer group"
-                            onClick={() => toggleSort('guitarSelected')}
-                          >
-                            <div className="flex items-center">
-                              Extra <SortIcon field="guitarSelected" />
-                            </div>
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {childrenInGroup.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={3} className="text-center py-6 text-xs text-muted-foreground italic">
-                              No hay niños inscritos en este grupo todavía.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          childrenInGroup.map((child, idx) => (
-                            <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-12">
-                              <TableCell className="font-black text-sm">{child.name}</TableCell>
-                              <TableCell className="text-[11px] font-bold uppercase text-muted-foreground">{child.familyName}</TableCell>
-                              <TableCell>
-                                {child.guitarSelected && (
-                                  <Badge className="bg-accent text-white font-black uppercase text-[8px] rounded-lg">
-                                    <Music className="w-3 h-3 mr-1" /> GUITARRA
-                                  </Badge>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-2xl font-black">{count}</div>
+                    <p className="text-[8px] font-bold uppercase opacity-50">Niños</p>
                   </CardContent>
                 </Card>
               );
             })}
+          </div>
 
-            {/* Caso de niños que no entran en ninguna categoría (si los hay) */}
-            {allChildren.filter(c => !meeting.ageGroups.find((g: any) => g.label === c.ageGroupLabel)).length > 0 && (
-              <Card className="rounded-2xl shadow-sm border border-destructive/20 overflow-hidden">
-                <CardHeader className="bg-destructive/5 py-3 px-6 border-b">
-                  <Badge variant="destructive" className="font-black text-[10px]">SIN CATEGORÍA DEFINIDA</Badge>
-                </CardHeader>
-                <CardContent className="p-0">
-                   <Table>
+          <div className="space-y-6">
+            <Accordion type="multiple" defaultValue={["general"]} className="space-y-6">
+              
+              {/* LISTADO GENERAL */}
+              <AccordionItem value="general" className="rounded-2xl shadow-sm border overflow-hidden bg-white px-0">
+                <AccordionTrigger className="hover:no-underline py-4 px-6 bg-primary/5 group">
+                  <div className="flex items-center gap-3">
+                    <ListFilter className="w-5 h-5 text-primary" />
+                    <h2 className="text-sm font-black uppercase tracking-widest text-primary">Listado General (Todos)</h2>
+                    <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary font-black">{allChildren.length}</Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="p-0">
+                  <Table>
+                    <TableHeader className="bg-muted/5">
+                      <TableRow className="hover:bg-transparent border-none h-10">
+                        <TableHead className="font-black uppercase text-[9px] tracking-widest cursor-pointer group" onClick={() => toggleSort('name')}>
+                          <div className="flex items-center">Nombre <SortIcon field="name" /></div>
+                        </TableHead>
+                        <TableHead className="font-black uppercase text-[9px] tracking-widest cursor-pointer group" onClick={() => toggleSort('familyName')}>
+                          <div className="flex items-center">Familia <SortIcon field="familyName" /></div>
+                        </TableHead>
+                        <TableHead className="font-black uppercase text-[9px] tracking-widest">Grupo</TableHead>
+                        <TableHead className="font-black uppercase text-[9px] tracking-widest cursor-pointer group" onClick={() => toggleSort('guitarSelected')}>
+                          <div className="flex items-center">Extra <SortIcon field="guitarSelected" /></div>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
                     <TableBody>
-                      {allChildren.filter(c => !meeting.ageGroups.find((g: any) => g.label === c.ageGroupLabel)).map((child, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="font-black text-sm">{child.name}</TableCell>
-                          <TableCell className="text-xs font-bold uppercase text-muted-foreground">{child.familyName}</TableCell>
-                          <TableCell className="text-xs text-destructive font-black uppercase">{child.ageGroupLabel}</TableCell>
-                        </TableRow>
-                      ))}
+                      {allChildren.length === 0 ? (
+                        <TableRow><TableCell colSpan={4} className="text-center py-6 italic text-muted-foreground">Sin registros.</TableCell></TableRow>
+                      ) : (
+                        allChildren.map((child, idx) => (
+                          <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-12">
+                            <TableCell className="font-black text-sm">{child.name}</TableCell>
+                            <TableCell className="text-[11px] font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
+                            <TableCell><Badge variant="outline" className="text-[8px] font-black">{child.ageGroupLabel}</Badge></TableCell>
+                            <TableCell>
+                              {child.guitarSelected && <Badge className="bg-accent text-white font-black text-[8px]"><Music className="w-2 h-2 mr-1" /> GUITARRA</Badge>}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
-                   </Table>
-                </CardContent>
-              </Card>
-            )}
+                  </Table>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* LISTADOS POR CATEGORÍA */}
+              {meeting.ageGroups?.map((group: any) => {
+                const childrenInGroup = allChildren.filter(c => (c.ageGroupLabel || 'Sin grupo') === group.label);
+                return (
+                  <AccordionItem key={group.label} value={group.label} className="rounded-2xl shadow-sm border overflow-hidden bg-white px-0">
+                    <AccordionTrigger className="hover:no-underline py-4 px-6 bg-muted/5">
+                      <div className="flex items-center gap-3">
+                        <Baby className="w-5 h-5 text-muted-foreground" />
+                        <h2 className="text-sm font-black uppercase tracking-widest">Categoría: {group.label}</h2>
+                        <Badge variant="outline" className="ml-2 font-black">{childrenInGroup.length}</Badge>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase ml-2 opacity-60">
+                          ({group.minMonths / 12} - {group.maxMonths / 12} años)
+                        </span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-0">
+                      <Table>
+                        <TableHeader className="bg-muted/5">
+                          <TableRow className="hover:bg-transparent border-none h-10">
+                            <TableHead className="font-black uppercase text-[9px] tracking-widest cursor-pointer group" onClick={() => toggleSort('name')}>
+                              <div className="flex items-center">Nombre <SortIcon field="name" /></div>
+                            </TableHead>
+                            <TableHead className="font-black uppercase text-[9px] tracking-widest cursor-pointer group" onClick={() => toggleSort('familyName')}>
+                              <div className="flex items-center">Familia <SortIcon field="familyName" /></div>
+                            </TableHead>
+                            <TableHead className="font-black uppercase text-[9px] tracking-widest">Extra</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {childrenInGroup.length === 0 ? (
+                            <TableRow><TableCell colSpan={3} className="text-center py-6 italic text-muted-foreground">Sin niños en esta categoría.</TableCell></TableRow>
+                          ) : (
+                            childrenInGroup.map((child, idx) => (
+                              <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-12">
+                                <TableCell className="font-black text-sm">{child.name}</TableCell>
+                                <TableCell className="text-[11px] font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
+                                <TableCell>
+                                  {child.guitarSelected && <Badge className="bg-accent text-white font-black text-[8px]"><Music className="w-2 h-2 mr-1" /> GUITARRA</Badge>}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </div>
         </div>
 
+        {/* SIDEBAR CONFIG */}
         <div className="space-y-6">
           <Card className={cn(
-            "rounded-2xl border-2 shadow-lg transition-all",
+            "rounded-2xl border-2 shadow-lg transition-all sticky top-24",
             isEditing ? 'border-primary shadow-primary/10' : 'border-dashed bg-muted/5'
           )}>
             <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
                 <Settings2 className={cn("w-4 h-4", isEditing ? 'text-primary' : 'text-muted-foreground')} />
-                <CardTitle className="text-xs font-black uppercase tracking-widest">Umbrales de Edad</CardTitle>
+                <CardTitle className="text-xs font-black uppercase tracking-widest">Ajustes de Reunión</CardTitle>
               </div>
               {isEditing && (
                 <Button variant="ghost" size="icon" onClick={() => setEditAgeGroups([...editAgeGroups, { label: 'Nuevo', minMonths: 0, maxMonths: 144, allowsGuitar: false }])} className="h-6 w-6">
@@ -451,41 +466,22 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                   {isEditing ? (
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <Input 
-                          value={group.label} 
-                          onChange={e => updateAgeGroup(idx, 'label', e.target.value)} 
-                          className="h-8 font-black text-xs uppercase bg-white"
-                        />
-                        <Button variant="ghost" size="icon" onClick={() => setEditAgeGroups(editAgeGroups.filter((_, i) => i !== idx))} className="h-6 w-6 text-destructive">
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                        <Input value={group.label} onChange={e => updateAgeGroup(idx, 'label', e.target.value)} className="h-8 font-black text-xs uppercase bg-white" />
+                        <Button variant="ghost" size="icon" onClick={() => setEditAgeGroups(editAgeGroups.filter((_, i) => i !== idx))} className="h-6 w-6 text-destructive"><Trash2 className="w-3 h-3" /></Button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-[9px] font-black uppercase">Mín (años)</Label>
-                          <Input 
-                            type="number" step="0.1" 
-                            value={group.minMonths / 12} 
-                            onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)}
-                            className="h-8 text-xs bg-white"
-                          />
+                          <Input type="number" step="0.1" value={group.minMonths / 12} onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} className="h-8 text-xs bg-white" />
                         </div>
                         <div className="space-y-1">
                           <Label className="text-[9px] font-black uppercase">Máx (años)</Label>
-                          <Input 
-                            type="number" step="0.1" 
-                            value={group.maxMonths / 12} 
-                            onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)}
-                            className="h-8 text-xs bg-white"
-                          />
+                          <Input type="number" step="0.1" value={group.maxMonths / 12} onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} className="h-8 text-xs bg-white" />
                         </div>
                       </div>
                       <div className="flex items-center justify-between pt-1">
                         <Label className="text-[10px] font-black uppercase">Guitarra</Label>
-                        <Switch 
-                          checked={group.allowsGuitar} 
-                          onCheckedChange={val => updateAgeGroup(idx, 'allowsGuitar', val)} 
-                        />
+                        <Switch checked={group.allowsGuitar} onCheckedChange={val => updateAgeGroup(idx, 'allowsGuitar', val)} />
                       </div>
                     </div>
                   ) : (
@@ -494,7 +490,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                         <span className="text-xs font-black uppercase">{group.label}</span>
                         {group.allowsGuitar && <Music className="w-3 h-3 text-accent" />}
                       </div>
-                      <span className="text-[10px] font-bold text-muted-foreground">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">
                         {group.minMonths / 12} a {group.maxMonths / 12} años
                       </span>
                     </>
@@ -503,17 +499,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               ))}
             </CardContent>
           </Card>
-
-          <div className="bg-primary/5 p-6 rounded-2xl border-2 border-primary/10">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">Resumen de Guitarra</h4>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground uppercase">Plazas ocupadas</span>
-              <span className="text-xl font-black text-primary">{guitarCount}</span>
-            </div>
-            <div className="w-full bg-primary/10 h-1.5 rounded-full mt-2">
-              <div className="bg-primary h-full rounded-full" style={{ width: `${Math.min(100, (guitarCount / 20) * 100)}%` }}></div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -523,45 +508,25 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           <DialogHeader>
             <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-2">
               <FileDown className="w-6 h-6" />
-              Configurar Exportación
+              Exportar Listado
             </DialogTitle>
             <DialogDescription className="font-bold">
-              Selecciona las columnas que deseas incluir en el archivo CSV.
+              Selecciona las columnas para el CSV. Los nombres incluirán tildes y eñes correctamente.
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid grid-cols-1 gap-3 py-6">
             {EXPORT_COLUMNS.map((col) => (
-              <div 
-                key={col.id} 
-                className={cn(
-                  "flex items-center space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer",
-                  selectedColumns.includes(col.id) ? 'border-primary/20 bg-primary/5' : 'border-transparent bg-muted/5 opacity-60'
-                )}
-                onClick={() => {
-                  setSelectedColumns(prev => 
-                    prev.includes(col.id) ? prev.filter(c => c !== col.id) : [...prev, col.id]
-                  );
-                }}
-              >
-                <Checkbox 
-                  id={col.id} 
-                  checked={selectedColumns.includes(col.id)} 
-                  onCheckedChange={() => {}}
-                  className="w-5 h-5 rounded-md"
-                />
-                <Label htmlFor={col.id} className="text-sm font-black uppercase cursor-pointer flex-1">
-                  {col.label}
-                </Label>
+              <div key={col.id} className={cn("flex items-center space-x-3 p-3 rounded-xl border-2 transition-all cursor-pointer", selectedColumns.includes(col.id) ? 'border-primary/20 bg-primary/5' : 'border-transparent bg-muted/5 opacity-60')} onClick={() => setSelectedColumns(prev => prev.includes(col.id) ? prev.filter(c => c !== col.id) : [...prev, col.id])}>
+                <Checkbox id={col.id} checked={selectedColumns.includes(col.id)} className="w-5 h-5 rounded-md" />
+                <Label htmlFor={col.id} className="text-sm font-black uppercase cursor-pointer flex-1">{col.label}</Label>
               </div>
             ))}
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-3">
-            <Button variant="ghost" onClick={() => setIsExportDialogOpen(false)} className="rounded-xl font-bold uppercase w-full sm:w-auto">
-              Cancelar
-            </Button>
-            <Button onClick={exportToCSV} className="rounded-xl font-black uppercase shadow-lg w-full sm:w-auto" disabled={selectedColumns.length === 0}>
+            <Button variant="ghost" onClick={() => setIsExportDialogOpen(false)} className="rounded-xl font-bold uppercase w-full">Cancelar</Button>
+            <Button onClick={exportToCSV} className="rounded-xl font-black uppercase shadow-lg w-full" disabled={selectedColumns.length === 0}>
               <Download className="w-4 h-4 mr-2" /> Descargar CSV
             </Button>
           </DialogFooter>
