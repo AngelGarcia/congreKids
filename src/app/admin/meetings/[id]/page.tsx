@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, use, useMemo } from 'react';
@@ -190,22 +191,21 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const shareOnWhatsApp = (data: any[], title: string) => {
     const isGeneral = title.toLowerCase() === 'general';
-    const header = `*📋 LISTADO ${title.toUpperCase()}*\n`;
-    const meetingInfo = `*📍 Reunión:* ${meeting.title}\n`;
-    const dateInfo = `*📅 Fecha:* ${formatDate(meeting.date)}\n`;
-    const totalInfo = `*👥 Total:* ${data.length} niños\n\n`;
+    const header = `LISTADO ${title.toUpperCase()}\n`;
+    const meetingInfo = `Reunión: ${meeting.title}\n`;
+    const dateInfo = `Fecha: ${formatDate(meeting.date)}\n`;
+    const totalInfo = `Total: ${data.length} niños\n\n`;
     
     const childrenList = data.map(child => {
-      const guitarEmoji = child.guitarSelected ? ' 🎸' : '';
-      const ageGroupTag = isGeneral ? ` _(${child.ageGroupLabel})_` : '';
-      // Limpiamos "Familia " del nombre para evitar redundancia
+      const guitarEmoji = child.guitarSelected ? ' (GUITARRA)' : '';
+      const ageGroupTag = isGeneral ? ` [${child.ageGroupLabel}]` : '';
       const cleanFamilyName = child.familyName?.startsWith('Familia ') 
         ? child.familyName.replace('Familia ', '') 
         : child.familyName;
-      return `• 🧒 *${child.name}* (Fam. ${cleanFamilyName})${ageGroupTag}${guitarEmoji}`;
+      return `- ${child.name} (Fam. ${cleanFamilyName})${ageGroupTag}${guitarEmoji}`;
     }).join('\n');
 
-    const footer = `\n\n_Generado desde CongreKids_`;
+    const footer = `\n\nGenerado desde CongreKids`;
     
     const message = encodeURIComponent(header + meetingInfo + dateInfo + totalInfo + childrenList + footer);
     window.open(`https://wa.me/?text=${message}`, '_blank');

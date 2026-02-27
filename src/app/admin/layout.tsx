@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
   SidebarFooter
 } from '@/components/ui/sidebar';
-import { Calendar, PlusCircle, Users, LayoutDashboard, ChevronLeft, LogOut, ShieldCheck, Home } from 'lucide-react';
+import { Calendar, PlusCircle, Users, LayoutDashboard, ChevronLeft, LogOut, ShieldCheck, Home, Contact } from 'lucide-react';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 
@@ -31,7 +31,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [userData, loading, router]);
 
   if (loading || !userData || !userData.isAdmin) {
-    return <div className="h-screen flex items-center justify-center">Protegiendo área de administración...</div>;
+    return <div className="h-screen flex items-center justify-center font-black uppercase text-primary text-xl">Protegiendo área de administración...</div>;
   }
 
   return (
@@ -71,6 +71,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <Separator className="my-2 bg-sidebar-border/50" />
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/admin/monitors">
+                    <Contact />
+                    <span>Agenda Monitores</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/admin/families">

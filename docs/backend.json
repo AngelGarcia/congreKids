@@ -42,6 +42,20 @@
       },
       "required": ["id", "familyId", "name", "birthDate"]
     },
+    "Monitor": {
+      "title": "Monitor",
+      "description": "Voluntario que ayuda en las reuniones.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "phone": { "type": "string" },
+        "isAvailable": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "firstName", "lastName", "phone", "isAvailable", "createdAt"]
+    },
     "Meeting": {
       "title": "Meeting",
       "description": "Detalles de una reunión o encuentro programado.",
@@ -64,6 +78,11 @@
               "ratio": { "type": "number", "description": "Número de niños por cada monitor." }
             }
           }
+        },
+        "assignedMonitors": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "IDs de los monitores asignados a esta reunión."
         },
         "createdBy": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
@@ -109,6 +128,10 @@
     "/families/{familyId}/children/{childId}": {
       "schema": { "$ref": "#/entities/Child" },
       "description": "Hijos de cada familia."
+    },
+    "/monitors/{monitorId}": {
+      "schema": { "$ref": "#/entities/Monitor" },
+      "description": "Agenda de monitores voluntarios."
     },
     "/meetings/{meetingId}": {
       "schema": { "$ref": "#/entities/Meeting" },

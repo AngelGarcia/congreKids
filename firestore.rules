@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -22,8 +23,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyId == familyId;
     }
 
+    match /monitors/{monitorId} {
+      allow read, write: if isAdmin();
+    }
+
     // Regla para permitir consultas de grupo de colecciones (ej. contar todos los niños)
-    // Se separa 'list' para administradores para facilitar consultas globales
     match /{path=**}/children/{childId} {
       allow list: if isAdmin();
       allow get: if isAdmin() || (isSignedIn() && isFamilyMember(resource.data.familyId));
