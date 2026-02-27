@@ -365,14 +365,6 @@ export default function ParentDashboard() {
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
       <main className="container mx-auto px-4 py-12 space-y-12 max-w-4xl">
-        {userData.isAdmin && (
-          <div className="flex justify-center -mt-4 mb-4">
-            <Link href="/admin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary flex items-center gap-2 transition-colors">
-              <ShieldCheck className="w-3 h-3" /> Área de Administración
-            </Link>
-          </div>
-        )}
-
         <div className="text-center space-y-2">
           <h1 className="text-5xl font-black tracking-tighter uppercase text-primary drop-shadow-sm">{familyData?.name || '...'}</h1>
           <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.3em]">Unidad Familiar</p>

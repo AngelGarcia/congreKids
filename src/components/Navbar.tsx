@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, LayoutDashboard, User, Home } from 'lucide-react';
+import { LogOut, LayoutDashboard, User, Home, ShieldCheck } from 'lucide-react';
 
 export default function Navbar() {
   const { user, userData, logout } = useAuth();
@@ -30,7 +30,12 @@ export default function Navbar() {
 
         {user ? (
           <div className="flex items-center gap-3">
-            <Link href="/family" className="hidden sm:flex items-center text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors mr-2">
+            {userData?.isAdmin && (
+              <Link href="/admin" className="hidden sm:flex items-center text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors mr-2">
+                <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Admin
+              </Link>
+            )}
+            <Link href="/family" className="hidden sm:flex items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors mr-2">
               Mi Familia
             </Link>
             
