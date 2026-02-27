@@ -21,6 +21,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Link from 'next/link';
 import { normalizeString } from '@/lib/utils/string';
 import { Switch } from '@/components/ui/switch';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function ParentDashboard() {
   const { user, userData, familyData, login, joinFamily, createFamily, loading: authLoading } = useAuth();
@@ -104,8 +106,13 @@ export default function ParentDashboard() {
         setFoundFamilies([]);
       }
       setStep('confirm');
-    } catch (err) {
-      toast({ variant: "destructive", title: "Error", description: "No se pudo realizar la búsqueda." });
+    } catch (err: any) {
+      const contextualError = new FirestorePermissionError({
+        path: 'families',
+        operation: 'list',
+      });
+      errorEmitter.emit('permission-error', contextualError);
+      toast({ variant: "destructive", title: "Error", description: "No se pudo realizar la búsqueda de familias." });
     } finally {
       setIsSearching(false);
     }
@@ -259,6 +266,10 @@ export default function ParentDashboard() {
                         ))}
                       </div>
                     </div>
+                    <div className="relative py-4">
+                      <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-dashed" /></div>
+                      <div className="relative flex justify-center text-[10px] uppercase font-black"><span className="bg-white px-2 text-muted-foreground">O también puedes</span></div>
+                    </div>
                     <Button variant="outline" onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-14 rounded-xl font-black text-xs uppercase border-2 border-primary text-primary hover:bg-primary/5">
                       CREAR NUEVA FAMILIA {familySurnames.toUpperCase()}
                     </Button>
@@ -266,9 +277,13 @@ export default function ParentDashboard() {
                 ) : (
                   <div className="text-center space-y-6">
                     <h3 className="text-2xl font-black uppercase tracking-tighter">Familia {familySurnames}</h3>
-                    <Button onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase tracking-tighter">
-                      CREAR ESTA FAMILIA
-                    </Button>
+                    <p className="text-sm font-bold text-muted-foreground">No hemos encontrado ninguna familia con estos apellidos. ¿Quieres crearla ahora?</p>
+                    <div className="flex flex-col gap-3">
+                      <Button onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase tracking-tighter">
+                        CREAR ESTA FAMILIA
+                      </Button>
+                      <Button variant="ghost" onClick={() => setStep('search')} className="text-xs font-black uppercase text-muted-foreground">Corregir apellidos</Button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -25,7 +25,6 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Regla para permitir consultas de grupo de colecciones (ej. contar todos los niños)
     match /{path=**}/children/{childId} {
       allow list: if isAdmin();
       allow get: if isAdmin() || (isSignedIn() && isFamilyMember(resource.data.familyId));
@@ -33,6 +32,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
+      // Permitimos listado y lectura a cualquier usuario autenticado para que los nuevos puedan encontrar miembros de su familia durante el registro
       allow get, list: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isOwner(userId) || isAdmin();
@@ -40,10 +40,11 @@ service cloud.firestore {
     }
 
     match /families/{familyId} {
-      allow get: if isFamilyMember(familyId) || isAdmin();
+      // Permitimos listado a cualquier usuario autenticado para la búsqueda inicial
+      allow list: if isSignedIn();
+      allow get: if isSignedIn(); // Necesario para verificar existencia al unirse
       allow create: if isSignedIn();
       allow update: if isFamilyMember(familyId) || isAdmin();
-      allow list: if isSignedIn();
       allow delete: if isAdmin();
     }
 
