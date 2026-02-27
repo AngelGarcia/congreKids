@@ -40,10 +40,6 @@ export default function ParentDashboard() {
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [guitarSelections, setGuitarSelections] = useState<Record<string, boolean>>({});
 
-  // Debug state
-  const debugFamiliesQuery = useMemoFirebase(() => query(collection(db, 'families'), limit(10)), [db]);
-  const { data: allFamiliesDebug } = useCollection(debugFamiliesQuery);
-
   const childrenQuery = useMemoFirebase(() => {
     if (!db || !userData?.familyId || !user) return null;
     return collection(db, 'families', userData.familyId, 'children');
@@ -288,25 +284,6 @@ export default function ParentDashboard() {
                       </Button>
                     </div>
                   </form>
-
-                  <div className="mt-8 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-2xl space-y-3">
-                    <div className="flex items-center gap-2 text-yellow-700">
-                      <Bug className="w-4 h-4" />
-                      <span className="text-[10px] font-black uppercase">Modo Diagnóstico: Familias en BD</span>
-                    </div>
-                    {allFamiliesDebug && allFamiliesDebug.length > 0 ? (
-                      <div className="space-y-1">
-                        {allFamiliesDebug.map(f => (
-                          <div key={f.id} className="text-[10px] bg-white p-2 rounded border font-mono">
-                            <p><strong>Name:</strong> {f.name}</p>
-                            <p><strong>Search:</strong> {f.searchName || '(VACÍO - Faltan índices)'}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-[10px] italic text-yellow-600">No se detectan familias o no hay permisos.</p>
-                    )}
-                  </div>
                 </div>
               )}
               {step === 'confirm' && (
