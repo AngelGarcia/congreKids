@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -72,11 +72,10 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const registrationsQuery = useMemoFirebase(() => collection(dbFirestore, 'meetings', id, 'registrations'), [dbFirestore, id]);
   const { data: registrations, isLoading: loadingRegistrations } = useCollection(registrationsQuery);
 
-  // Monitors from agenda - Simplificamos la query para evitar problemas de índices y permisos
+  // Monitors from agenda
   const monitorsQuery = useMemoFirebase(() => query(collection(dbFirestore, 'monitors'), orderBy('firstName', 'asc')), [dbFirestore]);
   const { data: allMonitors } = useCollection(monitorsQuery);
 
-  // Filtramos monitores disponibles en el cliente para el selector de asignación
   const availableMonitors = useMemo(() => {
     return allMonitors?.filter(m => m.isAvailable) || [];
   }, [allMonitors]);
@@ -97,7 +96,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const [editDeadline, setEditDeadline] = useState('');
   const [editAgeGroups, setEditAgeGroups] = useState<any[]>([]);
 
-  // Sincronizar estado local de edición con los datos cargados
   useEffect(() => {
     if (meeting) {
       setEditTitle(meeting.title);
@@ -150,6 +148,14 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       title: newStatus === 'closed' ? "Plazo cerrado" : "Plazo abierto", 
       description: newStatus === 'closed' ? "Ya no se aceptan más inscripciones." : "Se han vuelto a habilitar las inscripciones." 
     });
+  };
+
+  const shareInvitation = () => {
+    if (!meeting) return;
+    const appUrl = window.location.origin;
+    const text = `*CONVOCATORIA CONGREKIDS*\n\nYa está abierta la inscripción para la reunión: *${meeting.title}*\n\n📅 Fecha: ${formatDateTime(meeting.date)}\n⏳ Límite inscripción: ${formatDate(meeting.registrationDeadline)}\n\nPor favor, inscríbete aquí:\n🔗 ${appUrl}\n\n¡Te esperamos!`;
+    const message = encodeURIComponent(text);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
   };
 
   const handleSaveChanges = async () => {
@@ -281,7 +287,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1 w-full max-w-2xl">
           <Link href="/admin/meetings" className="text-sm text-muted-foreground flex items-center hover:text-primary mb-2">
             <ChevronLeft className="w-4 h-4 mr-1" /> Volver
@@ -314,11 +320,16 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           )}
         </div>
 
-        <div className="flex gap-2 shrink-0">
+        <div className="flex flex-wrap gap-2 shrink-0">
           {!isEditing && (
-            <Button variant="outline" size="sm" onClick={handleToggleStatus} className="rounded-xl font-black uppercase">
-              {meeting.status === 'closed' ? <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</> : <><Lock className="w-4 h-4 mr-2" /> Cerrar Plazo</>}
-            </Button>
+            <>
+              <Button onClick={shareInvitation} className="rounded-xl font-black uppercase shadow-lg bg-green-600 hover:bg-green-700 h-12 px-6">
+                <Share2 className="w-4 h-4 mr-2" /> Convocar por WhatsApp
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleToggleStatus} className="rounded-xl font-black uppercase h-12 px-4">
+                {meeting.status === 'closed' ? <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</> : <><Lock className="w-4 h-4 mr-2" /> Cerrar Plazo</>}
+              </Button>
+            </>
           )}
         </div>
       </div>
