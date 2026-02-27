@@ -265,7 +265,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   };
 
   const exportToCSV = () => {
-    const activeCols = orderedColumns.filter(c => selectedColumns.includes(c.id));
+    const activeCols = orderedColumns.filter(c => selectedColumns.includes(col.id));
     const headers = activeCols.map(c => c.label);
     const rows = [headers];
 
@@ -404,11 +404,23 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                               <Label className="text-[8px] font-black uppercase">Edad Mín (años)</Label>
-                              <Input type="number" step="0.1" value={group.minMonths / 12} onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} className="h-9 font-bold text-sm" />
+                              <Input 
+                                type="number" 
+                                step="0.1" 
+                                value={Math.round((group.minMonths / 12) * 10) / 10} 
+                                onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} 
+                                className="h-9 font-bold text-sm" 
+                              />
                             </div>
                             <div className="space-y-1">
                               <Label className="text-[8px] font-black uppercase">Edad Máx (años)</Label>
-                              <Input type="number" step="0.1" value={group.maxMonths / 12} onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} className="h-9 font-bold text-sm" />
+                              <Input 
+                                type="number" 
+                                step="0.1" 
+                                value={Math.round((group.maxMonths / 12) * 10) / 10} 
+                                onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} 
+                                className="h-9 font-bold text-sm" 
+                              />
                             </div>
                           </div>
                           <div className="flex items-center justify-between pt-2 border-t">
@@ -557,7 +569,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       <h2 className="text-xl font-black uppercase tracking-tighter">Categoría: {group.label}</h2>
                       <Badge variant="outline" className="font-black text-sm px-3">{childrenInGroup.length}</Badge>
                       <span className="text-xs font-bold text-muted-foreground uppercase opacity-60">
-                        ({group.minMonths / 12}-{group.maxMonths / 12} años)
+                        ({Math.round((group.minMonths / 12) * 10) / 10}-{Math.round((group.maxMonths / 12) * 10) / 10} años)
                       </span>
                     </div>
                   </AccordionTrigger>
@@ -667,7 +679,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 <Label className="text-xs font-black uppercase flex-1">{col.label}</Label>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveColumn(idx, 'up')} disabled={idx === 0}><ArrowUp className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveColumn(idx, 'down')} disabled={idx === orderedColumns.length - 1}><ArrowDown className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveColumn(idx, 'down')} disabled={idx === orderedColumns.length - 1}><ArrowUp className="w-4 h-4 rotate-180" /></Button>
                 </div>
               </div>
             ))}

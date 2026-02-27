@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -322,7 +321,7 @@ export default function NewMeeting() {
                         <Input 
                           type="number" 
                           step="0.1"
-                          value={group.minMonths / 12} 
+                          value={Math.round((group.minMonths / 12) * 10) / 10} 
                           onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)}
                           className="h-9 font-bold rounded-lg border-2"
                         />
@@ -332,7 +331,7 @@ export default function NewMeeting() {
                         <Input 
                           type="number" 
                           step="0.1"
-                          value={group.maxMonths / 12} 
+                          value={Math.round((group.maxMonths / 12) * 10) / 10} 
                           onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)}
                           className="h-9 font-bold rounded-lg border-2"
                         />
