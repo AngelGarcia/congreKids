@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, use, useMemo } from 'react';
@@ -320,13 +319,13 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2 shrink-0">
+        <div className="flex flex-col gap-3 shrink-0">
           {!isEditing && (
             <>
               <Button onClick={shareInvitation} className="rounded-xl font-black uppercase shadow-lg bg-green-600 hover:bg-green-700 h-12 px-6">
                 <Share2 className="w-4 h-4 mr-2" /> Convocar por WhatsApp
               </Button>
-              <Button variant="outline" size="sm" onClick={handleToggleStatus} className="rounded-xl font-black uppercase h-12 px-4">
+              <Button variant="outline" size="sm" onClick={handleToggleStatus} className="rounded-xl font-black uppercase h-12 px-4 w-full">
                 {meeting.status === 'closed' ? <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</> : <><Lock className="w-4 h-4 mr-2" /> Cerrar Plazo</>}
               </Button>
             </>
