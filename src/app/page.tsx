@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, Music, CheckCircle2, Lock } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, Music, CheckCircle2, Lock, Bug } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs, startAt, endAt } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -39,6 +39,10 @@ export default function ParentDashboard() {
   const [foundFamilies, setFoundFamilies] = useState<any[]>([]);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [guitarSelections, setGuitarSelections] = useState<Record<string, boolean>>({});
+
+  // Debug state
+  const debugFamiliesQuery = useMemoFirebase(() => query(collection(db, 'families'), limit(10)), [db]);
+  const { data: allFamiliesDebug } = useCollection(debugFamiliesQuery);
 
   const childrenQuery = useMemoFirebase(() => {
     if (!db || !userData?.familyId || !user) return null;
@@ -78,7 +82,7 @@ export default function ParentDashboard() {
       setSelectedChildren(registration.children.map((c: any) => c.childId));
       const gS: Record<string, boolean> = {};
       registration.children.forEach((c: any) => {
-        if (c.guitarSelected) gS[c.childId] = true;
+        if (c.guitarSelected) gS[childId] = true;
       });
       setGuitarSelections(gS);
     }
@@ -93,8 +97,8 @@ export default function ParentDashboard() {
       const surnames = cleanSurnames(familySurnames);
       const normalizedSearch = normalizeString(surnames);
       
-      // Implementación de búsqueda por prefijo (>= y <= + \uf8ff)
-      // Esto permite que "garcia" encuentre "garcia medina"
+      console.log("Buscando con:", { surnames, normalizedSearch });
+
       const q = query(
         collection(db, 'families'), 
         where('searchName', '>=', normalizedSearch),
@@ -125,7 +129,7 @@ export default function ParentDashboard() {
       }
       setStep('confirm');
     } catch (err: any) {
-      console.error("Search error:", err);
+      console.error("Error completo de búsqueda:", err);
       const contextualError = new FirestorePermissionError({
         path: 'families',
         operation: 'list',
@@ -134,7 +138,7 @@ export default function ParentDashboard() {
       toast({ 
         variant: "destructive", 
         title: "Error de búsqueda", 
-        description: "Asegúrate de escribir correctamente los apellidos." 
+        description: err.message || "Asegúrate de escribir correctamente los apellidos." 
       });
     } finally {
       setIsSearching(false);
@@ -245,25 +249,47 @@ export default function ParentDashboard() {
               </div>
             )}
             {step === 'search' && (
-              <form onSubmit={handleSearchFamily} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="space-y-3">
-                  <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Apellidos de tu Familia</Label>
-                  <Input 
-                    placeholder="Ej. García Medina" 
-                    value={familySurnames}
-                    onChange={e => setFamilySurnames(e.target.value)}
-                    required
-                    className="h-14 rounded-xl border-2 font-bold text-center text-lg"
-                    autoFocus
-                  />
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <form onSubmit={handleSearchFamily} className="space-y-6">
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Apellidos de tu Familia</Label>
+                    <Input 
+                      placeholder="Ej. García Medina" 
+                      value={familySurnames}
+                      onChange={e => setFamilySurnames(e.target.value)}
+                      required
+                      className="h-14 rounded-xl border-2 font-bold text-center text-lg"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <Button type="submit" disabled={isSearching} className="h-14 rounded-xl font-black text-lg shadow-lg">
+                      {isSearching ? <Loader2 className="animate-spin" /> : 'BUSCAR COINCIDENCIAS'}
+                    </Button>
+                    <Button variant="ghost" onClick={() => setStep('role')} className="text-xs font-black uppercase text-muted-foreground">Volver</Button>
+                  </div>
+                </form>
+
+                {/* DEBUG SECTION - TEMPORAL */}
+                <div className="mt-8 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2 text-yellow-700">
+                    <Bug className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase">Modo Diagnóstico: Familias en BD</span>
+                  </div>
+                  {allFamiliesDebug && allFamiliesDebug.length > 0 ? (
+                    <div className="space-y-1">
+                      {allFamiliesDebug.map(f => (
+                        <div key={f.id} className="text-[10px] bg-white p-2 rounded border font-mono">
+                          <p><strong>Name:</strong> {f.name}</p>
+                          <p><strong>Search:</strong> {f.searchName}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] italic text-yellow-600">No se detectan familias o no hay permisos.</p>
+                  )}
                 </div>
-                <div className="flex flex-col gap-3">
-                  <Button type="submit" disabled={isSearching} className="h-14 rounded-xl font-black text-lg shadow-lg">
-                    {isSearching ? <Loader2 className="animate-spin" /> : 'BUSCAR COINCIDENCIAS'}
-                  </Button>
-                  <Button variant="ghost" onClick={() => setStep('role')} className="text-xs font-black uppercase text-muted-foreground">Volver</Button>
-                </div>
-              </form>
+              </div>
             )}
             {step === 'confirm' && (
               <div className="space-y-6 animate-in zoom-in-95 duration-300">
