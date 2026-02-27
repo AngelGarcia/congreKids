@@ -19,7 +19,6 @@ import {
   Trash2, 
   UserCheck, 
   UserMinus, 
-  MoreVertical,
   UserPlus
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -32,6 +31,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { cn } from '@/lib/utils';
 
 export default function MonitorsAgenda() {
   const db = useFirestore();
@@ -48,18 +48,18 @@ export default function MonitorsAgenda() {
   const { data: monitors, isLoading } = useCollection(monitorsQuery);
 
   const filteredMonitors = monitors?.filter(m => 
-    `${m.firstName} ${m.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.phone.includes(searchTerm)
+    `${m.firstName} ${m.lastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (m.phone && m.phone.includes(searchTerm))
   ) || [];
 
   const handleAddMonitor = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !lastName || !phone) return;
+    if (!firstName) return;
 
     addDocumentNonBlocking(collection(db, 'monitors'), {
       firstName,
-      lastName,
-      phone,
+      lastName: lastName || null,
+      phone: phone || null,
       isAvailable: true,
       createdAt: Timestamp.now(),
     });
@@ -112,18 +112,19 @@ export default function MonitorsAgenda() {
               <div className="space-y-4 py-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase text-muted-foreground">Nombre</Label>
+                    <Label className="text-xs font-black uppercase text-muted-foreground">Nombre *</Label>
                     <Input value={firstName} onChange={e => setFirstName(e.target.value)} required className="h-12 rounded-xl font-bold border-2" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-black uppercase text-muted-foreground">Apellidos</Label>
-                    <Input value={lastName} onChange={e => setLastName(e.target.value)} required className="h-12 rounded-xl font-bold border-2" />
+                    <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-12 rounded-xl font-bold border-2" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-black uppercase text-muted-foreground">Teléfono de Contacto</Label>
-                  <Input value={phone} onChange={e => setPhone(e.target.value)} required type="tel" className="h-12 rounded-xl font-bold border-2" />
+                  <Input value={phone} onChange={e => setPhone(e.target.value)} type="tel" className="h-12 rounded-xl font-bold border-2" />
                 </div>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase italic">* El nombre es el único campo obligatorio.</p>
               </div>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setIsAddDialogOpen(false)} className="rounded-xl font-bold uppercase">Cancelar</Button>
@@ -159,7 +160,7 @@ export default function MonitorsAgenda() {
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <h3 className="text-xl font-black uppercase tracking-tighter leading-none">{monitor.firstName}</h3>
-                    <p className="text-sm font-bold text-muted-foreground uppercase">{monitor.lastName}</p>
+                    {monitor.lastName && <p className="text-sm font-bold text-muted-foreground uppercase">{monitor.lastName}</p>}
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteMonitor(monitor)} className="h-8 w-8 text-muted-foreground hover:text-destructive rounded-lg">
                     <Trash2 className="w-4 h-4" />
@@ -167,30 +168,34 @@ export default function MonitorsAgenda() {
                 </div>
               </CardHeader>
               <CardContent className="p-6 pt-2 space-y-6">
-                <div className="flex items-center gap-3 bg-muted/20 p-3 rounded-xl">
-                  <Phone className="w-4 h-4 text-primary" />
-                  <span className="font-mono font-bold text-lg tracking-wider">{monitor.phone}</span>
-                </div>
+                {monitor.phone ? (
+                  <div className="flex items-center gap-3 bg-muted/20 p-3 rounded-xl">
+                    <Phone className="w-4 h-4 text-primary" />
+                    <span className="font-mono font-bold text-lg tracking-wider">{monitor.phone}</span>
+                  </div>
+                ) : (
+                  <div className="h-[52px] flex items-center justify-center border-2 border-dashed rounded-xl border-muted/30">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground/40">Sin teléfono</p>
+                  </div>
+                )}
                 
-                <div className="flex items-center justify-between pt-4 border-t">
-                  <div className="flex items-center gap-2">
-                    {monitor.isAvailable ? (
-                      <Badge className="bg-primary/10 text-primary border-none font-black uppercase text-[9px] px-2.5 py-0.5">
-                        <UserCheck className="w-3 h-3 mr-1" /> Disponible
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="font-black uppercase text-[9px] px-2.5 py-0.5">
-                        <UserMinus className="w-3 h-3 mr-1" /> No Disponible
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-muted-foreground">Estado</span>
-                    <Switch 
-                      checked={monitor.isAvailable} 
-                      onCheckedChange={() => toggleAvailability(monitor)} 
-                    />
-                  </div>
+                <div className="flex items-center justify-center gap-4 pt-4 border-t w-full">
+                  <span className={cn(
+                    "text-[10px] font-black uppercase transition-colors",
+                    !monitor.isAvailable ? "text-destructive" : "text-muted-foreground/40"
+                  )}>
+                    No Disponible
+                  </span>
+                  <Switch 
+                    checked={monitor.isAvailable} 
+                    onCheckedChange={() => toggleAvailability(monitor)} 
+                  />
+                  <span className={cn(
+                    "text-[10px] font-black uppercase transition-colors",
+                    monitor.isAvailable ? "text-primary" : "text-muted-foreground/40"
+                  )}>
+                    Disponible
+                  </span>
                 </div>
               </CardContent>
             </Card>

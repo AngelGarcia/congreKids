@@ -54,7 +54,7 @@
         "isAvailable": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "firstName", "lastName", "phone", "isAvailable", "createdAt"]
+      "required": ["id", "firstName", "isAvailable", "createdAt"]
     },
     "Meeting": {
       "title": "Meeting",
