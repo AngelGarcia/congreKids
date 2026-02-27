@@ -213,7 +213,7 @@ export default function ParentDashboard() {
           <Baby className="w-12 h-12" />
         </div>
         <h1 className="text-5xl font-black text-primary tracking-tighter mb-4">CongreKids</h1>
-        <p className="text-xl text-muted-foreground max-w-sm mb-12 font-medium">Gestiona el cuidado infantil de tu parroquia de forma sencilla.</p>
+        <p className="text-xl text-muted-foreground max-w-sm mb-12 font-medium">Gestiona el cuidado infantil de tus reuniones de forma sencilla.</p>
         <Button size="lg" onClick={login} className="w-full max-w-xs h-16 text-xl rounded-2xl shadow-xl font-black">
           Entrar con Google
         </Button>
