@@ -75,14 +75,13 @@
               "minMonths": { "type": "number" },
               "maxMonths": { "type": "number" },
               "allowsGuitar": { "type": "boolean" },
-              "ratio": { "type": "number", "description": "Número de niños por cada monitor." }
+              "ratio": { "type": "number" },
+              "assignedMonitors": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
             }
           }
-        },
-        "assignedMonitors": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "IDs de los monitores asignados a esta reunión."
         },
         "createdBy": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
@@ -100,7 +99,7 @@
         "children": {
           "type": "array",
           "items": {
-            "type": "object",
+            "object",
             "properties": {
               "childId": { "type": "string" },
               "name": { "type": "string" },

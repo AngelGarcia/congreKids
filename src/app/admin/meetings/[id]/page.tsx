@@ -4,6 +4,7 @@
 import { useEffect, useState, use, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, getDocs, updateDoc, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -39,6 +40,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const EXPORT_COLUMNS = [
   { id: 'parentName', label: 'Padre/Madre' },
@@ -61,6 +67,10 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const [isNextMeeting, setIsNextMeeting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
+  // Monitors from agenda
+  const monitorsQuery = useMemoFirebase(() => query(collection(db, 'monitors'), where('isAvailable', '==', true), orderBy('firstName', 'asc')), [db]);
+  const { data: monitorsAgenda } = useCollection(monitorsQuery);
+
   // Export states
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [orderedColumns, setOrderedColumns] = useState([...EXPORT_COLUMNS]);
@@ -189,8 +199,31 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       });
   };
 
+  const handleAssignMonitor = (groupIdx: number, monitorId: string) => {
+    const newAgeGroups = [...meeting.ageGroups];
+    const group = newAgeGroups[groupIdx];
+    const assigned = group.assignedMonitors || [];
+    
+    if (assigned.includes(monitorId)) {
+      group.assignedMonitors = assigned.filter((id: string) => id !== monitorId);
+    } else {
+      group.assignedMonitors = [...assigned, monitorId];
+    }
+    
+    updateDoc(doc(db, 'meetings', id), { ageGroups: newAgeGroups })
+      .then(() => {
+        setMeeting({ ...meeting, ageGroups: newAgeGroups });
+        toast({ title: "Monitores actualizados" });
+      })
+      .catch((err) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'meetings/' + id,
+          operation: 'update'
+        }));
+      });
+  };
+
   const shareOnWhatsApp = (data: any[], title: string) => {
-    const isGeneral = title.toLowerCase() === 'general';
     const header = `LISTADO ${title.toUpperCase()}\n`;
     const meetingInfo = `Reunión: ${meeting.title}\n`;
     const dateInfo = `Fecha: ${formatDate(meeting.date)}\n`;
@@ -198,11 +231,10 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     
     const childrenList = data.map(child => {
       const guitarEmoji = child.guitarSelected ? ' (GUITARRA)' : '';
-      const ageGroupTag = isGeneral ? ` [${child.ageGroupLabel}]` : '';
       const cleanFamilyName = child.familyName?.startsWith('Familia ') 
         ? child.familyName.replace('Familia ', '') 
         : child.familyName;
-      return `- ${child.name} (Fam. ${cleanFamilyName})${ageGroupTag}${guitarEmoji}`;
+      return `- ${child.name} (Fam. ${cleanFamilyName})${guitarEmoji}`;
     }).join('\n');
 
     const footer = `\n\nGenerado desde CongreKids`;
@@ -281,7 +313,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     setIsExportDialogOpen(false);
   };
 
-  if (loading) return <div className="p-8">Cargando detalles de la reunión...</div>;
+  if (loading) return <div className="p-8 font-black uppercase text-primary">Cargando detalles...</div>;
   if (!meeting) return <div className="p-8">Reunión no encontrada.</div>;
 
   const totalChildrenCount = allChildren.length;
@@ -314,7 +346,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
             </div>
           ) : (
             <>
-              <h1 className="text-3xl font-bold tracking-tight uppercase tracking-tighter">{meeting.title}</h1>
+              <h1 className="text-3xl font-black tracking-tighter uppercase leading-tight">{meeting.title}</h1>
               <div className="text-muted-foreground flex items-center gap-3 font-medium">
                 {formatDateTime(meeting.date)}
               </div>
@@ -324,7 +356,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
         <div className="flex gap-2 shrink-0">
           {!isNextMeeting && !isEditing && (
-            <Button variant="outline" size="sm" onClick={handleToggleStatus} className="rounded-xl font-bold uppercase">
+            <Button variant="outline" size="sm" onClick={handleToggleStatus} className="rounded-xl font-black uppercase">
               {meeting.status === 'closed' ? <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</> : <><Lock className="w-4 h-4 mr-2" /> Cerrar Plazo</>}
             </Button>
           )}
@@ -371,7 +403,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                   <CardContent className="p-4 pt-0">
                     <div className="flex items-baseline gap-2">
                       <div className="text-3xl font-black">{count}</div>
-                      <span className="text-xs font-bold text-muted-foreground uppercase">niños</span>
+                      <span className="text-sm font-bold text-muted-foreground uppercase">niños</span>
                     </div>
                     <div className="flex items-center gap-1.5 mt-2 text-primary">
                       <UserCheck className="w-4 h-4" />
@@ -425,14 +457,14 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                   <Table>
                     <TableHeader className="bg-muted/5">
                       <TableRow className="hover:bg-transparent border-none h-12">
-                        <TableHead className="font-black uppercase text-[11px] tracking-widest cursor-pointer group" onClick={() => toggleSort('name')}>
+                        <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer group" onClick={() => toggleSort('name')}>
                           <div className="flex items-center">Nombre <SortIcon field="name" /></div>
                         </TableHead>
-                        <TableHead className="font-black uppercase text-[11px] tracking-widest cursor-pointer group" onClick={() => toggleSort('familyName')}>
+                        <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer group" onClick={() => toggleSort('familyName')}>
                           <div className="flex items-center">Familia <SortIcon field="familyName" /></div>
                         </TableHead>
-                        <TableHead className="font-black uppercase text-[11px] tracking-widest">Grupo</TableHead>
-                        <TableHead className="font-black uppercase text-[11px] tracking-widest cursor-pointer group" onClick={() => toggleSort('guitarSelected')}>
+                        <TableHead className="font-black uppercase text-xs tracking-widest">Grupo</TableHead>
+                        <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer group" onClick={() => toggleSort('guitarSelected')}>
                           <div className="flex items-center">Extra <SortIcon field="guitarSelected" /></div>
                         </TableHead>
                       </TableRow>
@@ -443,9 +475,9 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       ) : (
                         allChildren.map((child, idx) => (
                           <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-14">
-                            <TableCell className="font-black text-base">{child.name}</TableCell>
-                            <TableCell className="text-xs font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase px-2.5 py-0.5 border-primary/20 text-primary bg-primary/5">{child.ageGroupLabel}</Badge></TableCell>
+                            <TableCell className="font-black text-lg">{child.name}</TableCell>
+                            <TableCell className="text-sm font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
+                            <TableCell><Badge variant="outline" className="text-[11px] font-black uppercase px-2.5 py-0.5 border-primary/20 text-primary bg-primary/5">{child.ageGroupLabel}</Badge></TableCell>
                             <TableCell>
                               {child.guitarSelected && <Badge className="bg-accent text-white font-black text-[10px] px-2.5 py-0.5"><Music className="w-3 h-3 mr-1" /> GUITARRA</Badge>}
                             </TableCell>
@@ -458,8 +490,10 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               </AccordionItem>
 
               {/* LISTADOS POR CATEGORÍA */}
-              {meeting.ageGroups?.map((group: any) => {
+              {meeting.ageGroups?.map((group: any, groupIdx: number) => {
                 const childrenInGroup = allChildren.filter(c => (c.ageGroupLabel || 'Sin grupo') === group.label);
+                const assignedMonitors = monitorsAgenda?.filter(m => group.assignedMonitors?.includes(m.id)) || [];
+                
                 return (
                   <AccordionItem key={group.label} value={group.label} className="rounded-2xl shadow-sm border overflow-hidden bg-white px-0">
                     <div className="flex items-center justify-between bg-muted/5 pr-4">
@@ -499,16 +533,74 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       </div>
                     </div>
                     <AccordionContent className="p-0">
+                      <div className="p-4 border-b bg-primary/5 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                            <Users className="w-3.5 h-3.5" /> Monitores Asignados
+                          </h4>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-7 text-[10px] font-black uppercase text-primary hover:bg-primary/10">
+                                <UserPlus className="w-3 h-3 mr-1.5" /> Asignar
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-2 rounded-xl shadow-xl">
+                              <p className="text-[10px] font-black uppercase text-muted-foreground p-2 border-b mb-1">Monitores Disponibles</p>
+                              {monitorsAgenda?.length === 0 ? (
+                                <p className="text-[10px] p-4 text-center italic text-muted-foreground">No hay monitores disponibles en la agenda.</p>
+                              ) : (
+                                <div className="max-h-60 overflow-y-auto space-y-1">
+                                  {monitorsAgenda?.map(m => (
+                                    <div 
+                                      key={m.id} 
+                                      className={cn(
+                                        "flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors",
+                                        group.assignedMonitors?.includes(m.id) ? "bg-primary/10" : "hover:bg-muted"
+                                      )}
+                                      onClick={() => handleAssignMonitor(groupIdx, m.id)}
+                                    >
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-bold">{m.firstName} {m.lastName}</span>
+                                        {m.phone && <span className="text-[10px] text-muted-foreground">{m.phone}</span>}
+                                      </div>
+                                      {group.assignedMonitors?.includes(m.id) && <UserCheck className="w-4 h-4 text-primary" />}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {assignedMonitors.length === 0 ? (
+                            <p className="text-[10px] font-bold text-muted-foreground italic">Ningún monitor asignado todavía.</p>
+                          ) : (
+                            assignedMonitors.map(m => (
+                              <Badge key={m.id} className="bg-white text-primary border-primary/20 font-bold text-[10px] px-2.5 py-1 flex items-center gap-1.5 shadow-sm">
+                                <span className="truncate max-w-[100px]">{m.firstName}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => handleAssignMonitor(groupIdx, m.id)}
+                                  className="h-3.5 w-3.5 p-0 text-muted-foreground hover:text-destructive"
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </Button>
+                              </Badge>
+                            ))
+                          )}
+                        </div>
+                      </div>
                       <Table>
                         <TableHeader className="bg-muted/5">
                           <TableRow className="hover:bg-transparent border-none h-12">
-                            <TableHead className="font-black uppercase text-[11px] tracking-widest cursor-pointer group" onClick={() => toggleSort('name')}>
+                            <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer group" onClick={() => toggleSort('name')}>
                               <div className="flex items-center">Nombre <SortIcon field="name" /></div>
                             </TableHead>
-                            <TableHead className="font-black uppercase text-[11px] tracking-widest cursor-pointer group" onClick={() => toggleSort('familyName')}>
+                            <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer group" onClick={() => toggleSort('familyName')}>
                               <div className="flex items-center">Familia <SortIcon field="familyName" /></div>
                             </TableHead>
-                            <TableHead className="font-black uppercase text-[11px] tracking-widest">Extra</TableHead>
+                            <TableHead className="font-black uppercase text-xs tracking-widest">Extra</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -517,8 +609,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                           ) : (
                             childrenInGroup.map((child, idx) => (
                               <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-14">
-                                <TableCell className="font-black text-base">{child.name}</TableCell>
-                                <TableCell className="text-xs font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
+                                <TableCell className="font-black text-lg">{child.name}</TableCell>
+                                <TableCell className="text-sm font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
                                 <TableCell>
                                   {child.guitarSelected && <Badge className="bg-accent text-white font-black text-[10px] px-2.5 py-0.5"><Music className="w-3 h-3 mr-1" /> GUITARRA</Badge>}
                                 </TableCell>
@@ -549,7 +641,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                   <AccordionTrigger className="flex-1 hover:no-underline py-5 group border-none mr-2">
                     <div className="flex items-center gap-2 overflow-hidden">
                       <Settings2 className={cn("w-5 h-5 shrink-0", isEditing ? 'text-primary' : 'text-muted-foreground')} />
-                      <CardTitle className="text-xs font-black uppercase tracking-widest truncate">Ajustes de Reunión</CardTitle>
+                      <CardTitle className="text-[11px] font-black uppercase tracking-widest truncate">Ajustes de Reunión</CardTitle>
                     </div>
                   </AccordionTrigger>
                   
@@ -563,7 +655,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                               size="icon" 
                               onClick={(e) => { 
                                 e.stopPropagation(); 
-                                setEditAgeGroups([...editAgeGroups, { label: 'Nuevo', minMonths: 0, maxMonths: 144, allowsGuitar: false, ratio: 8 }]); 
+                                setEditAgeGroups([...editAgeGroups, { label: 'Nuevo', minMonths: 0, maxMonths: 144, allowsGuitar: false, ratio: 8, assignedMonitors: [] }]); 
                               }} 
                               className="h-8 w-8 rounded-lg text-primary"
                             >
