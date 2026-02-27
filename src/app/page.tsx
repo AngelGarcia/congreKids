@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, Music, CheckCircle2, Lock, Bug } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, Music, CheckCircle2, Lock, Bug, LogOut, ChevronLeft } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs, startAt, endAt } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -25,7 +25,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function ParentDashboard() {
-  const { user, userData, familyData, login, joinFamily, createFamily, loading: authLoading } = useAuth();
+  const { user, userData, familyData, login, joinFamily, createFamily, logout, loading: authLoading } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
   
@@ -97,7 +97,6 @@ export default function ParentDashboard() {
       const surnames = cleanSurnames(familySurnames);
       const normalizedSearch = normalizeString(surnames);
       
-      // Realizamos 3 búsquedas en paralelo para máxima robustez (fallback para datos antiguos)
       const qNormalized = query(
         collection(db, 'families'), 
         where('searchName', '>=', normalizedSearch),
@@ -125,7 +124,6 @@ export default function ParentDashboard() {
         getDocs(qPrefix)
       ]);
 
-      // Unificamos resultados por ID
       const resultsMap = new Map();
       [...snap1.docs, ...snap2.docs, ...snap3.docs].forEach(docSnap => {
         resultsMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
@@ -229,136 +227,156 @@ export default function ParentDashboard() {
 
   if (!userData?.familyId) {
     return (
-      <div className="min-h-screen bg-background p-6 flex flex-col items-center justify-center">
-        <Card className="w-full max-w-md rounded-3xl border-4 border-primary/10 shadow-2xl overflow-hidden">
-          <CardHeader className="text-center space-y-2 bg-primary/5 pb-8">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-sm border">
-              <Users className="w-8 h-8" />
-            </div>
-            <CardTitle className="text-3xl font-black uppercase tracking-tighter">Bienvenido</CardTitle>
-            <CardDescription className="text-base font-bold">Configura tu unidad familiar para empezar.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8 p-8">
-            {step === 'role' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Primero, ¿cuál es tu rol?</Label>
-                <RadioGroup value={selectedRole} onValueChange={(val: any) => setSelectedRole(val)} className="flex gap-3">
-                  <div className="flex-1">
-                    <RadioGroupItem value="padre" id="padre" className="peer sr-only" />
-                    <Label
-                      htmlFor="padre"
-                      className="flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer"
-                    >
-                      <span className="text-base font-black uppercase">Padre</span>
-                    </Label>
-                  </div>
-                  <div className="flex-1">
-                    <RadioGroupItem value="madre" id="madre" className="peer sr-only" />
-                    <Label
-                      htmlFor="madre"
-                      className="flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer"
-                    >
-                      <span className="text-base font-black uppercase">Madre</span>
-                    </Label>
-                  </div>
-                </RadioGroup>
-                <Button onClick={() => setStep('search')} className="w-full h-14 rounded-xl font-black text-lg shadow-lg">SIGUIENTE</Button>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-1 p-6 flex flex-col items-center justify-center">
+          <Card className="w-full max-w-md rounded-3xl border-4 border-primary/10 shadow-2xl overflow-hidden">
+            <CardHeader className="text-center space-y-2 bg-primary/5 pb-8">
+              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-sm border">
+                <Users className="w-8 h-8" />
               </div>
-            )}
-            {step === 'search' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-                <form onSubmit={handleSearchFamily} className="space-y-6">
-                  <div className="space-y-3">
-                    <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Apellidos de tu Familia</Label>
-                    <Input 
-                      placeholder="Ej. García Medina" 
-                      value={familySurnames}
-                      onChange={e => setFamilySurnames(e.target.value)}
-                      required
-                      className="h-14 rounded-xl border-2 font-bold text-center text-lg"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <Button type="submit" disabled={isSearching} className="h-14 rounded-xl font-black text-lg shadow-lg">
-                      {isSearching ? <Loader2 className="animate-spin" /> : 'BUSCAR COINCIDENCIAS'}
-                    </Button>
-                    <Button variant="ghost" onClick={() => setStep('role')} className="text-xs font-black uppercase text-muted-foreground">Volver</Button>
-                  </div>
-                </form>
-
-                {/* DEBUG SECTION - TEMPORAL */}
-                <div className="mt-8 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-2xl space-y-3">
-                  <div className="flex items-center gap-2 text-yellow-700">
-                    <Bug className="w-4 h-4" />
-                    <span className="text-[10px] font-black uppercase">Modo Diagnóstico: Familias en BD</span>
-                  </div>
-                  {allFamiliesDebug && allFamiliesDebug.length > 0 ? (
-                    <div className="space-y-1">
-                      {allFamiliesDebug.map(f => (
-                        <div key={f.id} className="text-[10px] bg-white p-2 rounded border font-mono">
-                          <p><strong>Name:</strong> {f.name}</p>
-                          <p><strong>Search:</strong> {f.searchName || '(VACÍO - Faltan índices)'}</p>
-                        </div>
-                      ))}
+              <CardTitle className="text-3xl font-black uppercase tracking-tighter">Bienvenido</CardTitle>
+              <CardDescription className="text-base font-bold">Configura tu unidad familiar para empezar.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8 p-8 pb-4">
+              {step === 'role' && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Primero, ¿cuál es tu rol?</Label>
+                  <RadioGroup value={selectedRole} onValueChange={(val: any) => setSelectedRole(val)} className="flex gap-3">
+                    <div className="flex-1">
+                      <RadioGroupItem value="padre" id="padre" className="peer sr-only" />
+                      <Label
+                        htmlFor="padre"
+                        className="flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer"
+                      >
+                        <span className="text-base font-black uppercase">Padre</span>
+                      </Label>
                     </div>
-                  ) : (
-                    <p className="text-[10px] italic text-yellow-600">No se detectan familias o no hay permisos.</p>
-                  )}
+                    <div className="flex-1">
+                      <RadioGroupItem value="madre" id="madre" className="peer sr-only" />
+                      <Label
+                        htmlFor="madre"
+                        className="flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer"
+                      >
+                        <span className="text-base font-black uppercase">Madre</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  <Button onClick={() => setStep('search')} className="w-full h-14 rounded-xl font-black text-lg shadow-lg">SIGUIENTE</Button>
                 </div>
-              </div>
-            )}
-            {step === 'confirm' && (
-              <div className="space-y-6 animate-in zoom-in-95 duration-300">
-                {foundFamilies.length > 0 ? (
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <p className="text-xs font-black uppercase text-primary tracking-widest italic mb-4">¿Alguna de estas es tu familia?</p>
-                      <div className="space-y-3">
-                        {foundFamilies.map((fam) => (
-                          <div key={fam.id} className="bg-primary/5 p-5 rounded-2xl border-2 border-primary/20 text-left hover:bg-primary/10 transition-colors">
-                            <h3 className="text-lg font-black uppercase tracking-tighter leading-none mb-2">{fam.name}</h3>
-                            <div className="flex items-center justify-between">
-                              <div className="flex -space-x-1.5 overflow-hidden">
-                                {fam.membersList && fam.membersList.map((m: any, i: number) => (
-                                  <div key={i} className="inline-block h-6 w-6 rounded-full border-2 border-white bg-primary/20 flex items-center justify-center text-[8px] font-black uppercase">
-                                    {m.displayName?.[0]}
-                                  </div>
-                                ))}
-                                {(!fam.membersList || fam.membersList.length === 0) && (
-                                  <span className="text-[8px] font-bold text-muted-foreground uppercase">Sin miembros visibles</span>
-                                )}
-                              </div>
-                              <Button size="sm" onClick={() => joinFamily(fam.id, selectedRole)} className="rounded-lg h-8 px-4 font-black uppercase text-[10px]">UNIRME</Button>
-                            </div>
+              )}
+              {step === 'search' && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <form onSubmit={handleSearchFamily} className="space-y-6">
+                    <div className="space-y-3">
+                      <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Apellidos de tu Familia</Label>
+                      <Input 
+                        placeholder="Ej. García Medina" 
+                        value={familySurnames}
+                        onChange={e => setFamilySurnames(e.target.value)}
+                        required
+                        className="h-14 rounded-xl border-2 font-bold text-center text-lg"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      <Button type="submit" disabled={isSearching} className="h-14 rounded-xl font-black text-lg shadow-lg">
+                        {isSearching ? <Loader2 className="animate-spin" /> : 'BUSCAR COINCIDENCIAS'}
+                      </Button>
+                      <Button variant="ghost" onClick={() => setStep('role')} className="h-10 rounded-xl font-black uppercase text-xs text-muted-foreground flex items-center justify-center">
+                        <ChevronLeft className="w-4 h-4 mr-1" /> Volver atrás
+                      </Button>
+                    </div>
+                  </form>
+
+                  <div className="mt-8 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-2xl space-y-3">
+                    <div className="flex items-center gap-2 text-yellow-700">
+                      <Bug className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase">Modo Diagnóstico: Familias en BD</span>
+                    </div>
+                    {allFamiliesDebug && allFamiliesDebug.length > 0 ? (
+                      <div className="space-y-1">
+                        {allFamiliesDebug.map(f => (
+                          <div key={f.id} className="text-[10px] bg-white p-2 rounded border font-mono">
+                            <p><strong>Name:</strong> {f.name}</p>
+                            <p><strong>Search:</strong> {f.searchName || '(VACÍO - Faltan índices)'}</p>
                           </div>
                         ))}
                       </div>
-                    </div>
-                    <div className="relative py-4">
-                      <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-dashed" /></div>
-                      <div className="relative flex justify-center text-[10px] uppercase font-black"><span className="bg-white px-2 text-muted-foreground">O también puedes</span></div>
-                    </div>
-                    <Button variant="outline" onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-14 rounded-xl font-black text-xs uppercase border-2 border-primary text-primary hover:bg-primary/5">
-                      CREAR NUEVA FAMILIA {familySurnames.toUpperCase()}
-                    </Button>
+                    ) : (
+                      <p className="text-[10px] italic text-yellow-600">No se detectan familias o no hay permisos.</p>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-center space-y-6">
-                    <h3 className="text-2xl font-black uppercase tracking-tighter">Familia {familySurnames}</h3>
-                    <p className="text-sm font-bold text-muted-foreground">No hemos encontrado ninguna familia con estos apellidos. ¿Quieres crearla ahora?</p>
-                    <div className="flex flex-col gap-3">
-                      <Button onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase tracking-tighter">
-                        CREAR ESTA FAMILIA
-                      </Button>
-                      <Button variant="ghost" onClick={() => setStep('search')} className="text-xs font-black uppercase text-muted-foreground">Corregir apellidos</Button>
+                </div>
+              )}
+              {step === 'confirm' && (
+                <div className="space-y-6 animate-in zoom-in-95 duration-300">
+                  {foundFamilies.length > 0 ? (
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <p className="text-xs font-black uppercase text-primary tracking-widest italic mb-4">¿Alguna de estas es tu familia?</p>
+                        <div className="space-y-3">
+                          {foundFamilies.map((fam) => (
+                            <div key={fam.id} className="bg-primary/5 p-5 rounded-2xl border-2 border-primary/20 text-left hover:bg-primary/10 transition-colors">
+                              <h3 className="text-lg font-black uppercase tracking-tighter leading-none mb-2">{fam.name}</h3>
+                              <div className="flex items-center justify-between">
+                                <div className="flex -space-x-1.5 overflow-hidden">
+                                  {fam.membersList && fam.membersList.map((m: any, i: number) => (
+                                    <div key={i} className="inline-block h-6 w-6 rounded-full border-2 border-white bg-primary/20 flex items-center justify-center text-[8px] font-black uppercase">
+                                      {m.displayName?.[0]}
+                                    </div>
+                                  ))}
+                                  {(!fam.membersList || fam.membersList.length === 0) && (
+                                    <span className="text-[8px] font-bold text-muted-foreground uppercase">Sin miembros visibles</span>
+                                  )}
+                                </div>
+                                <Button size="sm" onClick={() => joinFamily(fam.id, selectedRole)} className="rounded-lg h-8 px-4 font-black uppercase text-[10px]">UNIRME</Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="relative py-4">
+                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-dashed" /></div>
+                        <div className="relative flex justify-center text-[10px] uppercase font-black"><span className="bg-white px-2 text-muted-foreground">O también puedes</span></div>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <Button variant="outline" onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-14 rounded-xl font-black text-xs uppercase border-2 border-primary text-primary hover:bg-primary/5">
+                          CREAR NUEVA FAMILIA {familySurnames.toUpperCase()}
+                        </Button>
+                        <Button variant="ghost" onClick={() => setStep('search')} className="h-10 rounded-xl font-black uppercase text-xs text-muted-foreground flex items-center justify-center">
+                          <ChevronLeft className="w-4 h-4 mr-1" /> Buscar otros apellidos
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ) : (
+                    <div className="text-center space-y-6">
+                      <h3 className="text-2xl font-black uppercase tracking-tighter">Familia {familySurnames}</h3>
+                      <p className="text-sm font-bold text-muted-foreground">No hemos encontrado ninguna familia con estos apellidos. ¿Quieres crearla ahora?</p>
+                      <div className="flex flex-col gap-3">
+                        <Button onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase tracking-tighter">
+                          CREAR ESTA FAMILIA
+                        </Button>
+                        <Button variant="ghost" onClick={() => setStep('search')} className="h-10 rounded-xl font-black uppercase text-xs text-muted-foreground flex items-center justify-center">
+                          <ChevronLeft className="w-4 h-4 mr-1" /> Corregir apellidos
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="p-8 pt-0 border-t bg-muted/5 mt-4">
+              <Button 
+                variant="ghost" 
+                onClick={() => logout()} 
+                className="w-full h-10 rounded-xl font-black uppercase text-[10px] text-muted-foreground hover:text-destructive mt-4"
+              >
+                <LogOut className="w-3 h-3 mr-2" /> Cerrar Sesión
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     );
   }
