@@ -1,13 +1,18 @@
+
 "use client";
 
 import { useState } from 'react';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils/date';
-import { Baby, Search, Home, Users, User } from 'lucide-react';
+import { Baby, Search, Home, Users, AlertTriangle, Wand2, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { normalizeString, cleanSurnames } from '@/lib/utils/string';
 import {
   Accordion,
   AccordionContent,
@@ -56,7 +61,9 @@ function FamilyChildrenList({ familyId }: { familyId: string }) {
 
 export default function FamiliesManagement() {
   const db = useFirestore();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [isFixing, setIsFixing] = useState(false);
 
   // Consultas para familias y todos los usuarios
   const familiesQuery = useMemoFirebase(() => query(collection(db, 'families'), orderBy('name', 'asc')), [db]);
@@ -69,21 +76,65 @@ export default function FamiliesManagement() {
     f.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
+  const familiesWithMissingIndex = families?.filter(f => !f.searchName) || [];
+
+  const handleFixIndices = async () => {
+    if (!families || familiesWithMissingIndex.length === 0) return;
+    
+    setIsFixing(true);
+    let count = 0;
+    
+    try {
+      for (const family of familiesWithMissingIndex) {
+        const surnames = cleanSurnames(family.name);
+        const searchName = normalizeString(surnames);
+        
+        updateDocumentNonBlocking(doc(db, 'families', family.id), { 
+          searchName: searchName 
+        });
+        count++;
+      }
+      toast({ 
+        title: "Índices reparados", 
+        description: `Se han actualizado ${count} familias para que sean encontrables.` 
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFixing(false);
+    }
+  };
+
   /**
    * Obtiene los nombres de los adultos de la familia.
    */
   const getFamilyAdults = (family: any) => {
     if (loadingUsers || !users) return [];
-    
-    // Buscar por ID o por propiedad familyId
     return users.filter(u => family.members?.includes(u.id) || u.familyId === family.id);
   };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-black tracking-tighter uppercase text-primary">Familias Registradas</h1>
-        <p className="text-muted-foreground font-medium">Gestión de unidades familiares, padres e hijos de la congregación.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-4xl font-black tracking-tighter uppercase text-primary">Familias Registradas</h1>
+          <p className="text-muted-foreground font-medium">Gestión de unidades familiares, padres e hijos de la congregación.</p>
+        </div>
+
+        {familiesWithMissingIndex.length > 0 && (
+          <Button 
+            onClick={handleFixIndices} 
+            disabled={isFixing}
+            className="rounded-2xl h-14 px-8 font-black uppercase tracking-tighter shadow-xl bg-amber-500 hover:bg-amber-600 animate-pulse hover:animate-none"
+          >
+            {isFixing ? (
+              <Wand2 className="w-5 h-5 mr-2 animate-spin" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 mr-2" />
+            )}
+            Reparar {familiesWithMissingIndex.length} índices
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border">
@@ -95,6 +146,15 @@ export default function FamiliesManagement() {
           className="border-none shadow-none focus-visible:ring-0 text-lg font-medium"
         />
       </div>
+
+      {familiesWithMissingIndex.length > 0 && (
+        <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-2xl flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+          <p className="text-xs font-bold text-amber-800 uppercase">
+            Se han detectado {familiesWithMissingIndex.length} familias que no aparecen en las búsquedas de los padres. Pulsa el botón superior para repararlas.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4">
         {loadingFamilies ? (
@@ -109,24 +169,29 @@ export default function FamiliesManagement() {
           <Accordion type="single" collapsible className="space-y-4">
             {filteredFamilies.map((family) => {
               const adults = getFamilyAdults(family);
+              const isBroken = !family.searchName;
+
               return (
                 <AccordionItem 
                   key={family.id} 
                   value={family.id}
-                  className="bg-white rounded-2xl shadow-sm border px-6 hover:shadow-md transition-shadow border-b-0"
+                  className={`bg-white rounded-2xl shadow-sm border px-6 hover:shadow-md transition-shadow border-b-0 ${isBroken ? 'border-amber-200 bg-amber-50/20' : ''}`}
                 >
                   <AccordionTrigger className="hover:no-underline py-6">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full text-left gap-4">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                          <Home className="w-6 h-6" />
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isBroken ? 'bg-amber-100 text-amber-600' : 'bg-primary/10 text-primary'}`}>
+                          {isBroken ? <AlertTriangle className="w-6 h-6" /> : <Home className="w-6 h-6" />}
                         </div>
                         <div>
-                          <h3 className="text-xl font-black uppercase tracking-tighter leading-none">{family.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-xl font-black uppercase tracking-tighter leading-none">{family.name}</h3>
+                            {isBroken && <Badge variant="destructive" className="text-[8px] font-black uppercase">Invisible</Badge>}
+                          </div>
                           <div className="flex items-center gap-2 mt-2">
                             <Users className="w-3 h-3 text-muted-foreground" />
                             <p className="text-sm font-bold text-muted-foreground">
-                              {adults.length > 0 ? adults.map(u => u.displayName).join(' y ') : 'Cargando adultos...'}
+                              {adults.length > 0 ? adults.map(u => u.displayName).join(' y ') : 'Sin miembros registrados'}
                             </p>
                           </div>
                         </div>

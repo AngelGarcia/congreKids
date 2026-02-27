@@ -82,7 +82,7 @@ export default function ParentDashboard() {
       setSelectedChildren(registration.children.map((c: any) => c.childId));
       const gS: Record<string, boolean> = {};
       registration.children.forEach((c: any) => {
-        if (c.guitarSelected) gS[childId] = true;
+        if (c.guitarSelected) gS[c.childId] = true;
       });
       setGuitarSelections(gS);
     }
@@ -97,30 +97,52 @@ export default function ParentDashboard() {
       const surnames = cleanSurnames(familySurnames);
       const normalizedSearch = normalizeString(surnames);
       
-      console.log("Buscando con:", { surnames, normalizedSearch });
-
-      const q = query(
+      // Realizamos 3 búsquedas en paralelo para máxima robustez (fallback para datos antiguos)
+      const qNormalized = query(
         collection(db, 'families'), 
         where('searchName', '>=', normalizedSearch),
         where('searchName', '<=', normalizedSearch + '\uf8ff'),
         limit(5)
       );
+
+      const qDirect = query(
+        collection(db, 'families'),
+        where('name', '>=', familySurnames),
+        where('name', '<=', familySurnames + '\uf8ff'),
+        limit(5)
+      );
+
+      const qPrefix = query(
+        collection(db, 'families'),
+        where('name', '>=', 'Familia ' + familySurnames),
+        where('name', '<=', 'Familia ' + familySurnames + '\uf8ff'),
+        limit(5)
+      );
       
-      const snap = await getDocs(q);
+      const [snap1, snap2, snap3] = await Promise.all([
+        getDocs(qNormalized),
+        getDocs(qDirect),
+        getDocs(qPrefix)
+      ]);
+
+      // Unificamos resultados por ID
+      const resultsMap = new Map();
+      [...snap1.docs, ...snap2.docs, ...snap3.docs].forEach(docSnap => {
+        resultsMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+      });
+
+      const uniqueFamilies = Array.from(resultsMap.values());
       
-      if (!snap.empty) {
-        const familiesWithMembers = await Promise.all(snap.docs.map(async (docSnap) => {
-          const famData = { id: docSnap.id, ...docSnap.data() };
-          
+      if (uniqueFamilies.length > 0) {
+        const familiesWithMembers = await Promise.all(uniqueFamilies.map(async (famData) => {
           let members: any[] = [];
           try {
-            const mQ = query(collection(db, 'users'), where('familyId', '==', docSnap.id));
+            const mQ = query(collection(db, 'users'), where('familyId', '==', famData.id));
             const mSnap = await getDocs(mQ);
             members = mSnap.docs.map(d => d.data());
           } catch (err) {
             console.warn("Could not fetch family members for search preview", err);
           }
-          
           return { ...famData, membersList: members };
         }));
         setFoundFamilies(familiesWithMembers);
@@ -135,11 +157,6 @@ export default function ParentDashboard() {
         operation: 'list',
       });
       errorEmitter.emit('permission-error', contextualError);
-      toast({ 
-        variant: "destructive", 
-        title: "Error de búsqueda", 
-        description: err.message || "Asegúrate de escribir correctamente los apellidos." 
-      });
     } finally {
       setIsSearching(false);
     }
@@ -281,7 +298,7 @@ export default function ParentDashboard() {
                       {allFamiliesDebug.map(f => (
                         <div key={f.id} className="text-[10px] bg-white p-2 rounded border font-mono">
                           <p><strong>Name:</strong> {f.name}</p>
-                          <p><strong>Search:</strong> {f.searchName}</p>
+                          <p><strong>Search:</strong> {f.searchName || '(VACÍO - Faltan índices)'}</p>
                         </div>
                       ))}
                     </div>
