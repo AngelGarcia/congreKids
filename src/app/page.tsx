@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, Heart, ShieldCheck, ArrowRight, Clock, Search, UserPlus, Loader2, Music, CheckCircle2, Lock } from 'lucide-react';
-import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs, startAt, endAt } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { formatDate, formatDateTime, isRegistrationOpen, calculateAgeInMonths, getRegistrationOpeningDate } from '@/lib/utils/date';
@@ -90,11 +90,18 @@ export default function ParentDashboard() {
 
     setIsSearching(true);
     try {
-      // Clean possible "Familia" prefix and then normalize
       const surnames = cleanSurnames(familySurnames);
       const normalizedSearch = normalizeString(surnames);
       
-      const q = query(collection(db, 'families'), where('searchName', '==', normalizedSearch));
+      // Implementación de búsqueda por prefijo (>= y <= + \uf8ff)
+      // Esto permite que "garcia" encuentre "garcia medina"
+      const q = query(
+        collection(db, 'families'), 
+        where('searchName', '>=', normalizedSearch),
+        where('searchName', '<=', normalizedSearch + '\uf8ff'),
+        limit(5)
+      );
+      
       const snap = await getDocs(q);
       
       if (!snap.empty) {
@@ -103,7 +110,6 @@ export default function ParentDashboard() {
           
           let members: any[] = [];
           try {
-            // Fetch members list but don't break if it fails (e.g. missing index)
             const mQ = query(collection(db, 'users'), where('familyId', '==', docSnap.id));
             const mSnap = await getDocs(mQ);
             members = mSnap.docs.map(d => d.data());
@@ -127,8 +133,8 @@ export default function ParentDashboard() {
       errorEmitter.emit('permission-error', contextualError);
       toast({ 
         variant: "destructive", 
-        title: "Error de conexión", 
-        description: "No se pudo realizar la búsqueda de familias en este momento." 
+        title: "Error de búsqueda", 
+        description: "Asegúrate de escribir correctamente los apellidos." 
       });
     } finally {
       setIsSearching(false);
