@@ -3,7 +3,7 @@
 import { useEffect, useState, use, useMemo } from 'react';
 import { doc, collection, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,8 +13,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { formatDate, formatDateTime, isRegistrationOpen, getRegistrationOpeningDate } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus, Share2 } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus, Share2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -25,6 +26,17 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Accordion,
   AccordionContent,
@@ -61,6 +73,7 @@ type SortOrder = 'asc' | 'desc';
 
 export default function MeetingDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const dbFirestore = useFirestore();
   const { toast } = useToast();
 
@@ -174,6 +187,13 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     }
   };
 
+  const handleDeleteMeeting = async () => {
+    if (!meetingRef) return;
+    deleteDocumentNonBlocking(meetingRef);
+    toast({ title: "Reunión eliminada", description: "El encuentro ha sido borrado correctamente." });
+    router.push('/admin/meetings');
+  };
+
   const shareInvitation = () => {
     if (!meeting) return;
     const appUrl = window.location.origin;
@@ -265,7 +285,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   };
 
   const exportToCSV = () => {
-    const activeCols = orderedColumns.filter(c => selectedColumns.includes(col.id));
+    const activeCols = orderedColumns.filter(col => selectedColumns.includes(col.id));
     const headers = activeCols.map(c => c.label);
     const rows = [headers];
 
@@ -433,6 +453,39 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                         </Card>
                       ))}
                     </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="p-6 bg-destructive/5 rounded-2xl border-2 border-dashed border-destructive/20 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-destructive" />
+                      <h4 className="text-xs font-black uppercase text-destructive tracking-widest">Zona de Peligro</h4>
+                    </div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
+                      Borrar esta reunión eliminará permanentemente todos los datos de inscripción y monitores asignados. Esta acción no se puede deshacer.
+                    </p>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="w-full rounded-xl font-black uppercase tracking-tighter shadow-sm h-12">
+                          <Trash2 className="w-4 h-4 mr-2" /> Eliminar Reunión
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary">¿Estás completamente seguro?</AlertDialogTitle>
+                          <AlertDialogDescription className="font-bold">
+                            Esta acción eliminará la reunión <strong>"{meeting.title}"</strong> y todas las inscripciones asociadas para siempre.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="rounded-xl font-bold uppercase">Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteMeeting} className="rounded-xl font-black uppercase bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Sí, eliminar permanentemente
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </ScrollArea>
