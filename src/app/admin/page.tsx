@@ -153,8 +153,8 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 gap-8">
         <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5" />
-          Operativa Actual
+          <Calendar className="w-5 h-5" />
+          Próxima Reunión
         </h2>
 
         {loading ? (
@@ -196,7 +196,7 @@ export default function AdminDashboard() {
                   <p className="text-xs text-muted-foreground font-medium pt-2">Registrados hasta el momento para esta reunión.</p>
                 </div>
 
-                <Button asChild size="lg" className="w-full h-16 rounded-2xl font-black text-lg uppercase tracking-tighter shadow-xl mt-8">
+                <Button asChild size="lg" className="w-full h-16 rounded-2xl font-black text-base uppercase shadow-xl mt-8">
                   <Link href={`/admin/meetings/${nextMeeting.id}`}>
                     Ver Listado de Niños
                     <ArrowRight className="ml-2 w-5 h-5" />
