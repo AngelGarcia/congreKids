@@ -19,7 +19,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Link from 'next/link';
-import { normalizeString } from '@/lib/utils/string';
+import { normalizeString, cleanSurnames } from '@/lib/utils/string';
 import { Switch } from '@/components/ui/switch';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -90,16 +90,28 @@ export default function ParentDashboard() {
 
     setIsSearching(true);
     try {
-      const normalizedSearch = normalizeString(familySurnames);
+      // Clean possible "Familia" prefix and then normalize
+      const surnames = cleanSurnames(familySurnames);
+      const normalizedSearch = normalizeString(surnames);
+      
       const q = query(collection(db, 'families'), where('searchName', '==', normalizedSearch));
       const snap = await getDocs(q);
       
       if (!snap.empty) {
         const familiesWithMembers = await Promise.all(snap.docs.map(async (docSnap) => {
           const famData = { id: docSnap.id, ...docSnap.data() };
-          const mQ = query(collection(db, 'users'), where('familyId', '==', docSnap.id));
-          const mSnap = await getDocs(mQ);
-          return { ...famData, membersList: mSnap.docs.map(d => d.data()) };
+          
+          let members: any[] = [];
+          try {
+            // Fetch members list but don't break if it fails (e.g. missing index)
+            const mQ = query(collection(db, 'users'), where('familyId', '==', docSnap.id));
+            const mSnap = await getDocs(mQ);
+            members = mSnap.docs.map(d => d.data());
+          } catch (err) {
+            console.warn("Could not fetch family members for search preview", err);
+          }
+          
+          return { ...famData, membersList: members };
         }));
         setFoundFamilies(familiesWithMembers);
       } else {
@@ -107,12 +119,17 @@ export default function ParentDashboard() {
       }
       setStep('confirm');
     } catch (err: any) {
+      console.error("Search error:", err);
       const contextualError = new FirestorePermissionError({
         path: 'families',
         operation: 'list',
       });
       errorEmitter.emit('permission-error', contextualError);
-      toast({ variant: "destructive", title: "Error", description: "No se pudo realizar la búsqueda de familias." });
+      toast({ 
+        variant: "destructive", 
+        title: "Error de conexión", 
+        description: "No se pudo realizar la búsqueda de familias en este momento." 
+      });
     } finally {
       setIsSearching(false);
     }
@@ -254,11 +271,14 @@ export default function ParentDashboard() {
                             <h3 className="text-lg font-black uppercase tracking-tighter leading-none mb-2">{fam.name}</h3>
                             <div className="flex items-center justify-between">
                               <div className="flex -space-x-1.5 overflow-hidden">
-                                {fam.membersList.map((m: any, i: number) => (
+                                {fam.membersList && fam.membersList.map((m: any, i: number) => (
                                   <div key={i} className="inline-block h-6 w-6 rounded-full border-2 border-white bg-primary/20 flex items-center justify-center text-[8px] font-black uppercase">
                                     {m.displayName?.[0]}
                                   </div>
                                 ))}
+                                {(!fam.membersList || fam.membersList.length === 0) && (
+                                  <span className="text-[8px] font-bold text-muted-foreground uppercase">Sin miembros visibles</span>
+                                )}
                               </div>
                               <Button size="sm" onClick={() => joinFamily(fam.id, selectedRole)} className="rounded-lg h-8 px-4 font-black uppercase text-[10px]">UNIRME</Button>
                             </div>

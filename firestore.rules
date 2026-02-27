@@ -32,17 +32,17 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Permitimos listado y lectura a cualquier usuario autenticado para que los nuevos puedan encontrar miembros de su familia durante el registro
+      // Permisos abiertos para lectura/listado para que los nuevos usuarios encuentren familiares
       allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
     match /families/{familyId} {
-      // Permitimos listado a cualquier usuario autenticado para la búsqueda inicial
+      // Permitimos listado y lectura a cualquier usuario autenticado para el onboarding
       allow list: if isSignedIn();
-      allow get: if isSignedIn(); // Necesario para verificar existencia al unirse
+      allow get: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isFamilyMember(familyId) || isAdmin();
       allow delete: if isAdmin();
