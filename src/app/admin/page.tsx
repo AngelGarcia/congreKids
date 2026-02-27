@@ -6,7 +6,7 @@ import { collection, query, getDocs, doc, onSnapshot, collectionGroup } from 'fi
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Calendar, Users, ArrowRight, Clock, ShieldCheck, CheckCircle2, AlertCircle, Baby, CalendarDays } from 'lucide-react';
+import { Calendar, Users, ArrowRight, Clock, ShieldCheck, CheckCircle2, AlertCircle, Baby, CalendarDays, Lock, Unlock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
     return {
       label: isClosed ? 'CERRADA' : 'ABIERTA',
       variant: isClosed ? 'destructive' : 'default',
-      icon: isClosed ? <AlertCircle className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />
+      icon: isClosed ? <Lock className="w-3 h-3 mr-1" /> : <Unlock className="w-3 h-3 mr-1" />
     };
   };
 
@@ -178,59 +178,46 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
-        <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <CalendarDays className="w-5 h-5" />
-          Próxima Reunión
-        </h2>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-primary">
+          <Clock className="w-5 h-5" />
+          <h2 className="text-sm font-black uppercase tracking-widest">Siguiente Encuentro</h2>
+        </div>
 
         {loading ? (
           <Skeleton className="h-64 w-full rounded-[2.5rem]" />
         ) : nextMeeting ? (
-          <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden group">
-            <div className="flex flex-col lg:flex-row">
-              <div className={`p-10 lg:w-2/3 flex flex-col justify-between transition-colors duration-500 ${status?.label === 'CERRADA' ? 'bg-slate-600 text-white' : 'bg-primary text-white'}`}>
-                <div className="space-y-6">
-                  <Badge variant="secondary" className="bg-white/20 text-white border-none font-black uppercase px-4 py-1.5 text-xs tracking-widest">
+          <Card className={`border-none shadow-2xl rounded-[2.5rem] overflow-hidden text-white transition-colors duration-500 ${status?.label === 'CERRADA' ? 'bg-slate-600' : 'bg-primary'}`}>
+            <CardContent className="p-10 flex flex-col md:flex-row justify-between items-center gap-8">
+              <div className="space-y-4 text-center md:text-left">
+                <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                  <Badge variant="secondary" className="bg-white/20 text-white border-none font-black uppercase px-4 py-1.5">
                     {status?.icon}
                     {status?.label}
                   </Badge>
-                  <div className="space-y-2">
-                    <h3 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none">
-                      {nextMeeting.title}
-                    </h3>
-                    <p className="text-xl font-medium opacity-80">
-                      {formatDateTime(nextMeeting.date)}
-                    </p>
-                  </div>
+                  <Badge variant="secondary" className="bg-white/10 text-white border-none font-black uppercase px-4 py-1.5">
+                    <Baby className="w-3 h-3 mr-1" /> {nextMeetingStats.childCount} Niños
+                  </Badge>
                 </div>
-                
-                <div className="mt-10 flex items-center gap-6">
-                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase opacity-60 tracking-[0.2em]">Plazo límite</span>
-                    <span className="text-sm font-bold">{formatDateTime(nextMeeting.registrationDeadline)}</span>
-                  </div>
-                </div>
+                <h3 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none">
+                  {nextMeeting.title}
+                </h3>
+                <p className="text-xl font-medium opacity-90">
+                  {formatDateTime(nextMeeting.date)}
+                </p>
               </div>
-
-              <div className="p-10 lg:w-1/3 bg-white flex flex-col justify-between border-y lg:border-y-0 lg:border-l">
-                <div className="space-y-1">
-                  <span className="text-xs font-black uppercase text-muted-foreground tracking-widest">Estado de Inscripción</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-6xl font-black text-primary">{nextMeetingStats.childCount}</span>
-                    <span className="text-xl font-bold text-muted-foreground">niños</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-medium pt-2">Registrados hasta el momento para esta reunión.</p>
-                </div>
-
-                <Button asChild size="lg" className="w-full h-16 rounded-2xl font-black text-base uppercase shadow-xl mt-8">
+              <div className="flex flex-col gap-3 w-full md:w-auto">
+                <Button asChild size="lg" className="h-16 px-8 bg-white text-primary hover:bg-white/90 rounded-2xl font-black text-lg uppercase tracking-tighter shadow-xl">
                   <Link href={`/admin/meetings/${nextMeeting.id}`}>
                     Ver Listado de Niños
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Link>
                 </Button>
+                <p className="text-[10px] text-center font-black uppercase opacity-60">
+                  Plazo inscripción: {formatDate(nextMeeting.registrationDeadline)}
+                </p>
               </div>
-            </div>
+            </CardContent>
           </Card>
         ) : (
           <Card className="p-20 text-center border-4 border-dashed rounded-[2.5rem] bg-muted/10">
