@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import { formatDate, formatDateTime, isRegistrationOpen, getRegistrationOpeningDate } from '@/lib/utils/date';
 import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus, Share2 } from 'lucide-react';
 import Link from 'next/link';
