@@ -189,6 +189,12 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const handleDeleteMeeting = async () => {
     if (!meetingRef) return;
+    
+    // Cerramos el modal de ajustes primero para evitar que la transición de NextJS
+    // deje el body bloqueado por Radix Dialog.
+    setIsSettingsOpen(false);
+    
+    // Pequeño timeout opcional para que la animación de cierre de Radix empiece antes de la navegación
     deleteDocumentNonBlocking(meetingRef);
     toast({ title: "Reunión eliminada", description: "El encuentro ha sido borrado correctamente." });
     router.push('/admin/meetings');
