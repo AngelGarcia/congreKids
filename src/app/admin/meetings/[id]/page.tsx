@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { formatDate, formatDateTime } from '@/lib/utils/date';
+import { formatDate, formatDateTime, isRegistrationOpen, getRegistrationOpeningDate } from '@/lib/utils/date';
 import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -144,14 +144,40 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     });
   }, [registrations, sortField, sortOrder]);
 
+  // Cálculo del estado actual sincronizado
+  const isCurrentlyOpen = useMemo(() => {
+    if (!meeting) return false;
+    const openingDate = getRegistrationOpeningDate((meeting.date as any).toDate());
+    const deadline = (meeting.registrationDeadline as any).toDate();
+    return isRegistrationOpen(deadline, openingDate) && meeting.status !== 'closed';
+  }, [meeting]);
+
   const handleToggleStatus = async () => {
     if (!meeting) return;
-    const newStatus = meeting.status === 'closed' ? 'upcoming' : 'closed';
+    
+    // Si está abierto, lo cerramos manualmente
+    // Si está cerrado (por fecha o manual), intentamos abrirlo
+    const shouldOpen = !isCurrentlyOpen;
+    const newStatus = shouldOpen ? 'upcoming' : 'closed';
+    
     updateDocumentNonBlocking(meetingRef, { status: newStatus });
-    toast({ 
-      title: newStatus === 'closed' ? "Plazo cerrado" : "Plazo abierto", 
-      description: newStatus === 'closed' ? "Ya no se aceptan más inscripciones." : "Se han vuelto a habilitar las inscripciones." 
-    });
+    
+    const now = new Date();
+    const deadline = (meeting.registrationDeadline as any).toDate();
+    const hasPassedDeadline = now > deadline;
+
+    if (shouldOpen && hasPassedDeadline) {
+      toast({ 
+        title: "Plazo abierto con aviso", 
+        description: "Se ha activado el estado, pero la fecha límite ya ha pasado. Por favor, edita la 'Fecha Límite' para que los padres puedan inscribirse.",
+        variant: "destructive"
+      });
+    } else {
+      toast({ 
+        title: shouldOpen ? "Plazo abierto" : "Plazo cerrado", 
+        description: shouldOpen ? "Las inscripciones vuelven a estar disponibles." : "Ya no se aceptan más inscripciones." 
+      });
+    }
   };
 
   const shareInvitation = () => {
@@ -331,7 +357,11 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 <Share2 className="w-4 h-4 mr-2" /> Convocar por WhatsApp
               </Button>
               <Button variant="outline" size="sm" onClick={handleToggleStatus} className="rounded-xl font-black uppercase h-12 px-4 w-full">
-                {meeting.status === 'closed' ? <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</> : <><Lock className="w-4 h-4 mr-2" /> Cerrar Plazo</>}
+                {isCurrentlyOpen ? (
+                  <><Lock className="w-4 h-4 mr-2" /> Cerrar Plazo</>
+                ) : (
+                  <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</>
+                )}
               </Button>
             </>
           )}
