@@ -43,7 +43,8 @@ service cloud.firestore {
       allow get: if isFamilyMember(familyId) || isAdmin();
       allow create: if isSignedIn();
       allow update: if isFamilyMember(familyId) || isAdmin();
-      allow list, delete: if isAdmin();
+      allow list: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
     match /meetings/{meetingId} {
