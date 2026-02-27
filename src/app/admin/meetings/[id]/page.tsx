@@ -101,8 +101,13 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       try {
         const dateObj = (meeting.date as any).toDate();
         const deadlineObj = (meeting.registrationDeadline as any).toDate();
-        setEditDate(new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
-        setEditDeadline(new Date(deadlineObj.getTime() - (deadlineObj.getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
+        // Ajuste para datetime-local input (YYYY-MM-DDTHH:MM)
+        const formatForInput = (d: Date) => {
+          const pad = (n: number) => n.toString().padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        };
+        setEditDate(formatForInput(dateObj));
+        setEditDeadline(formatForInput(deadlineObj));
       } catch (e) {
         console.error("Error formatting dates for edit", e);
       }

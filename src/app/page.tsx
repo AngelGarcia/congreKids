@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -359,6 +358,9 @@ export default function ParentDashboard() {
   }
 
   const registrationOpeningDate = upcomingMeeting ? getRegistrationOpeningDate((upcomingMeeting.date as any).toDate()) : null;
+  // La inscripción está abierta si:
+  // 1. El estado no es 'closed' (cierre manual)
+  // 2. Estamos dentro de las fechas (apertura automática y límite temporal)
   const isRegistrationCurrentlyOpen = upcomingMeeting ? isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate(), registrationOpeningDate) && upcomingMeeting.status !== 'closed' : false;
 
   return (
