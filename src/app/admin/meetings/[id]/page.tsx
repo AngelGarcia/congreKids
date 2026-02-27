@@ -3,9 +3,10 @@
 
 import { useEffect, useState, use, useMemo } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, getDocs, updateDoc, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { doc, collection, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -13,11 +14,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus, Phone } from 'lucide-react';
+import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Edit2, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import {
   Dialog,
   DialogContent,
@@ -61,14 +60,22 @@ type SortOrder = 'asc' | 'desc';
 
 export default function MeetingDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [meeting, setMeeting] = useState<any>(null);
-  const [registrations, setRegistrations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isNextMeeting, setIsNextMeeting] = useState(false);
+  const dbFirestore = useFirestore();
+  const { toast } = useToast();
+
   const [isEditing, setIsEditing] = useState(false);
+  const [isNextMeeting, setIsNextMeeting] = useState(false);
   
+  // Hooks para datos de la reunión
+  const meetingRef = useMemoFirebase(() => doc(dbFirestore, 'meetings', id), [dbFirestore, id]);
+  const { data: meeting, isLoading: loadingMeeting } = useDoc(meetingRef);
+
+  // Hooks para inscripciones
+  const registrationsQuery = useMemoFirebase(() => collection(dbFirestore, 'meetings', id, 'registrations'), [dbFirestore, id]);
+  const { data: registrations, isLoading: loadingRegistrations } = useCollection(registrationsQuery);
+
   // Monitors from agenda
-  const monitorsQuery = useMemoFirebase(() => query(collection(db, 'monitors'), where('isAvailable', '==', true), orderBy('firstName', 'asc')), [db]);
+  const monitorsQuery = useMemoFirebase(() => query(collection(dbFirestore, 'monitors'), where('isAvailable', '==', true), orderBy('firstName', 'asc')), [dbFirestore]);
   const { data: monitorsAgenda } = useCollection(monitorsQuery);
 
   // Export states
@@ -80,7 +87,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const { toast } = useToast();
 
   // State for editing
   const [editTitle, setEditTitle] = useState('');
@@ -88,49 +94,19 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const [editDeadline, setEditDeadline] = useState('');
   const [editAgeGroups, setEditAgeGroups] = useState<any[]>([]);
 
+  // Sincronizar estado local de edición con los datos cargados
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const mDoc = await getDoc(doc(db, 'meetings', id));
-        if (mDoc.exists()) {
-          const data = { id: mDoc.id, ...mDoc.data() };
-          setMeeting(data);
-          
-          setEditTitle(data.title);
-          setEditDate(new Date((data.date as any).toDate().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
-          setEditDeadline(new Date((data.registrationDeadline as any).toDate().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
-          setEditAgeGroups(data.ageGroups || []);
-
-          const now = new Date();
-          const q = query(
-            collection(db, 'meetings'),
-            where('date', '>=', Timestamp.fromDate(now)),
-            orderBy('date', 'asc'),
-            limit(1)
-          );
-          const snap = await getDocs(q);
-          if (!snap.empty && snap.docs[0].id === id) {
-            setIsNextMeeting(true);
-          }
-        }
-
-        const rSnap = await getDocs(collection(db, 'meetings', id, 'registrations'));
-        setRegistrations(rSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (error) {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: 'meetings/' + id,
-          operation: 'get'
-        }));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [id]);
+    if (meeting) {
+      setEditTitle(meeting.title);
+      setEditDate(new Date((meeting.date as any).toDate().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
+      setEditDeadline(new Date((meeting.registrationDeadline as any).toDate().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16));
+      setEditAgeGroups(meeting.ageGroups || []);
+    }
+  }, [meeting]);
 
   const allChildren = useMemo(() => {
     const children: any[] = [];
-    registrations.forEach(reg => {
+    (registrations || []).forEach(reg => {
       (reg.children || []).forEach((child: any) => {
         children.push({
           ...child,
@@ -158,22 +134,13 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   }, [registrations, sortField, sortOrder]);
 
   const handleToggleStatus = async () => {
+    if (!meeting) return;
     const newStatus = meeting.status === 'closed' ? 'upcoming' : 'closed';
-    updateDoc(doc(db, 'meetings', id), { status: newStatus })
-      .then(() => {
-        setMeeting({ ...meeting, status: newStatus });
-        toast({ 
-          title: newStatus === 'closed' ? "Plazo cerrado" : "Plazo abierto", 
-          description: newStatus === 'closed' ? "Ya no se aceptan más inscripciones." : "Se han vuelto a habilitar las inscripciones." 
-        });
-      })
-      .catch((error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: 'meetings/' + id,
-          operation: 'update',
-          requestResourceData: { status: newStatus }
-        }));
-      });
+    updateDocumentNonBlocking(meetingRef, { status: newStatus });
+    toast({ 
+      title: newStatus === 'closed' ? "Plazo cerrado" : "Plazo abierto", 
+      description: newStatus === 'closed' ? "Ya no se aceptan más inscripciones." : "Se han vuelto a habilitar las inscripciones." 
+    });
   };
 
   const handleSaveChanges = async () => {
@@ -184,22 +151,13 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       ageGroups: editAgeGroups,
     };
 
-    updateDoc(doc(db, 'meetings', id), updatedData)
-      .then(() => {
-        setMeeting({ ...meeting, ...updatedData });
-        setIsEditing(false);
-        toast({ title: "Cambios guardados", description: "La configuración de la reunión ha sido actualizada." });
-      })
-      .catch((error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: 'meetings/' + id,
-          operation: 'update',
-          requestResourceData: updatedData
-        }));
-      });
+    updateDocumentNonBlocking(meetingRef, updatedData);
+    setIsEditing(false);
+    toast({ title: "Cambios guardados", description: "La configuración de la reunión ha sido actualizada." });
   };
 
   const handleAssignMonitor = (groupIdx: number, monitorId: string) => {
+    if (!meeting) return;
     const newAgeGroups = [...meeting.ageGroups];
     const group = newAgeGroups[groupIdx];
     const assigned = group.assignedMonitors || [];
@@ -210,20 +168,12 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       group.assignedMonitors = [...assigned, monitorId];
     }
     
-    updateDoc(doc(db, 'meetings', id), { ageGroups: newAgeGroups })
-      .then(() => {
-        setMeeting({ ...meeting, ageGroups: newAgeGroups });
-        toast({ title: "Monitores actualizados" });
-      })
-      .catch((err) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: 'meetings/' + id,
-          operation: 'update'
-        }));
-      });
+    updateDocumentNonBlocking(meetingRef, { ageGroups: newAgeGroups });
+    toast({ title: "Monitores actualizados" });
   };
 
   const shareOnWhatsApp = (data: any[], title: string) => {
+    if (!meeting) return;
     const header = `LISTADO ${title.toUpperCase()}\n`;
     const meetingInfo = `Reunión: ${meeting.title}\n`;
     const dateInfo = `Fecha: ${formatDate(meeting.date)}\n`;
@@ -313,7 +263,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     setIsExportDialogOpen(false);
   };
 
-  if (loading) return <div className="p-8 font-black uppercase text-primary">Cargando detalles...</div>;
+  if (loadingMeeting || loadingRegistrations) return <div className="p-8 font-black uppercase text-primary">Cargando detalles...</div>;
   if (!meeting) return <div className="p-8">Reunión no encontrada.</div>;
 
   const totalChildrenCount = allChildren.length;
@@ -418,7 +368,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           <div className="space-y-6">
             <Accordion type="multiple" defaultValue={["general"]} className="space-y-6">
               
-              {/* LISTADO GENERAL */}
               <AccordionItem value="general" className="rounded-2xl shadow-sm border overflow-hidden bg-white px-0">
                 <div className="flex items-center justify-between bg-primary/5 pr-4">
                   <AccordionTrigger className="flex-1 hover:no-underline py-5 px-6 group border-none">
@@ -489,7 +438,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 </AccordionContent>
               </AccordionItem>
 
-              {/* LISTADOS POR CATEGORÍA */}
               {meeting.ageGroups?.map((group: any, groupIdx: number) => {
                 const childrenInGroup = allChildren.filter(c => (c.ageGroupLabel || 'Sin grupo') === group.label);
                 const assignedMonitors = monitorsAgenda?.filter(m => group.assignedMonitors?.includes(m.id)) || [];
@@ -561,7 +509,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                                     >
                                       <div className="flex flex-col">
                                         <span className="text-xs font-bold">{m.firstName} {m.lastName}</span>
-                                        {m.phone && <span className="text-[10px] text-muted-foreground">{m.phone}</span>}
                                       </div>
                                       {group.assignedMonitors?.includes(m.id) && <UserCheck className="w-4 h-4 text-primary" />}
                                     </div>

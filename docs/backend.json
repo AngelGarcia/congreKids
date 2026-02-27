@@ -99,7 +99,7 @@
         "children": {
           "type": "array",
           "items": {
-            "object",
+            "type": "object",
             "properties": {
               "childId": { "type": "string" },
               "name": { "type": "string" },
