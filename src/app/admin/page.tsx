@@ -6,13 +6,14 @@ import { collection, query, getDocs, doc, onSnapshot, collectionGroup } from 'fi
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { Calendar, Users, ArrowRight, Clock, ShieldCheck, CheckCircle2, AlertCircle, Baby } from 'lucide-react';
+import { Calendar, Users, ArrowRight, Clock, ShieldCheck, CheckCircle2, AlertCircle, Baby, CalendarDays } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 export default function AdminDashboard() {
   const { userData } = useAuth();
@@ -22,14 +23,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Solo intentar cargar si sabemos que es admin
     if (!userData?.isAdmin) return;
 
     const fetchDashboardData = async () => {
       try {
         const now = new Date();
         
-        // Fetch Meetings
         const meetingsRef = collection(db, 'meetings');
         const allMeetingsSnap = await getDocs(meetingsRef).catch(err => {
           throw new FirestorePermissionError({ path: 'meetings', operation: 'list' });
@@ -40,13 +39,11 @@ export default function AdminDashboard() {
           .filter((m: any) => (m.date as any).toDate() >= now)
           .sort((a: any, b: any) => (a.date as any).toDate().getTime() - (b.date as any).toDate().getTime());
         
-        // Fetch Families
         const familiesRef = collection(db, 'families');
         const familiesSnap = await getDocs(familiesRef).catch(err => {
            throw new FirestorePermissionError({ path: 'families', operation: 'list' });
         });
         
-        // Fetch All Children (Collection Group)
         const childrenGroupRef = collectionGroup(db, 'children');
         const childrenSnap = await getDocs(childrenGroupRef).catch(err => {
            throw new FirestorePermissionError({ path: 'children (group)', operation: 'list' });
@@ -63,7 +60,6 @@ export default function AdminDashboard() {
           const next = upcomingMeetings[0];
           setNextMeeting(next);
 
-          // Fetch child count for this next meeting
           const regSnap = await getDocs(collection(db, 'meetings', next.id, 'registrations'));
           let count = 0;
           regSnap.forEach(doc => {
@@ -98,6 +94,7 @@ export default function AdminDashboard() {
   };
 
   const status = getStatus(nextMeeting);
+  const isCalendarLow = stats.upcoming <= 2;
 
   return (
     <div className="space-y-10 max-w-7xl mx-auto">
@@ -139,21 +136,51 @@ export default function AdminDashboard() {
           </Link>
         </Card>
 
-        <Card className="border-b-4 border-b-muted-foreground shadow-lg rounded-2xl overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 bg-muted/5">
-            <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground">Reuniones</CardTitle>
-            <Calendar className="w-5 h-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="pt-4">
-            {loading ? <Skeleton className="h-10 w-20" /> : <div className="text-4xl font-black">{stats.total}</div>}
-            <p className="text-xs text-muted-foreground font-bold mt-1 uppercase">Encuentros en el historial</p>
-          </CardContent>
+        <Card className={cn(
+          "border-b-4 shadow-lg rounded-2xl overflow-hidden transition-colors cursor-pointer group",
+          isCalendarLow && !loading ? "border-b-destructive bg-destructive/5 hover:bg-destructive/10" : "border-b-slate-400 bg-slate-50 hover:bg-slate-100"
+        )}>
+          <Link href="/admin/meetings">
+            <CardHeader className={cn(
+              "flex flex-row items-center justify-between pb-2",
+              isCalendarLow && !loading ? "bg-destructive/10" : "bg-slate-100"
+            )}>
+              <CardTitle className={cn(
+                "text-sm font-black uppercase tracking-widest",
+                isCalendarLow && !loading ? "text-destructive" : "text-slate-600"
+              )}>Programación</CardTitle>
+              <Calendar className={cn(
+                "w-5 h-5",
+                isCalendarLow && !loading ? "text-destructive" : "text-slate-600"
+              )} />
+            </CardHeader>
+            <CardContent className="pt-4 flex justify-between items-end">
+              <div>
+                <div className="flex items-baseline gap-2">
+                  {loading ? <Skeleton className="h-10 w-20" /> : <div className={cn("text-4xl font-black", isCalendarLow && "text-destructive")}>{stats.upcoming}</div>}
+                  <span className="text-[10px] font-black uppercase opacity-60">Próximas</span>
+                </div>
+                {isCalendarLow && !loading && (
+                  <p className="text-[10px] text-destructive font-black mt-1 uppercase flex items-center gap-1 animate-pulse">
+                    <AlertCircle className="w-3 h-3" /> ¡Programar más!
+                  </p>
+                )}
+                {!isCalendarLow && !loading && (
+                  <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">Calendario al día</p>
+                )}
+              </div>
+              <ArrowRight className={cn(
+                "w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity",
+                isCalendarLow ? "text-destructive" : "text-slate-600"
+              )} />
+            </CardContent>
+          </Link>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-8">
         <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <Calendar className="w-5 h-5" />
+          <CalendarDays className="w-5 h-5" />
           Próxima Reunión
         </h2>
 
