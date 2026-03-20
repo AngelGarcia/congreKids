@@ -266,7 +266,7 @@ export default function ParentDashboard() {
                     <div className="space-y-3">
                       <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Apellidos de tu Familia</Label>
                       <Input 
-                        placeholder="Ej. García Medina" 
+                        placeholder="Ej. López Pardo" 
                         value={familySurnames}
                         onChange={e => setFamilySurnames(e.target.value)}
                         required
