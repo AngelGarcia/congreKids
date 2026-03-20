@@ -18,11 +18,13 @@ import { formatDate, calculateAgeInMonths } from '@/lib/utils/date';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function FamilyManagement() {
   const { user, userData, familyData, familyMembers, updateFamilyName, loading: authLoading } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   
   // UI State
   const [isAddingChild, setIsAddingChild] = useState(false);
@@ -32,6 +34,13 @@ export default function FamilyManagement() {
   const [newChildName, setNewChildName] = useState('');
   const [newChildBirthDate, setNewChildBirthDate] = useState('');
   const [editFamilySurnames, setEditFamilySurnames] = useState('');
+
+  // Redirección si no hay usuario (tras logout)
+  useEffect(() => {
+    if (!authLoading && (!user || !userData?.familyId)) {
+      router.push('/');
+    }
+  }, [user, userData, authLoading, router]);
 
   useEffect(() => {
     if (familyData?.name) {
