@@ -19,7 +19,9 @@ import {
   Trash2, 
   UserCheck, 
   UserMinus, 
-  UserPlus
+  UserPlus,
+  Edit2,
+  X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -31,6 +33,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 
 export default function MonitorsAgenda() {
@@ -38,8 +51,10 @@ export default function MonitorsAgenda() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingMonitor, setEditingMonitor] = useState<any>(null);
   
-  // New monitor form state
+  // Form states
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -64,11 +79,39 @@ export default function MonitorsAgenda() {
       createdAt: Timestamp.now(),
     });
 
+    resetForm();
+    setIsAddDialogOpen(false);
+    toast({ title: "Monitor añadido", description: `${firstName} ya forma parte de la agenda.` });
+  };
+
+  const handleEditMonitor = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMonitor || !firstName) return;
+
+    updateDocumentNonBlocking(doc(db, 'monitors', editingMonitor.id), {
+      firstName,
+      lastName: lastName || null,
+      phone: phone || null,
+    });
+
+    resetForm();
+    setIsEditDialogOpen(false);
+    toast({ title: "Monitor actualizado", description: "Los datos han sido guardados." });
+  };
+
+  const resetForm = () => {
     setFirstName('');
     setLastName('');
     setPhone('');
-    setIsAddDialogOpen(false);
-    toast({ title: "Monitor añadido", description: `${firstName} ya forma parte de la agenda.` });
+    setEditingMonitor(null);
+  };
+
+  const openEditDialog = (monitor: any) => {
+    setEditingMonitor(monitor);
+    setFirstName(monitor.firstName);
+    setLastName(monitor.lastName || '');
+    setPhone(monitor.phone || '');
+    setIsEditDialogOpen(true);
   };
 
   const toggleAvailability = (monitor: any) => {
@@ -76,16 +119,14 @@ export default function MonitorsAgenda() {
       isAvailable: !monitor.isAvailable
     });
     toast({ 
-      title: monitor.isAvailable ? "Monitor No Disponible" : "Monitor Disponible", 
+      title: monitor.isAvailable ? "No Disponible" : "Disponible", 
       description: `${monitor.firstName} ha cambiado su estado.` 
     });
   };
 
-  const handleDeleteMonitor = (monitor: any) => {
-    if (confirm(`¿Estás seguro de que quieres eliminar a ${monitor.firstName} de la agenda?`)) {
-      deleteDocumentNonBlocking(doc(db, 'monitors', monitor.id));
-      toast({ title: "Monitor eliminado", description: "El registro ha sido borrado con éxito." });
-    }
+  const handleDeleteMonitor = (id: string) => {
+    deleteDocumentNonBlocking(doc(db, 'monitors', id));
+    toast({ title: "Monitor eliminado", description: "El registro ha sido borrado con éxito." });
   };
 
   return (
@@ -96,7 +137,7 @@ export default function MonitorsAgenda() {
           <p className="text-muted-foreground font-medium text-lg">Listado de voluntarios y disponibilidad para las reuniones.</p>
         </div>
         
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if(!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button size="lg" className="rounded-2xl font-black uppercase tracking-tighter shadow-xl h-14">
               <UserPlus className="w-5 h-5 mr-2" />
@@ -124,7 +165,6 @@ export default function MonitorsAgenda() {
                   <Label className="text-xs font-black uppercase text-muted-foreground">Teléfono de Contacto</Label>
                   <Input value={phone} onChange={e => setPhone(e.target.value)} type="tel" className="h-12 rounded-xl font-bold border-2" />
                 </div>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase italic">* El nombre es el único campo obligatorio.</p>
               </div>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setIsAddDialogOpen(false)} className="rounded-xl font-bold uppercase">Cancelar</Button>
@@ -162,9 +202,32 @@ export default function MonitorsAgenda() {
                     <h3 className="text-xl font-black uppercase tracking-tighter leading-none">{monitor.firstName}</h3>
                     {monitor.lastName && <p className="text-sm font-bold text-muted-foreground uppercase">{monitor.lastName}</p>}
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => handleDeleteMonitor(monitor)} className="h-8 w-8 text-muted-foreground hover:text-destructive rounded-lg">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(monitor)} className="h-8 w-8 text-muted-foreground hover:text-primary rounded-lg">
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive rounded-lg">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-3xl border-none shadow-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-xl font-black uppercase tracking-tighter text-primary">¿Eliminar Monitor?</AlertDialogTitle>
+                          <AlertDialogDescription className="font-bold">
+                            Esta acción borrará a <strong>{monitor.firstName}</strong> de la agenda permanentemente.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="rounded-xl font-bold uppercase">Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteMonitor(monitor.id)} className="rounded-xl font-black uppercase bg-destructive text-white hover:bg-destructive/90">
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6 pt-2 space-y-6">
@@ -202,6 +265,38 @@ export default function MonitorsAgenda() {
           ))
         )}
       </div>
+
+      {/* Edit Monitor Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => { setIsEditDialogOpen(open); if(!open) resetForm(); }}>
+        <DialogContent className="rounded-3xl border-none shadow-2xl max-w-md">
+          <form onSubmit={handleEditMonitor}>
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary">Editar Monitor</DialogTitle>
+              <DialogDescription className="font-bold">Actualiza la información del voluntario.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase text-muted-foreground">Nombre *</Label>
+                  <Input value={firstName} onChange={e => setFirstName(e.target.value)} required className="h-12 rounded-xl font-bold border-2" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase text-muted-foreground">Apellidos</Label>
+                  <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-12 rounded-xl font-bold border-2" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase text-muted-foreground">Teléfono de Contacto</Label>
+                <Input value={phone} onChange={e => setPhone(e.target.value)} type="tel" className="h-12 rounded-xl font-bold border-2" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl font-bold uppercase">Cancelar</Button>
+              <Button type="submit" className="rounded-xl font-black uppercase shadow-lg">Guardar Cambios</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
