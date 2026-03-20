@@ -25,10 +25,15 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Regla específica para la subcolección de hijos dentro de una familia
+    match /families/{familyId}/children/{childId} {
+      allow list, get: if isAdmin() || isFamilyMember(familyId);
+      allow write: if isAdmin() || isFamilyMember(familyId);
+    }
+
+    // Regla para permitir a los administradores realizar consultas de grupo (Collection Group) sobre todos los niños
     match /{path=**}/children/{childId} {
       allow list: if isAdmin();
-      allow get: if isAdmin() || (isSignedIn() && isFamilyMember(resource.data.familyId));
-      allow write: if isAdmin() || (isSignedIn() && isFamilyMember(resource.data.familyId));
     }
 
     match /users/{userId} {
