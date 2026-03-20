@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Trash2, Baby, X, UserPlus, Heart, ShieldCheck, Edit2, Copy, Check, ChevronLeft } from 'lucide-react';
+import { Plus, Trash2, Baby, X, UserPlus, ShieldCheck, Edit2, Check, ChevronLeft } from 'lucide-react';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -27,7 +27,6 @@ export default function FamilyManagement() {
   // UI State
   const [isAddingChild, setIsAddingChild] = useState(false);
   const [isEditingFamilyName, setIsEditingFamilyName] = useState(false);
-  const [copied, setCopied] = useState(false);
   
   // Forms state
   const [newChildName, setNewChildName] = useState('');
@@ -88,15 +87,6 @@ export default function FamilyManagement() {
     const childDocRef = doc(db, 'families', userData.familyId, 'children', childId);
     deleteDocumentNonBlocking(childDocRef);
     toast({ title: "Perfil eliminado", description: "Se ha borrado el registro del niño." });
-  };
-
-  const copyFamilyId = () => {
-    if (userData?.familyId) {
-      navigator.clipboard.writeText(userData.familyId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast({ title: "Copiado", description: "Envía este código a tu pareja para uniros." });
-    }
   };
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center font-black text-primary text-2xl uppercase tracking-tighter">CongreKids...</div>;
@@ -180,17 +170,6 @@ export default function FamilyManagement() {
                 <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Esperando pareja</span>
               </div>
             )}
-          </div>
-
-          <div className="w-full max-w-sm bg-primary/5 p-4 rounded-2xl space-y-3">
-            <Label className="text-[10px] uppercase font-black text-primary mb-2 block tracking-widest">Enlazar con pareja</Label>
-            <div className="flex gap-2">
-              <Input readOnly value={userData?.familyId || ''} className="bg-white font-mono text-xs h-10 rounded-xl border-2" />
-              <Button onClick={copyFamilyId} variant="outline" size="icon" className="h-10 w-10 rounded-xl border-2">
-                {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
-            <p className="text-[9px] text-muted-foreground font-bold italic">Comparte este código con tu pareja para que se una a esta familia.</p>
           </div>
         </section>
 
