@@ -81,6 +81,7 @@ export default function FamilyManagement() {
     setIsAddingChild(false);
     toast({ title: "¡Hijo añadido!", description: "Ahora es visible para ambos padres." });
   };
+  
 
   const handleUpdateFamilyName = (e: React.FormEvent) => {
     e.preventDefault();
