@@ -21,13 +21,17 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
-      - name: Construir y Desplegar en Firebase
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Autenticar con Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_CONGRE_KIDS }}'
-          channelId: live
-          projectId: congre-kids
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_CONGRE_KIDS }}'
+
+      - name: Instalar Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Construir y Desplegar
+        run: |
+          firebase deploy --only hosting,functions --force --non-interactive
         env:
           FIREBASE_CLI_EXPERIMENTS: frameworks,webframeworks
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
