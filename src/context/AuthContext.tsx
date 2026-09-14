@@ -7,7 +7,10 @@ import {
   signInWithPopup, 
   GoogleAuthProvider, 
   signOut, 
-  User 
+  User,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, updateDoc, arrayUnion, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
@@ -41,6 +44,8 @@ interface AuthContextType {
   familyMembers: UserData[];
   loading: boolean;
   login: () => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
   joinFamily: (familyId: string, role: 'padre' | 'madre') => Promise<void>;
   createFamily: (name: string, role: 'padre' | 'madre') => Promise<void>;
@@ -158,7 +163,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       setLoading(false);
-      toast({ variant: "destructive", title: "Error", description: "No se pudo iniciar sesión." });
+      toast({ variant: "destructive", title: "Error", description: "No se pudo iniciar sesión con Google." });
+    }
+  };
+
+  const loginWithEmail = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      setLoading(false);
+      let message = "Email o contraseña incorrectos.";
+      if (error.code === 'auth/invalid-credential') message = "Credenciales inválidas.";
+      if (error.code === 'auth/user-not-found') message = "El usuario no existe.";
+      toast({ variant: "destructive", title: "Error de acceso", description: message });
+    }
+  };
+
+  const signUpWithEmail = async (email: string, password: string, displayName: string) => {
+    try {
+      setLoading(true);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, { displayName });
+      // El estado del usuario cambiará y onAuthStateChanged se encargará del resto
+    } catch (error: any) {
+      setLoading(false);
+      let message = "No se pudo crear la cuenta.";
+      if (error.code === 'auth/email-already-in-use') message = "Este email ya está en uso.";
+      if (error.code === 'auth/weak-password') message = "La contraseña es muy débil.";
+      toast({ variant: "destructive", title: "Error de registro", description: message });
     }
   };
 
@@ -214,7 +247,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateFamilyName = async (newName: string) => {
     if (!userData?.familyId) return;
-    // Extraemos apellidos si viene con el prefijo "Familia " para el searchName
     const surnames = newName.startsWith('Familia ') ? newName.replace('Familia ', '') : newName;
     
     updateDoc(doc(db, 'families', userData.familyId), { 
@@ -278,7 +310,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, familyData, familyMembers, loading, login, logout, joinFamily, createFamily, updateFamilyName }}>
+    <AuthContext.Provider value={{ user, userData, familyData, familyMembers, loading, login, loginWithEmail, signUpWithEmail, logout, joinFamily, createFamily, updateFamilyName }}>
       {children}
     </AuthContext.Provider>
   );
