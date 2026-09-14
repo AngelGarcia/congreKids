@@ -274,7 +274,7 @@ export default function ParentDashboard() {
                   <Label className="text-xs font-black uppercase text-primary tracking-widest block text-center">Primero, ¿cuál es tu rol?</Label>
                   <RadioGroup value={selectedRole} onValueChange={(val: any) => setSelectedRole(val)} className="flex gap-3">
                     <div className="flex-1">
-                      <RadioGroupItem value="padre" id="padre" className="peer sr-only" />
+                      <RadioGroupItem value="padre" id="padre" className="sr-only" />
                       <Label
                         htmlFor="padre"
                         className={cn(
@@ -286,7 +286,7 @@ export default function ParentDashboard() {
                       </Label>
                     </div>
                     <div className="flex-1">
-                      <RadioGroupItem value="madre" id="madre" className="peer sr-only" />
+                      <RadioGroupItem value="madre" id="madre" className="sr-only" />
                       <Label
                         htmlFor="madre"
                         className={cn(

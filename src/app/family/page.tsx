@@ -382,7 +382,7 @@ export default function FamilyManagement() {
                       className="flex gap-4"
                     >
                       <div className="flex-1">
-                        <RadioGroupItem value="niño" id="gender-boy" className="peer sr-only" />
+                        <RadioGroupItem value="niño" id="gender-boy" className="sr-only" />
                         <Label
                           htmlFor="gender-boy"
                           className={cn(
@@ -394,7 +394,7 @@ export default function FamilyManagement() {
                         </Label>
                       </div>
                       <div className="flex-1">
-                        <RadioGroupItem value="niña" id="gender-girl" className="peer sr-only" />
+                        <RadioGroupItem value="niña" id="gender-girl" className="sr-only" />
                         <Label
                           htmlFor="gender-girl"
                           className={cn(
