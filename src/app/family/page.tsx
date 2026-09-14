@@ -68,7 +68,7 @@ function ChildAvatarIcon({ gender, birthDate }: { gender: string, birthDate: any
 }
 
 export default function FamilyManagement() {
-  const { user, userData, familyData, familyMembers, updateFamilyName, loading: authLoading } = useAuth();
+  const { user, userData, familyData, familyMembers, updateFamilyName, loading: authLoading, logout } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -385,7 +385,10 @@ export default function FamilyManagement() {
                         <RadioGroupItem value="niño" id="gender-boy" className="peer sr-only" />
                         <Label
                           htmlFor="gender-boy"
-                          className="flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 transition-all cursor-pointer font-black uppercase text-xs"
+                          className={cn(
+                            "flex items-center justify-center gap-2 h-12 rounded-xl border-2 transition-all cursor-pointer font-black uppercase text-xs",
+                            newChildGender === 'niño' ? "border-blue-500 bg-blue-50" : "border-muted bg-popover hover:bg-accent"
+                          )}
                         >
                           <Baby className="w-4 h-4 text-blue-500" /> Niño
                         </Label>
@@ -394,7 +397,10 @@ export default function FamilyManagement() {
                         <RadioGroupItem value="niña" id="gender-girl" className="peer sr-only" />
                         <Label
                           htmlFor="gender-girl"
-                          className="flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-pink-500 peer-data-[state=checked]:bg-pink-50 transition-all cursor-pointer font-black uppercase text-xs"
+                          className={cn(
+                            "flex items-center justify-center gap-2 h-12 rounded-xl border-2 transition-all cursor-pointer font-black uppercase text-xs",
+                            newChildGender === 'niña' ? "border-pink-500 bg-pink-50" : "border-muted bg-popover hover:bg-accent"
+                          )}
                         >
                           <Baby className="w-4 h-4 text-pink-500" /> Niña
                         </Label>

@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 
 const DEFAULT_AGE_GROUPS = [
   { label: 'Bebés', minMonths: 0, maxMonths: 18, allowsGuitar: false, ratio: 6 },
@@ -195,19 +196,23 @@ export default function NewMeeting() {
                           return (
                             <div 
                               key={idx} 
-                              className={`group flex items-center gap-4 p-5 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md ${
-                                isSelected ? 'bg-primary/5 border-primary/20' : 'bg-muted/10 border-transparent opacity-60'
-                              }`}
+                              className={cn(
+                                "group flex items-center gap-4 p-5 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md",
+                                isSelected ? "bg-primary/5 border-primary/20" : "bg-muted/10 border-transparent opacity-60"
+                              )}
                               onClick={() => toggleSelection(idx)}
                             >
                               <Checkbox 
                                 checked={isSelected}
                                 onCheckedChange={() => toggleSelection(idx)}
-                                className="w-7 h-7 rounded-lg border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                className="w-7 h-7 rounded-lg border-2"
                                 onClick={(e) => e.stopPropagation()}
                               />
                               <div className="flex flex-col">
-                                <span className={`text-lg font-black uppercase tracking-tight leading-none ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
+                                <span className={cn(
+                                  "text-lg font-black uppercase tracking-tight leading-none",
+                                  isSelected ? "text-primary" : "text-muted-foreground"
+                                )}>
                                   {formatDate(date)}
                                 </span>
                                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">

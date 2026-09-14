@@ -277,7 +277,10 @@ export default function ParentDashboard() {
                       <RadioGroupItem value="padre" id="padre" className="peer sr-only" />
                       <Label
                         htmlFor="padre"
-                        className="flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer"
+                        className={cn(
+                          "flex flex-col items-center justify-center h-24 rounded-2xl border-2 transition-all cursor-pointer",
+                          selectedRole === 'padre' ? "border-primary bg-primary/5" : "border-muted bg-popover hover:bg-accent"
+                        )}
                       >
                         <span className="text-base font-black uppercase">Padre</span>
                       </Label>
@@ -286,7 +289,10 @@ export default function ParentDashboard() {
                       <RadioGroupItem value="madre" id="madre" className="peer sr-only" />
                       <Label
                         htmlFor="madre"
-                        className="flex flex-col items-center justify-center h-24 rounded-2xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer"
+                        className={cn(
+                          "flex flex-col items-center justify-center h-24 rounded-2xl border-2 transition-all cursor-pointer",
+                          selectedRole === 'madre' ? "border-primary bg-primary/5" : "border-muted bg-popover hover:bg-accent"
+                        )}
                       >
                         <span className="text-base font-black uppercase">Madre</span>
                       </Label>
