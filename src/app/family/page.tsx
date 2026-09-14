@@ -10,10 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Trash2, Baby, X, UserPlus, ShieldCheck, Edit2, Check, ChevronLeft } from 'lucide-react';
+import { Plus, Trash2, Baby, X, UserPlus, ShieldCheck, Edit2, Check, ChevronLeft, Save } from 'lucide-react';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { formatDate, calculateAgeInMonths } from '@/lib/utils/date';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,7 @@ export default function FamilyManagement() {
   
   // UI State
   const [isAddingChild, setIsAddingChild] = useState(false);
+  const [editingChild, setEditingChild] = useState<any>(null);
   const [isEditingFamilyName, setIsEditingFamilyName] = useState(false);
   
   // Forms state
@@ -86,6 +87,34 @@ export default function FamilyManagement() {
     toast({ title: "¡Hijo añadido!", description: "Ahora es visible para ambos padres." });
   };
   
+  const handleEditClick = (child: any) => {
+    setEditingChild(child);
+    setNewChildName(child.name);
+    const date = child.birthDate instanceof Date ? child.birthDate : (child.birthDate as any).toDate();
+    setNewChildBirthDate(date.toISOString().split('T')[0]);
+    setNewChildGender(child.gender || 'niño');
+    setIsAddingChild(false);
+  };
+
+  const handleUpdateChild = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userData?.familyId || !editingChild || !newChildName || !newChildBirthDate || !db) return;
+
+    const birthDate = new Date(newChildBirthDate);
+    const childDocRef = doc(db, 'families', userData.familyId, 'children', editingChild.id);
+    
+    updateDocumentNonBlocking(childDocRef, {
+      name: newChildName,
+      birthDate: Timestamp.fromDate(birthDate),
+      gender: newChildGender
+    });
+    
+    setEditingChild(null);
+    setNewChildName('');
+    setNewChildBirthDate('');
+    setNewChildGender('niño');
+    toast({ title: "Perfil actualizado", description: "Los cambios se han guardado correctamente." });
+  };
 
   const handleUpdateFamilyName = (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,14 +257,24 @@ export default function FamilyManagement() {
                             </div>
                           </div>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleDeleteChild(child.id)}
-                          className="h-9 w-9 text-muted-foreground hover:text-destructive rounded-xl"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleEditClick(child)}
+                            className="h-9 w-9 text-muted-foreground hover:text-primary rounded-xl"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteChild(child.id)}
+                            className="h-9 w-9 text-muted-foreground hover:text-destructive rounded-xl"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </CardHeader>
                     </Card>
                   );
@@ -243,7 +282,7 @@ export default function FamilyManagement() {
                 
                 <Button 
                   variant="outline" 
-                  onClick={() => setIsAddingChild(true)}
+                  onClick={() => { setIsAddingChild(true); setEditingChild(null); }}
                   className="h-32 w-full border-dashed border-2 rounded-3xl flex flex-col gap-2 hover:bg-primary/5 hover:border-primary/40 transition-all group"
                 >
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner">
@@ -255,13 +294,22 @@ export default function FamilyManagement() {
             )}
           </div>
 
-          {isAddingChild && (
+          {(isAddingChild || editingChild) && (
             <Card className="shadow-2xl border-2 border-primary/10 rounded-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-w-lg mx-auto">
               <CardHeader className="bg-primary/5 p-6 flex flex-row items-center justify-between">
-                <CardTitle className="text-lg font-black uppercase tracking-tighter">Nuevo Perfil</CardTitle>
-                <Button variant="ghost" size="icon" onClick={() => setIsAddingChild(false)} className="rounded-full h-10 w-10"><X /></Button>
+                <CardTitle className="text-lg font-black uppercase tracking-tighter">
+                  {editingChild ? 'Editar Perfil' : 'Nuevo Perfil'}
+                </CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => { setIsAddingChild(false); setEditingChild(null); }} 
+                  className="rounded-full h-10 w-10"
+                >
+                  <X />
+                </Button>
               </CardHeader>
-              <form onSubmit={handleAddChild}>
+              <form onSubmit={editingChild ? handleUpdateChild : handleAddChild}>
                 <CardContent className="p-6 space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Nombre</Label>
@@ -315,7 +363,7 @@ export default function FamilyManagement() {
                 </CardContent>
                 <CardFooter className="p-6 pt-0">
                   <Button type="submit" className="w-full h-12 text-base rounded-xl font-black shadow-lg uppercase tracking-tighter">
-                    Guardar Hijo
+                    {editingChild ? <><Save className="w-4 h-4 mr-2" /> Guardar Cambios</> : 'Guardar Hijo'}
                   </Button>
                 </CardFooter>
               </form>
