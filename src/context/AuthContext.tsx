@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -185,7 +184,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName });
-      // El estado del usuario cambiará y onAuthStateChanged se encargará del resto
     } catch (error: any) {
       setLoading(false);
       let message = "No se pudo crear la cuenta.";
@@ -290,10 +288,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         try {
-          await updateDoc(familyRef, { members: arrayUnion(user.uid) });
+          // CRITICAL: Primero guardamos el usuario con su familyId para que la regla de seguridad
+          // de Firestore 'isFamilyMember(familyId)' se cumpla al intentar actualizar el documento de la familia.
           await setDoc(doc(db, 'users', user.uid), newUser);
+          await updateDoc(familyRef, { members: arrayUnion(user.uid) });
           toast({ title: "¡Perfil unido!", description: "Ahora compartes perfiles con tu familia." });
         } catch (e) {
+          setLoading(false);
+          toast({ variant: "destructive", title: "Error de unión", description: "No se pudo actualizar los miembros de la familia." });
           errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: familyRef.path,
             operation: 'update'
@@ -302,6 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .catch((error) => {
         setLoading(false);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo obtener la información de la familia." });
         errorEmitter.emit('permission-error', new FirestorePermissionError({
           path: familyRef.path,
           operation: 'get'
