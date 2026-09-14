@@ -20,6 +20,35 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
+
+/**
+ * Icono dinámico basado en género y edad para la vista familiar.
+ */
+function ChildAvatarIcon({ gender, birthDate }: { gender: string, birthDate: any }) {
+  const date = birthDate instanceof Date ? birthDate : (birthDate as any).toDate();
+  const ageMonths = calculateAgeInMonths(date, new Date());
+  const isBaby = ageMonths < 36;
+  const isGirl = gender === 'niña';
+  
+  const colorClass = isGirl ? 'text-pink-500' : 'text-blue-500';
+  const bgColorClass = isGirl ? 'bg-pink-100' : 'bg-blue-100';
+
+  return (
+    <div className={cn("w-12 h-12 rounded-full flex items-center justify-center shadow-sm shrink-0", bgColorClass, colorClass)}>
+      {isBaby ? (
+        <Baby className="w-7 h-7" />
+      ) : (
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 15c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z"/>
+          <path d="M8 9a1 1 0 1 1 2 0 1 1 0 0 1-2 0z"/>
+          <path d="M14 9a1 1 0 1 1 2 0 1 1 0 0 1-2 0z"/>
+          <path d="M9.5 12c.7.7 2.3.7 3 0"/>
+        </svg>
+      )}
+    </div>
+  );
+}
 
 export default function FamilyManagement() {
   const { user, userData, familyData, familyMembers, updateFamilyName, loading: authLoading } = useAuth();
@@ -141,11 +170,6 @@ export default function FamilyManagement() {
     return 0;
   });
 
-  const GenderIcon = ({ gender }: { gender: string }) => {
-    if (gender === 'niña') return <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-500"><Baby className="w-5 h-5" /></div>;
-    return <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500"><Baby className="w-5 h-5" /></div>;
-  };
-
   return (
     <div className="min-h-screen bg-background pb-12">
       <Navbar />
@@ -241,7 +265,7 @@ export default function FamilyManagement() {
                     <Card key={child.id} className="relative overflow-hidden border-2 border-primary/5 hover:border-primary/20 transition-all shadow-md rounded-3xl bg-white group">
                       <CardHeader className="p-5 flex flex-row items-center justify-between space-y-0">
                         <div className="flex items-center gap-4">
-                          <GenderIcon gender={child.gender} />
+                          <ChildAvatarIcon gender={child.gender} birthDate={child.birthDate} />
                           <div>
                             <CardTitle className="text-xl font-black">{child.name}</CardTitle>
                             <CardDescription className="text-xs font-bold text-muted-foreground">

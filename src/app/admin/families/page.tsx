@@ -6,8 +6,8 @@ import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/utils/date';
-import { Baby, Search, Home, Users, AlertTriangle, Wand2, CheckCircle2 } from 'lucide-react';
+import { formatDate, calculateAgeInMonths } from '@/lib/utils/date';
+import { Baby, Search, Home, Users, AlertTriangle, Wand2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,35 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { cn } from '@/lib/utils';
+
+/**
+ * Icono dinámico basado en género y edad.
+ */
+function ChildAvatarIcon({ gender, birthDate }: { gender: string, birthDate: any }) {
+  const date = birthDate instanceof Date ? birthDate : (birthDate as any).toDate();
+  const ageMonths = calculateAgeInMonths(date, new Date());
+  const isBaby = ageMonths < 36;
+  const isGirl = gender === 'niña';
+  
+  const colorClass = isGirl ? 'text-pink-500' : 'text-blue-500';
+  const bgColorClass = isGirl ? 'bg-pink-100' : 'bg-blue-100';
+
+  return (
+    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shadow-sm shrink-0", bgColorClass, colorClass)}>
+      {isBaby ? (
+        <Baby className="w-6 h-6" />
+      ) : (
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 15c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z"/>
+          <path d="M8 9a1 1 0 1 1 2 0 1 1 0 0 1-2 0z"/>
+          <path d="M14 9a1 1 0 1 1 2 0 1 1 0 0 1-2 0z"/>
+          <path d="M9.5 12c.7.7 2.3.7 3 0"/>
+        </svg>
+      )}
+    </div>
+  );
+}
 
 /**
  * Componente para mostrar el listado de hijos de una familia específica.
@@ -46,7 +75,7 @@ function FamilyChildrenList({ familyId }: { familyId: string }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-2">
       {sortedChildren.map(child => (
         <div key={child.id} className="flex items-center gap-3 bg-primary/5 p-3 rounded-xl border border-primary/10">
-          <Baby className="w-5 h-5 text-primary" />
+          <ChildAvatarIcon gender={child.gender} birthDate={child.birthDate} />
           <div>
             <p className="font-bold text-sm">{child.name}</p>
             <p className="text-[10px] uppercase font-black text-muted-foreground">

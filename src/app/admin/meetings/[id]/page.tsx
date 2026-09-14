@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { formatDate, formatDateTime, isRegistrationOpen, getRegistrationOpeningDate } from '@/lib/utils/date';
+import { formatDate, formatDateTime, isRegistrationOpen, getRegistrationOpeningDate, calculateAgeInMonths } from '@/lib/utils/date';
 import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus, Share2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -72,6 +72,35 @@ const EXPORT_COLUMNS = [
 
 type SortField = 'name' | 'familyName' | 'guitarSelected' | 'gender';
 type SortOrder = 'asc' | 'desc';
+
+/**
+ * Badge dinámico de género y edad para las tablas de administración.
+ */
+function RenderGenderBadge({ gender, birthDate, meetingDate }: { gender: string, birthDate: any, meetingDate: Date }) {
+  const date = birthDate instanceof Date ? birthDate : (birthDate as any).toDate();
+  const ageMonths = calculateAgeInMonths(date, meetingDate);
+  const isBaby = ageMonths < 36;
+  const isGirl = gender === 'niña';
+  
+  return (
+    <div className={cn(
+      "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter w-fit shadow-sm border",
+      isGirl ? "bg-pink-100 text-pink-600 border-pink-200" : "bg-blue-100 text-blue-600 border-blue-200"
+    )}>
+      {isBaby ? (
+        <Baby className="w-3.5 h-3.5" />
+      ) : (
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 15c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z"/>
+          <path d="M8 9a1 1 0 1 1 2 0 1 1 0 0 1-2 0z"/>
+          <path d="M14 9a1 1 0 1 1 2 0 1 1 0 0 1-2 0z"/>
+          <path d="M9.5 12c.7.7 2.3.7 3 0"/>
+        </svg>
+      )}
+      {gender}
+    </div>
+  );
+}
 
 export default function MeetingDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -163,8 +192,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const isCurrentlyOpen = useMemo(() => {
     if (!meeting) return false;
-    // La reunión se considera abierta si su estado es explícitamente 'open'
-    // O si es 'upcoming' y estamos dentro de las fechas automáticas
     if (meeting.status === 'open') return true;
     if (meeting.status === 'closed') return false;
     
@@ -176,7 +203,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const handleToggleStatus = async () => {
     if (!meeting) return;
     const shouldOpen = !isCurrentlyOpen;
-    // Si queremos abrir manualmente, usamos el estado 'open' que ignora plazos
     const newStatus = shouldOpen ? 'open' : 'closed';
     updateDocumentNonBlocking(meetingRef, { status: newStatus });
     
@@ -334,19 +360,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const totalChildrenCount = allChildren.length;
   const guitarCount = allChildren.filter(c => c.guitarSelected).length;
-
-  const RenderGenderBadge = ({ gender }: { gender: string }) => {
-    const isGirl = gender === 'niña';
-    return (
-      <div className={cn(
-        "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter w-fit",
-        isGirl ? "bg-pink-100 text-pink-600" : "bg-blue-100 text-blue-600"
-      )}>
-        <Baby className="w-3 h-3" />
-        {gender}
-      </div>
-    );
-  };
+  const meetingDateObj = (meeting.date as any).toDate();
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -624,7 +638,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-16">
                         <TableCell className="font-black text-xl">{child.name}</TableCell>
                         <TableCell>
-                          <RenderGenderBadge gender={child.gender} />
+                          <RenderGenderBadge gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
                         </TableCell>
                         <TableCell className="text-base font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
                         <TableCell><Badge variant="outline" className="text-xs font-black uppercase px-3 py-1 border-primary/20 text-primary bg-primary/5">{child.ageGroupLabel}</Badge></TableCell>
@@ -733,7 +747,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                           <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-16">
                             <TableCell className="font-black text-xl">{child.name}</TableCell>
                             <TableCell>
-                              <RenderGenderBadge gender={child.gender} />
+                              <RenderGenderBadge gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
                             </TableCell>
                             <TableCell className="text-base font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
                             <TableCell>
