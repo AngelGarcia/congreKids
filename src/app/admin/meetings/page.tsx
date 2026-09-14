@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -82,7 +81,7 @@ export default function MeetingsAdmin() {
         </Button>
       </div>
 
-      {/* PRÓXIMA REUNIÓN (HERO) */}
+      {/* Siguiente Encuentro (HERO) */}
       {nextMeeting ? (
         <section className="space-y-4">
           <div className="flex items-center gap-2 text-primary">
@@ -106,7 +105,7 @@ export default function MeetingsAdmin() {
               <div className="flex flex-col gap-3 w-full md:w-auto">
                 <Button asChild size="lg" className="h-16 px-8 bg-white text-primary hover:bg-white/90 rounded-2xl font-black text-lg uppercase tracking-tighter shadow-xl">
                   <Link href={`/admin/meetings/${nextMeeting.id}`}>
-                    Ver Inscripciones
+                    Ver detalles de la reunión
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Link>
                 </Button>

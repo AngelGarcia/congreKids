@@ -12,11 +12,10 @@ export function getDefaultDeadline(meetingDate: Date): Date {
 }
 
 /**
- * La inscripción abre el lunes de la misma semana de la reunión.
- * Si la reunión es un viernes, restamos 4 días para llegar al lunes.
+ * La inscripción abre 5 días antes de la reunión por defecto.
  */
 export function getRegistrationOpeningDate(meetingDate: Date): Date {
-  return startOfDay(subDays(meetingDate, 4));
+  return startOfDay(subDays(meetingDate, 5));
 }
 
 export function isRegistrationOpen(deadline: Date, openingDate?: Date): boolean {
