@@ -21,7 +21,7 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
-      - name: Desplegar en Firebase Hosting
+      - name: Construir y Desplegar en Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
