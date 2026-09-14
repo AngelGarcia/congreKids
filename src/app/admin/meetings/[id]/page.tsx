@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { formatDate, formatDateTime, isRegistrationOpen, getRegistrationOpeningDate, calculateAgeInMonths } from '@/lib/utils/date';
 import { Download, FileDown, Lock, ChevronLeft, Unlock, Settings2, Baby, Music, Save, X, Plus, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Users, ListFilter, ArrowUp, ArrowDown, UserCheck, MessageCircle, UserPlus, Share2, AlertTriangle } from 'lucide-react';
-import Link from 'next/link';
+import Link from 'link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -96,15 +96,14 @@ function RenderGenderBadge({ gender, birthDate, meetingDate }: { gender: string,
   
   return (
     <div className={cn(
-      "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter w-fit shadow-sm border",
-      isGirl ? "bg-pink-100 text-pink-600 border-pink-200" : "bg-blue-100 text-blue-600 border-blue-200"
+      "flex items-center justify-center w-8 h-8 rounded-full shadow-sm border-2",
+      isGirl ? "bg-pink-100 text-pink-500 border-pink-200" : "bg-blue-100 text-blue-500 border-blue-200"
     )}>
       {isBaby ? (
-        <Baby className="w-3.5 h-3.5" />
+        <Baby className="w-4 h-4" />
       ) : (
-        <ChildFaceIcon gender={gender} className="w-3.5 h-3.5" />
+        <ChildFaceIcon gender={gender} className="w-4 h-4" />
       )}
-      {gender}
     </div>
   );
 }
@@ -626,7 +625,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       <div className="flex items-center">Nombre <SortIcon field="name" /></div>
                     </TableHead>
                     <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer" onClick={() => toggleSort('gender')}>
-                      <div className="flex items-center">Género <SortIcon field="gender" /></div>
+                      <div className="flex items-center">Sexo <SortIcon field="gender" /></div>
                     </TableHead>
                     <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer" onClick={() => toggleSort('familyName')}>
                       <div className="flex items-center">Familia <SortIcon field="familyName" /></div>
@@ -741,7 +740,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                     <TableHeader className="bg-muted/5">
                       <TableRow className="hover:bg-transparent border-none h-14">
                         <TableHead className="font-black uppercase text-xs tracking-widest">Nombre</TableHead>
-                        <TableHead className="font-black uppercase text-xs tracking-widest">Género</TableHead>
+                        <TableHead className="font-black uppercase text-xs tracking-widest text-center w-20">Sexo</TableHead>
                         <TableHead className="font-black uppercase text-xs tracking-widest">Familia</TableHead>
                         <TableHead className="font-black uppercase text-xs tracking-widest">Extra</TableHead>
                       </TableRow>
@@ -753,7 +752,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                         childrenInGroup.map((child, idx) => (
                           <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-16">
                             <TableCell className="font-black text-xl">{child.name}</TableCell>
-                            <TableCell>
+                            <TableCell className="flex justify-center">
                               <RenderGenderBadge gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
                             </TableCell>
                             <TableCell className="text-base font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>

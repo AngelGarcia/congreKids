@@ -292,8 +292,11 @@ export default function FamilyManagement() {
                               <Badge variant="secondary" className="px-3 py-0.5 text-[10px] rounded-lg bg-primary/10 text-primary border-none font-black">
                                 {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
                               </Badge>
-                              <Badge variant="outline" className="px-3 py-0.5 text-[10px] rounded-lg border-primary/20 text-primary font-black uppercase">
-                                {child.gender}
+                              <Badge variant="outline" className={cn(
+                                "px-2 py-0.5 rounded-lg border-2",
+                                child.gender === 'niña' ? "border-pink-200 bg-pink-50" : "border-blue-200 bg-blue-50"
+                              )}>
+                                <ChildAvatarIcon gender={child.gender} birthDate={child.birthDate} />
                               </Badge>
                             </div>
                           </div>
@@ -323,7 +326,7 @@ export default function FamilyManagement() {
                 
                 <Button 
                   variant="outline" 
-                  onClick={() => { setIsAddingChild(true); setEditingChild(null); }}
+                  onClick={() => { setIsAddingChild(true); setEditingChild(null); setNewChildGender('niño'); }}
                   className="h-32 w-full border-dashed border-2 rounded-3xl flex flex-col gap-2 hover:bg-primary/5 hover:border-primary/40 transition-all group"
                 >
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner">
@@ -386,11 +389,13 @@ export default function FamilyManagement() {
                         <Label
                           htmlFor="gender-boy"
                           className={cn(
-                            "flex items-center justify-center gap-2 h-12 rounded-xl border-2 transition-all cursor-pointer font-black uppercase text-xs",
+                            "flex items-center justify-center h-16 rounded-xl border-2 transition-all cursor-pointer font-black",
                             newChildGender === 'niño' ? "border-blue-500 bg-blue-50" : "border-muted bg-popover hover:bg-accent"
                           )}
                         >
-                          <Baby className="w-4 h-4 text-blue-500" /> Niño
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 border border-blue-200">
+                             <Baby className="w-6 h-6" />
+                          </div>
                         </Label>
                       </div>
                       <div className="flex-1">
@@ -398,11 +403,13 @@ export default function FamilyManagement() {
                         <Label
                           htmlFor="gender-girl"
                           className={cn(
-                            "flex items-center justify-center gap-2 h-12 rounded-xl border-2 transition-all cursor-pointer font-black uppercase text-xs",
+                            "flex items-center justify-center h-16 rounded-xl border-2 transition-all cursor-pointer font-black",
                             newChildGender === 'niña' ? "border-pink-500 bg-pink-50" : "border-muted bg-popover hover:bg-accent"
                           )}
                         >
-                          <Baby className="w-4 h-4 text-pink-500" /> Niña
+                          <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 border border-pink-200">
+                             <Baby className="w-6 h-6" />
+                          </div>
                         </Label>
                       </div>
                     </RadioGroup>

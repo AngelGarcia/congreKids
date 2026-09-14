@@ -473,8 +473,8 @@ export default function ParentDashboard() {
                                   <div className="flex items-center gap-3">
                                     <p className="text-lg font-black leading-none">{child.name}</p>
                                     <div className={cn(
-                                      "w-5 h-5 rounded-full flex items-center justify-center border",
-                                      child.gender === 'niña' ? "bg-pink-50 text-pink-500 border-pink-100" : "bg-blue-50 text-blue-500 border-blue-100"
+                                      "w-6 h-6 rounded-full flex items-center justify-center border-2",
+                                      child.gender === 'niña' ? "bg-pink-100 text-pink-500 border-pink-200" : "bg-blue-100 text-blue-500 border-blue-200"
                                     )}>
                                       <ChildIconHelper gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
                                     </div>
@@ -522,15 +522,14 @@ export default function ParentDashboard() {
                             <div key={child.childId} className="p-5 rounded-2xl border bg-muted/5 flex items-center justify-between">
                               <div className="flex items-center gap-4">
                                 <div className={cn(
-                                  "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border",
-                                  child.gender === 'niña' ? "bg-pink-50 text-pink-500 border-pink-100" : "bg-blue-50 text-blue-500 border-blue-100"
+                                  "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border-2",
+                                  child.gender === 'niña' ? "bg-pink-100 text-pink-500 border-pink-200" : "bg-blue-100 text-blue-500 border-blue-200"
                                 )}>
                                   <ChildIconHelper gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <p className="font-black text-lg leading-none">{child.name}</p>
-                                    <span className="text-xs">{child.gender === 'niña' ? '👧' : '👦'}</span>
                                   </div>
                                   <Badge variant="outline" className="text-[9px] font-black uppercase px-2 mt-1">
                                     {child.ageGroupLabel}
