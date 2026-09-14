@@ -63,37 +63,9 @@ type SortField = 'name' | 'familyName' | 'guitarSelected' | 'gender';
 type SortOrder = 'asc' | 'desc';
 
 /**
- * Icono infantil minimalista y limpio con distinción de género (coletas para niñas).
+ * Badge dinámico de género (Bebé universal con color).
  */
-function ChildFaceIcon({ gender, className }: { gender: string, className?: string }) {
-  const isGirl = gender === 'niña';
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9 10.5h.01" strokeWidth="3" />
-      <path d="M15 10.5h.01" strokeWidth="3" />
-      <path d="M9 14.5a3.5 3.5 0 0 0 6 0" />
-      {isGirl ? (
-        <>
-          <path d="M4 9c-1-0.8-1.5-0.5-1.5 1v2" />
-          <path d="M20 9c1-0.8 1.5-0.5 1.5 1v2" />
-          <circle cx="2.5" cy="10" r="1.5" fill="currentColor" />
-          <circle cx="21.5" cy="10" r="1.5" fill="currentColor" />
-        </>
-      ) : (
-        <path d="M11 3c0.5 1 1.5 1 2 0" />
-      )}
-    </svg>
-  );
-}
-
-/**
- * Badge dinámico de género y edad para las tablas de administración.
- */
-function RenderGenderBadge({ gender, birthDate, meetingDate }: { gender: string, birthDate: any, meetingDate: Date }) {
-  const date = birthDate instanceof Date ? birthDate : (birthDate as any).toDate();
-  const ageMonths = calculateAgeInMonths(date, meetingDate);
-  const isBaby = ageMonths < 18;
+function RenderGenderBadge({ gender }: { gender: string }) {
   const isGirl = gender === 'niña';
   
   return (
@@ -101,11 +73,7 @@ function RenderGenderBadge({ gender, birthDate, meetingDate }: { gender: string,
       "flex items-center justify-center w-8 h-8 rounded-full shadow-sm border-2",
       isGirl ? "bg-pink-100 text-pink-500 border-pink-200" : "bg-blue-100 text-blue-500 border-blue-200"
     )}>
-      {isBaby ? (
-        <Baby className="w-4 h-4" />
-      ) : (
-        <ChildFaceIcon gender={gender} className="w-5 h-5" />
-      )}
+      <Baby className="w-4 h-4" />
     </div>
   );
 }
@@ -363,7 +331,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const totalChildrenCount = allChildren.length;
   const guitarCount = allChildren.filter(c => c.guitarSelected).length;
-  const meetingDateObj = (meeting.date as any).toDate();
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -641,7 +608,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                       <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-16">
                         <TableCell className="font-black text-xl">{child.name}</TableCell>
                         <TableCell>
-                          <RenderGenderBadge gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
+                          <RenderGenderBadge gender={child.gender} />
                         </TableCell>
                         <TableCell className="text-base font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
                         <TableCell><Badge variant="outline" className="text-xs font-black uppercase px-3 py-1 border-primary/20 text-primary bg-primary/5">{child.ageGroupLabel}</Badge></TableCell>
@@ -750,7 +717,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                           <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-16">
                             <TableCell className="font-black text-xl">{child.name}</TableCell>
                             <TableCell className="flex justify-center">
-                              <RenderGenderBadge gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
+                              <RenderGenderBadge gender={child.gender} />
                             </TableCell>
                             <TableCell className="text-base font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
                             <TableCell>

@@ -22,50 +22,16 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 
 /**
- * Icono infantil minimalista y limpio con distinción de género (coletas para niñas).
+ * Icono dinámico basado en género (Bebé universal con color).
  */
-function ChildFaceIcon({ gender, className }: { gender: string, className?: string }) {
+function ChildAvatarIcon({ gender }: { gender: string }) {
   const isGirl = gender === 'niña';
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9 10.5h.01" strokeWidth="3" />
-      <path d="M15 10.5h.01" strokeWidth="3" />
-      <path d="M9 14.5a3.5 3.5 0 0 0 6 0" />
-      {isGirl ? (
-        <>
-          {/* Cabello y coletas */}
-          <path d="M4 9c-1-0.8-1.5-0.5-1.5 1v2" />
-          <path d="M20 9c1-0.8 1.5-0.5 1.5 1v2" />
-          <circle cx="2.5" cy="10" r="1.5" fill="currentColor" />
-          <circle cx="21.5" cy="10" r="1.5" fill="currentColor" />
-        </>
-      ) : (
-        <path d="M11 3c0.5 1 1.5 1 2 0" />
-      )}
-    </svg>
-  );
-}
-
-/**
- * Icono dinámico basado en género y edad para la vista familiar.
- */
-function ChildAvatarIcon({ gender, birthDate }: { gender: string, birthDate: any }) {
-  const date = birthDate instanceof Date ? birthDate : (birthDate as any).toDate();
-  const ageMonths = calculateAgeInMonths(date, new Date());
-  const isBaby = ageMonths < 18;
-  const isGirl = gender === 'niña';
-  
   const colorClass = isGirl ? 'text-pink-500' : 'text-blue-500';
   const bgColorClass = isGirl ? 'bg-pink-100' : 'bg-blue-100';
 
   return (
     <div className={cn("w-12 h-12 rounded-full flex items-center justify-center shadow-sm shrink-0", bgColorClass, colorClass)}>
-      {isBaby ? (
-        <Baby className="w-7 h-7" />
-      ) : (
-        <ChildFaceIcon gender={gender} className="w-8 h-8" />
-      )}
+      <Baby className="w-7 h-7" />
     </div>
   );
 }
@@ -283,7 +249,7 @@ export default function FamilyManagement() {
                     <Card key={child.id} className="relative overflow-hidden border-2 border-primary/5 hover:border-primary/20 transition-all shadow-md rounded-3xl bg-white group">
                       <CardHeader className="p-5 flex flex-row items-center justify-between space-y-0">
                         <div className="flex items-center gap-4">
-                          <ChildAvatarIcon gender={child.gender} birthDate={child.birthDate} />
+                          <ChildAvatarIcon gender={child.gender} />
                           <div>
                             <CardTitle className="text-xl font-black">{child.name}</CardTitle>
                             <CardDescription className="text-xs font-bold text-muted-foreground">
@@ -403,7 +369,7 @@ export default function FamilyManagement() {
                           )}
                         >
                           <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 border border-pink-200">
-                             <ChildFaceIcon gender="niña" className="w-6 h-6" />
+                             <Baby className="w-6 h-6" />
                           </div>
                         </Label>
                       </div>

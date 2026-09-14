@@ -25,38 +25,18 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 
 /**
- * Icono infantil minimalista y limpio con distinción de género (coletas para niñas).
+ * Ayudante visual para el icono del niño en inscripciones (Bebé universal con color).
  */
-function ChildFaceIcon({ gender, className }: { gender: string, className?: string }) {
+function ChildIconHelper({ gender }: { gender: string }) {
   const isGirl = gender === 'niña';
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9 10.5h.01" strokeWidth="3" />
-      <path d="M15 10.5h.01" strokeWidth="3" />
-      <path d="M9 14.5a3.5 3.5 0 0 0 6 0" />
-      {isGirl ? (
-        <>
-          <path d="M4 9c-1-0.8-1.5-0.5-1.5 1v2" />
-          <path d="M20 9c1-0.8 1.5-0.5 1.5 1v2" />
-          <circle cx="2.5" cy="10" r="1.5" fill="currentColor" />
-          <circle cx="21.5" cy="10" r="1.5" fill="currentColor" />
-        </>
-      ) : (
-        <path d="M11 3c0.5 1 1.5 1 2 0" />
-      )}
-    </svg>
+    <div className={cn(
+      "w-full h-full rounded-full flex items-center justify-center border-2",
+      isGirl ? "bg-pink-100 text-pink-500 border-pink-200" : "bg-blue-100 text-blue-500 border-blue-200"
+    )}>
+      <Baby className="w-4 h-4" />
+    </div>
   );
-}
-
-/**
- * Ayudante visual para el icono del niño en inscripciones.
- */
-function ChildIconHelper({ gender, birthDate, meetingDate }: { gender: string, birthDate: any, meetingDate: Date }) {
-  const date = birthDate instanceof Date ? birthDate : (birthDate as any).toDate();
-  const ageMonths = calculateAgeInMonths(date, meetingDate);
-  const isBaby = ageMonths < 18;
-  return isBaby ? <Baby className="w-full h-full p-0.5" /> : <ChildFaceIcon gender={gender} className="w-full h-full" />;
 }
 
 export default function ParentDashboard() {
@@ -474,11 +454,8 @@ export default function ParentDashboard() {
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3">
                                     <p className="text-lg font-black leading-none">{child.name}</p>
-                                    <div className={cn(
-                                      "w-6 h-6 rounded-full flex items-center justify-center border-2",
-                                      child.gender === 'niña' ? "bg-pink-100 text-pink-500 border-pink-200" : "bg-blue-100 text-blue-500 border-blue-200"
-                                    )}>
-                                      <ChildIconHelper gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
+                                    <div className="w-6 h-6">
+                                      <ChildIconHelper gender={child.gender} />
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 mt-1">
@@ -523,11 +500,8 @@ export default function ParentDashboard() {
                           {registration.children.map((child: any) => (
                             <div key={child.childId} className="p-5 rounded-2xl border bg-muted/5 flex items-center justify-between">
                               <div className="flex items-center gap-4">
-                                <div className={cn(
-                                  "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border-2",
-                                  child.gender === 'niña' ? "bg-pink-100 text-pink-500 border-pink-200" : "bg-blue-100 text-blue-500 border-blue-200"
-                                )}>
-                                  <ChildIconHelper gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
+                                <div className="w-10 h-10">
+                                  <ChildIconHelper gender={child.gender} />
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-2">

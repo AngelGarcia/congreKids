@@ -21,49 +21,16 @@ import {
 import { cn } from '@/lib/utils';
 
 /**
- * Icono infantil minimalista y limpio con distinción de género (coletas para niñas).
+ * Icono dinámico basado en género (Bebé universal con color).
  */
-function ChildFaceIcon({ gender, className }: { gender: string, className?: string }) {
+function ChildAvatarIcon({ gender }: { gender: string }) {
   const isGirl = gender === 'niña';
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9 10.5h.01" strokeWidth="3" />
-      <path d="M15 10.5h.01" strokeWidth="3" />
-      <path d="M9 14.5a3.5 3.5 0 0 0 6 0" />
-      {isGirl ? (
-        <>
-          <path d="M4 9c-1-0.8-1.5-0.5-1.5 1v2" />
-          <path d="M20 9c1-0.8 1.5-0.5 1.5 1v2" />
-          <circle cx="2.5" cy="10" r="1.5" fill="currentColor" />
-          <circle cx="21.5" cy="10" r="1.5" fill="currentColor" />
-        </>
-      ) : (
-        <path d="M11 3c0.5 1 1.5 1 2 0" />
-      )}
-    </svg>
-  );
-}
-
-/**
- * Icono dinámico basado en género y edad (Bebé < 18 meses).
- */
-function ChildAvatarIcon({ gender, birthDate }: { gender: string, birthDate: any }) {
-  const date = birthDate instanceof Date ? birthDate : (birthDate as any).toDate();
-  const ageMonths = calculateAgeInMonths(date, new Date());
-  const isBaby = ageMonths < 18;
-  const isGirl = gender === 'niña';
-  
   const colorClass = isGirl ? 'text-pink-500' : 'text-blue-500';
   const bgColorClass = isGirl ? 'bg-pink-100' : 'bg-blue-100';
 
   return (
     <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shadow-sm shrink-0", bgColorClass, colorClass)}>
-      {isBaby ? (
-        <Baby className="w-6 h-6" />
-      ) : (
-        <ChildFaceIcon gender={gender} className="w-6 h-6" />
-      )}
+      <Baby className="w-6 h-6" />
     </div>
   );
 }
@@ -94,7 +61,7 @@ function FamilyChildrenList({ familyId }: { familyId: string }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-2">
       {sortedChildren.map(child => (
         <div key={child.id} className="flex items-center gap-3 bg-primary/5 p-3 rounded-xl border border-primary/10">
-          <ChildAvatarIcon gender={child.gender} birthDate={child.birthDate} />
+          <ChildAvatarIcon gender={child.gender} />
           <div>
             <p className="font-bold text-sm">{child.name}</p>
             <p className="text-[10px] uppercase font-black text-muted-foreground">
