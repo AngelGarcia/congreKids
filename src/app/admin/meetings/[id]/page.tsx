@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, use, useMemo } from 'react';
@@ -62,13 +63,14 @@ const EXPORT_COLUMNS = [
   { id: 'parentName', label: 'Padre/Madre' },
   { id: 'parentEmail', label: 'Email' },
   { id: 'childName', label: 'Nombre Hijo' },
+  { id: 'gender', label: 'Género' },
   { id: 'ageGroup', label: 'Grupo Edad' },
   { id: 'birthDate', label: 'F. Nacimiento' },
   { id: 'familyName', label: 'Familia' },
   { id: 'guitar', label: 'Guitarra' },
 ];
 
-type SortField = 'name' | 'familyName' | 'guitarSelected';
+type SortField = 'name' | 'familyName' | 'guitarSelected' | 'gender';
 type SortOrder = 'asc' | 'desc';
 
 export default function MeetingDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -249,7 +251,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       const cleanFamilyName = child.familyName?.startsWith('Familia ') 
         ? child.familyName.replace('Familia ', '') 
         : child.familyName;
-      return `- ${child.name} (Fam. ${cleanFamilyName})${guitarEmoji}`;
+      const genderSymbol = child.gender === 'niña' ? '👧' : '👦';
+      return `${genderSymbol} - ${child.name} (Fam. ${cleanFamilyName})${guitarEmoji}`;
     }).join('\n');
 
     const message = encodeURIComponent(header + meetingInfo + totalInfo + childrenList);
@@ -301,6 +304,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           case 'parentName': return child.parentName || '';
           case 'parentEmail': return child.parentEmail || '';
           case 'childName': return child.name || '';
+          case 'gender': return child.gender || 'niño';
           case 'ageGroup': return child.ageGroupLabel || '';
           case 'birthDate': return formatDate(child.birthDate);
           case 'familyName': return child.familyName || '';
@@ -329,6 +333,19 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const totalChildrenCount = allChildren.length;
   const guitarCount = allChildren.filter(c => c.guitarSelected).length;
+
+  const RenderGenderBadge = ({ gender }: { gender: string }) => {
+    const isGirl = gender === 'niña';
+    return (
+      <div className={cn(
+        "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter w-fit",
+        isGirl ? "bg-pink-100 text-pink-600" : "bg-blue-100 text-blue-600"
+      )}>
+        <Baby className="w-3 h-3" />
+        {gender}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -586,6 +603,9 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                     <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer" onClick={() => toggleSort('name')}>
                       <div className="flex items-center">Nombre <SortIcon field="name" /></div>
                     </TableHead>
+                    <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer" onClick={() => toggleSort('gender')}>
+                      <div className="flex items-center">Género <SortIcon field="gender" /></div>
+                    </TableHead>
                     <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer" onClick={() => toggleSort('familyName')}>
                       <div className="flex items-center">Familia <SortIcon field="familyName" /></div>
                     </TableHead>
@@ -597,11 +617,14 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 </TableHeader>
                 <TableBody>
                   {allChildren.length === 0 ? (
-                    <TableRow><TableCell colSpan={4} className="text-center py-12 italic text-muted-foreground font-bold">Sin registros hasta el momento.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center py-12 italic text-muted-foreground font-bold">Sin registros hasta el momento.</TableCell></TableRow>
                   ) : (
                     allChildren.map((child, idx) => (
                       <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-16">
                         <TableCell className="font-black text-xl">{child.name}</TableCell>
+                        <TableCell>
+                          <RenderGenderBadge gender={child.gender} />
+                        </TableCell>
                         <TableCell className="text-base font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
                         <TableCell><Badge variant="outline" className="text-xs font-black uppercase px-3 py-1 border-primary/20 text-primary bg-primary/5">{child.ageGroupLabel}</Badge></TableCell>
                         <TableCell>
@@ -696,17 +719,21 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                     <TableHeader className="bg-muted/5">
                       <TableRow className="hover:bg-transparent border-none h-14">
                         <TableHead className="font-black uppercase text-xs tracking-widest">Nombre</TableHead>
+                        <TableHead className="font-black uppercase text-xs tracking-widest">Género</TableHead>
                         <TableHead className="font-black uppercase text-xs tracking-widest">Familia</TableHead>
                         <TableHead className="font-black uppercase text-xs tracking-widest">Extra</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {childrenInGroup.length === 0 ? (
-                        <TableRow><TableCell colSpan={3} className="text-center py-12 italic text-muted-foreground font-bold">Sin niños en esta categoría.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="text-center py-12 italic text-muted-foreground font-bold">Sin niños en esta categoría.</TableCell></TableRow>
                       ) : (
                         childrenInGroup.map((child, idx) => (
                           <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-16">
                             <TableCell className="font-black text-xl">{child.name}</TableCell>
+                            <TableCell>
+                              <RenderGenderBadge gender={child.gender} />
+                            </TableCell>
                             <TableCell className="text-base font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
                             <TableCell>
                               {child.guitarSelected && <Badge className="bg-accent text-white font-black text-xs px-3 py-1"><Music className="w-3 h-3 mr-1" /> GUITARRA</Badge>}

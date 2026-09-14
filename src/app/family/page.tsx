@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export default function FamilyManagement() {
   const { user, userData, familyData, familyMembers, updateFamilyName, loading: authLoading } = useAuth();
@@ -33,6 +34,7 @@ export default function FamilyManagement() {
   // Forms state
   const [newChildName, setNewChildName] = useState('');
   const [newChildBirthDate, setNewChildBirthDate] = useState('');
+  const [newChildGender, setNewChildGender] = useState<'niño' | 'niña'>('niño');
   const [editFamilySurnames, setEditFamilySurnames] = useState('');
 
   // Redirección si no hay usuario (tras logout)
@@ -74,10 +76,12 @@ export default function FamilyManagement() {
       familyId: userData.familyId,
       name: newChildName,
       birthDate: Timestamp.fromDate(birthDate),
+      gender: newChildGender
     });
     
     setNewChildName('');
     setNewChildBirthDate('');
+    setNewChildGender('niño');
     setIsAddingChild(false);
     toast({ title: "¡Hijo añadido!", description: "Ahora es visible para ambos padres." });
   };
@@ -107,6 +111,11 @@ export default function FamilyManagement() {
     if (b.role === 'padre') return 1;
     return 0;
   });
+
+  const GenderIcon = ({ gender }: { gender: string }) => {
+    if (gender === 'niña') return <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-500"><Baby className="w-5 h-5" /></div>;
+    return <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500"><Baby className="w-5 h-5" /></div>;
+  };
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -202,14 +211,22 @@ export default function FamilyManagement() {
                   return (
                     <Card key={child.id} className="relative overflow-hidden border-2 border-primary/5 hover:border-primary/20 transition-all shadow-md rounded-3xl bg-white group">
                       <CardHeader className="p-5 flex flex-row items-center justify-between space-y-0">
-                        <div>
-                          <CardTitle className="text-xl font-black">{child.name}</CardTitle>
-                          <CardDescription className="text-xs font-bold text-muted-foreground">
-                            {formatDate(child.birthDate)}
-                          </CardDescription>
-                          <Badge variant="secondary" className="mt-2 px-3 py-0.5 text-[10px] rounded-lg bg-primary/10 text-primary border-none font-black">
-                            {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
-                          </Badge>
+                        <div className="flex items-center gap-4">
+                          <GenderIcon gender={child.gender} />
+                          <div>
+                            <CardTitle className="text-xl font-black">{child.name}</CardTitle>
+                            <CardDescription className="text-xs font-bold text-muted-foreground">
+                              {formatDate(child.birthDate)}
+                            </CardDescription>
+                            <div className="flex gap-2 mt-2">
+                              <Badge variant="secondary" className="px-3 py-0.5 text-[10px] rounded-lg bg-primary/10 text-primary border-none font-black">
+                                {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
+                              </Badge>
+                              <Badge variant="outline" className="px-3 py-0.5 text-[10px] rounded-lg border-primary/20 text-primary font-black uppercase">
+                                {child.gender}
+                              </Badge>
+                            </div>
+                          </div>
                         </div>
                         <Button 
                           variant="ghost" 
@@ -267,6 +284,33 @@ export default function FamilyManagement() {
                       required
                       className="h-12 text-base rounded-xl border-2 bg-muted/20"
                     />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Género</Label>
+                    <RadioGroup 
+                      value={newChildGender} 
+                      onValueChange={(val: any) => setNewChildGender(val)}
+                      className="flex gap-4"
+                    >
+                      <div className="flex-1">
+                        <RadioGroupItem value="niño" id="gender-boy" className="peer sr-only" />
+                        <Label
+                          htmlFor="gender-boy"
+                          className="flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 transition-all cursor-pointer font-black uppercase text-xs"
+                        >
+                          <Baby className="w-4 h-4 text-blue-500" /> Niño
+                        </Label>
+                      </div>
+                      <div className="flex-1">
+                        <RadioGroupItem value="niña" id="gender-girl" className="peer sr-only" />
+                        <Label
+                          htmlFor="gender-girl"
+                          className="flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-muted bg-popover hover:bg-accent peer-data-[state=checked]:border-pink-500 peer-data-[state=checked]:bg-pink-50 transition-all cursor-pointer font-black uppercase text-xs"
+                        >
+                          <Baby className="w-4 h-4 text-pink-500" /> Niña
+                        </Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                 </CardContent>
                 <CardFooter className="p-6 pt-0">

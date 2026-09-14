@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -22,6 +23,7 @@ import { normalizeString, cleanSurnames } from '@/lib/utils/string';
 import { Switch } from '@/components/ui/switch';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 export default function ParentDashboard() {
   const { user, userData, familyData, login, joinFamily, createFamily, logout, loading: authLoading } = useAuth();
@@ -173,6 +175,7 @@ export default function ParentDashboard() {
           childId: c.id,
           name: c.name,
           birthDate: c.birthDate,
+          gender: c.gender || 'niño',
           ageGroupLabel: groupLabel,
           guitarSelected: !!guitarSelections[c.id]
         };
@@ -429,8 +432,16 @@ export default function ParentDashboard() {
                               >
                                 <Checkbox checked={isSelected} className="w-6 h-6 rounded-lg border-2" onClick={(e) => e.stopPropagation()} />
                                 <div className="flex-1">
-                                  <p className="text-lg font-black leading-none mb-1">{child.name}</p>
                                   <div className="flex items-center gap-2">
+                                    <p className="text-lg font-black leading-none">{child.name}</p>
+                                    <span className={cn(
+                                      "text-[10px] font-black uppercase",
+                                      child.gender === 'niña' ? "text-pink-500" : "text-blue-500"
+                                    )}>
+                                      {child.gender === 'niña' ? '👧' : '👦'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1">
                                     <p className="text-[10px] font-black text-muted-foreground uppercase">
                                       {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
                                     </p>
@@ -472,12 +483,18 @@ export default function ParentDashboard() {
                           {registration.children.map((child: any) => (
                             <div key={child.childId} className="p-5 rounded-2xl border bg-muted/5 flex items-center justify-between">
                               <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm border">
+                                <div className={cn(
+                                  "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border",
+                                  child.gender === 'niña' ? "bg-pink-50 text-pink-500 border-pink-100" : "bg-blue-50 text-blue-500 border-blue-100"
+                                )}>
                                   <Baby className="w-5 h-5" />
                                 </div>
                                 <div>
-                                  <p className="font-black text-lg leading-none mb-1">{child.name}</p>
-                                  <Badge variant="outline" className="text-[9px] font-black uppercase px-2">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-black text-lg leading-none">{child.name}</p>
+                                    <span className="text-xs">{child.gender === 'niña' ? '👧' : '👦'}</span>
+                                  </div>
+                                  <Badge variant="outline" className="text-[9px] font-black uppercase px-2 mt-1">
                                     {child.ageGroupLabel}
                                   </Badge>
                                 </div>
