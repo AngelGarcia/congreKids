@@ -74,12 +74,31 @@ type SortField = 'name' | 'familyName' | 'guitarSelected' | 'gender';
 type SortOrder = 'asc' | 'desc';
 
 /**
+ * Icono personalizado inspirado en el diseño del usuario.
+ */
+function ChildFaceIcon({ gender, className }: { gender: string, className?: string }) {
+  const isGirl = gender === 'niña';
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="9" cy="11.5" r="0.8" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="11.5" r="0.8" fill="currentColor" stroke="none" />
+      <path d="M4.5 10.5c1-2.5 4-5.5 7.5-5.5s6.5 3 7.5 5.5" fill="currentColor" stroke="none" />
+      <path d="M6 10l3 2.5l-1-3.5z" fill="currentColor" stroke="none" />
+      <path d="M10 8l3 3.5l-1-4.5z" fill="currentColor" stroke="none" />
+      {isGirl && <path d="M15 9l3 2.5l-1-3.5z" fill="currentColor" stroke="none" />}
+      <path d="M10.5 16.5c0.5 0.3 2.5 0.3 3 0" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+/**
  * Badge dinámico de género y edad para las tablas de administración.
  */
 function RenderGenderBadge({ gender, birthDate, meetingDate }: { gender: string, birthDate: any, meetingDate: Date }) {
   const date = birthDate instanceof Date ? birthDate : (birthDate as any).toDate();
   const ageMonths = calculateAgeInMonths(date, meetingDate);
-  const isBaby = ageMonths < 36;
+  const isBaby = ageMonths < 18;
   const isGirl = gender === 'niña';
   
   return (
@@ -90,12 +109,7 @@ function RenderGenderBadge({ gender, birthDate, meetingDate }: { gender: string,
       {isBaby ? (
         <Baby className="w-3.5 h-3.5" />
       ) : (
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 15c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z"/>
-          <path d="M8 9a1 1 0 1 1 2 0 1 1 0 0 1-2 0z"/>
-          <path d="M14 9a1 1 0 1 1 2 0 1 1 0 0 1-2 0z"/>
-          <path d="M9.5 12c.7.7 2.3.7 3 0"/>
-        </svg>
+        <ChildFaceIcon gender={gender} className="w-3.5 h-3.5" />
       )}
       {gender}
     </div>

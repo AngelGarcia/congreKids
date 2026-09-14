@@ -25,6 +25,35 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 
+/**
+ * Icono personalizado inspirado en el diseño del usuario.
+ */
+function ChildFaceIcon({ gender, className }: { gender: string, className?: string }) {
+  const isGirl = gender === 'niña';
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="9" cy="11.5" r="0.8" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="11.5" r="0.8" fill="currentColor" stroke="none" />
+      <path d="M4.5 10.5c1-2.5 4-5.5 7.5-5.5s6.5 3 7.5 5.5" fill="currentColor" stroke="none" />
+      <path d="M6 10l3 2.5l-1-3.5z" fill="currentColor" stroke="none" />
+      <path d="M10 8l3 3.5l-1-4.5z" fill="currentColor" stroke="none" />
+      {isGirl && <path d="M15 9l3 2.5l-1-3.5z" fill="currentColor" stroke="none" />}
+      <path d="M10.5 16.5c0.5 0.3 2.5 0.3 3 0" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+/**
+ * Ayudante visual para el icono del niño en inscripciones.
+ */
+function ChildIconHelper({ gender, birthDate, meetingDate }: { gender: string, birthDate: any, meetingDate: Date }) {
+  const date = birthDate instanceof Date ? birthDate : (birthDate as any).toDate();
+  const ageMonths = calculateAgeInMonths(date, meetingDate);
+  const isBaby = ageMonths < 18;
+  return isBaby ? <Baby className="w-full h-full p-0.5" /> : <ChildFaceIcon gender={gender} className="w-full h-full" />;
+}
+
 export default function ParentDashboard() {
   const { user, userData, familyData, login, joinFamily, createFamily, logout, loading: authLoading } = useAuth();
   const db = useFirestore();
@@ -360,10 +389,8 @@ export default function ParentDashboard() {
     );
   }
 
-  const registrationOpeningDate = upcomingMeeting ? getRegistrationOpeningDate((upcomingMeeting.date as any).toDate()) : null;
-  // La inscripción está abierta si:
-  // 1. El estado es explícitamente 'open' (manejado por admin)
-  // 2. O el estado es 'upcoming' y estamos dentro del plazo automático
+  const meetingDateObj = upcomingMeeting ? (upcomingMeeting.date as any).toDate() : new Date();
+  const registrationOpeningDate = upcomingMeeting ? getRegistrationOpeningDate(meetingDateObj) : null;
   const isRegistrationCurrentlyOpen = upcomingMeeting 
     ? (upcomingMeeting.status === 'open' || (upcomingMeeting.status === 'upcoming' && isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate(), registrationOpeningDate)))
     : false;
@@ -417,7 +444,7 @@ export default function ParentDashboard() {
                         </div>
                       ) : (
                         sortedChildren.map(child => {
-                          const ageMonths = calculateAgeInMonths((child.birthDate as any).toDate(), (upcomingMeeting.date as any).toDate());
+                          const ageMonths = calculateAgeInMonths((child.birthDate as any).toDate(), meetingDateObj);
                           const isSelected = selectedChildren.includes(child.id);
                           const currentGroup = upcomingMeeting.ageGroups.find((g: any) => ageMonths >= g.minMonths && ageMonths < g.maxMonths);
                           const allowsGuitar = currentGroup?.allowsGuitar;
@@ -434,14 +461,14 @@ export default function ParentDashboard() {
                               >
                                 <Checkbox checked={isSelected} className="w-6 h-6 rounded-lg border-2" onClick={(e) => e.stopPropagation()} />
                                 <div className="flex-1">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-3">
                                     <p className="text-lg font-black leading-none">{child.name}</p>
-                                    <span className={cn(
-                                      "text-[10px] font-black uppercase",
-                                      child.gender === 'niña' ? "text-pink-500" : "text-blue-500"
+                                    <div className={cn(
+                                      "w-5 h-5 rounded-full flex items-center justify-center border",
+                                      child.gender === 'niña' ? "bg-pink-50 text-pink-500 border-pink-100" : "bg-blue-50 text-blue-500 border-blue-100"
                                     )}>
-                                      {child.gender === 'niña' ? '👧' : '👦'}
-                                    </span>
+                                      <ChildIconHelper gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
+                                    </div>
                                   </div>
                                   <div className="flex items-center gap-2 mt-1">
                                     <p className="text-[10px] font-black text-muted-foreground uppercase">
@@ -489,7 +516,7 @@ export default function ParentDashboard() {
                                   "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border",
                                   child.gender === 'niña' ? "bg-pink-50 text-pink-500 border-pink-100" : "bg-blue-50 text-blue-500 border-blue-100"
                                 )}>
-                                  <Baby className="w-5 h-5" />
+                                  <ChildIconHelper gender={child.gender} birthDate={child.birthDate} meetingDate={meetingDateObj} />
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-2">
