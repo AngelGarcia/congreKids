@@ -25,7 +25,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 
 /**
- * Icono infantil minimalista y limpio integrado con el estilo de Lucide.
+ * Icono infantil minimalista y limpio con distinción de género (coletas para niñas).
  */
 function ChildFaceIcon({ gender, className }: { gender: string, className?: string }) {
   const isGirl = gender === 'niña';
@@ -39,6 +39,8 @@ function ChildFaceIcon({ gender, className }: { gender: string, className?: stri
         <>
           <path d="M4 9c-1-0.8-1.5-0.5-1.5 1v2" />
           <path d="M20 9c1-0.8 1.5-0.5 1.5 1v2" />
+          <circle cx="2.5" cy="10" r="1.5" fill="currentColor" />
+          <circle cx="21.5" cy="10" r="1.5" fill="currentColor" />
         </>
       ) : (
         <path d="M11 3c0.5 1 1.5 1 2 0" />

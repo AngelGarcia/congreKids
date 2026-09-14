@@ -22,7 +22,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 
 /**
- * Icono infantil minimalista y limpio integrado con el estilo de Lucide.
+ * Icono infantil minimalista y limpio con distinción de género (coletas para niñas).
  */
 function ChildFaceIcon({ gender, className }: { gender: string, className?: string }) {
   const isGirl = gender === 'niña';
@@ -34,8 +34,11 @@ function ChildFaceIcon({ gender, className }: { gender: string, className?: stri
       <path d="M9 14.5a3.5 3.5 0 0 0 6 0" />
       {isGirl ? (
         <>
+          {/* Cabello y coletas */}
           <path d="M4 9c-1-0.8-1.5-0.5-1.5 1v2" />
           <path d="M20 9c1-0.8 1.5-0.5 1.5 1v2" />
+          <circle cx="2.5" cy="10" r="1.5" fill="currentColor" />
+          <circle cx="21.5" cy="10" r="1.5" fill="currentColor" />
         </>
       ) : (
         <path d="M11 3c0.5 1 1.5 1 2 0" />
@@ -61,7 +64,7 @@ function ChildAvatarIcon({ gender, birthDate }: { gender: string, birthDate: any
       {isBaby ? (
         <Baby className="w-7 h-7" />
       ) : (
-        <ChildFaceIcon gender={gender} className="w-6 h-6" />
+        <ChildFaceIcon gender={gender} className="w-8 h-8" />
       )}
     </div>
   );
@@ -93,7 +96,6 @@ export default function FamilyManagement() {
 
   useEffect(() => {
     if (familyData?.name) {
-      // Extraemos solo los apellidos si el nombre empieza por "Familia "
       const surnames = familyData.name.startsWith('Familia ') 
         ? familyData.name.replace('Familia ', '') 
         : familyData.name;
@@ -165,7 +167,6 @@ export default function FamilyManagement() {
   const handleUpdateFamilyName = (e: React.FormEvent) => {
     e.preventDefault();
     if (editFamilySurnames.trim()) {
-      // Siempre guardamos con el prefijo "Familia "
       updateFamilyName(`Familia ${editFamilySurnames.trim()}`);
       setIsEditingFamilyName(false);
     }
@@ -292,12 +293,6 @@ export default function FamilyManagement() {
                               <Badge variant="secondary" className="px-3 py-0.5 text-[10px] rounded-lg bg-primary/10 text-primary border-none font-black">
                                 {ageMonths >= 12 ? `${Math.floor(ageMonths / 12)} años` : `${ageMonths} meses`}
                               </Badge>
-                              <Badge variant="outline" className={cn(
-                                "px-2 py-0.5 rounded-lg border-2",
-                                child.gender === 'niña' ? "border-pink-200 bg-pink-50" : "border-blue-200 bg-blue-50"
-                              )}>
-                                <ChildAvatarIcon gender={child.gender} birthDate={child.birthDate} />
-                              </Badge>
                             </div>
                           </div>
                         </div>
@@ -408,7 +403,7 @@ export default function FamilyManagement() {
                           )}
                         >
                           <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 border border-pink-200">
-                             <Baby className="w-6 h-6" />
+                             <ChildFaceIcon gender="niña" className="w-6 h-6" />
                           </div>
                         </Label>
                       </div>

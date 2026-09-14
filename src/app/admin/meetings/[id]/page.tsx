@@ -63,7 +63,7 @@ type SortField = 'name' | 'familyName' | 'guitarSelected' | 'gender';
 type SortOrder = 'asc' | 'desc';
 
 /**
- * Icono infantil minimalista y limpio integrado con el estilo de Lucide.
+ * Icono infantil minimalista y limpio con distinción de género (coletas para niñas).
  */
 function ChildFaceIcon({ gender, className }: { gender: string, className?: string }) {
   const isGirl = gender === 'niña';
@@ -77,6 +77,8 @@ function ChildFaceIcon({ gender, className }: { gender: string, className?: stri
         <>
           <path d="M4 9c-1-0.8-1.5-0.5-1.5 1v2" />
           <path d="M20 9c1-0.8 1.5-0.5 1.5 1v2" />
+          <circle cx="2.5" cy="10" r="1.5" fill="currentColor" />
+          <circle cx="21.5" cy="10" r="1.5" fill="currentColor" />
         </>
       ) : (
         <path d="M11 3c0.5 1 1.5 1 2 0" />
@@ -102,7 +104,7 @@ function RenderGenderBadge({ gender, birthDate, meetingDate }: { gender: string,
       {isBaby ? (
         <Baby className="w-4 h-4" />
       ) : (
-        <ChildFaceIcon gender={gender} className="w-4 h-4" />
+        <ChildFaceIcon gender={gender} className="w-5 h-5" />
       )}
     </div>
   );
@@ -116,15 +118,12 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  // Hooks para datos de la reunión
   const meetingRef = useMemoFirebase(() => doc(dbFirestore, 'meetings', id), [dbFirestore, id]);
   const { data: meeting, isLoading: loadingMeeting } = useDoc(meetingRef);
 
-  // Hooks para inscripciones
   const registrationsQuery = useMemoFirebase(() => collection(dbFirestore, 'meetings', id, 'registrations'), [dbFirestore, id]);
   const { data: registrations, isLoading: loadingRegistrations } = useCollection(registrationsQuery);
 
-  // Monitors from agenda
   const monitorsQuery = useMemoFirebase(() => query(collection(dbFirestore, 'monitors'), orderBy('firstName', 'asc')), [dbFirestore]);
   const { data: allMonitors } = useCollection(monitorsQuery);
 
@@ -132,7 +131,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     return allMonitors?.filter(m => m.isAvailable) || [];
   }, [allMonitors]);
 
-  // Export states
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [orderedColumns, setOrderedColumns] = useState([...EXPORT_COLUMNS]);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(EXPORT_COLUMNS.map(c => c.id));
@@ -142,7 +140,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  // State for editing
   const [editTitle, setEditTitle] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editDeadline, setEditDeadline] = useState('');
