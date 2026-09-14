@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, use, useMemo } from 'react';
@@ -46,18 +45,8 @@ import {
 } from "@/components/ui/accordion";
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const EXPORT_COLUMNS = [
   { id: 'parentName', label: 'Padre/Madre' },
@@ -74,20 +63,24 @@ type SortField = 'name' | 'familyName' | 'guitarSelected' | 'gender';
 type SortOrder = 'asc' | 'desc';
 
 /**
- * Icono personalizado inspirado en el diseño del usuario.
+ * Icono infantil minimalista y limpio integrado con el estilo de Lucide.
  */
 function ChildFaceIcon({ gender, className }: { gender: string, className?: string }) {
   const isGirl = gender === 'niña';
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="9" cy="11.5" r="0.8" fill="currentColor" stroke="none" />
-      <circle cx="15" cy="11.5" r="0.8" fill="currentColor" stroke="none" />
-      <path d="M4.5 10.5c1-2.5 4-5.5 7.5-5.5s6.5 3 7.5 5.5" fill="currentColor" stroke="none" />
-      <path d="M6 10l3 2.5l-1-3.5z" fill="currentColor" stroke="none" />
-      <path d="M10 8l3 3.5l-1-4.5z" fill="currentColor" stroke="none" />
-      {isGirl && <path d="M15 9l3 2.5l-1-3.5z" fill="currentColor" stroke="none" />}
-      <path d="M10.5 16.5c0.5 0.3 2.5 0.3 3 0" strokeWidth="1.2" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9 10.5h.01" strokeWidth="3" />
+      <path d="M15 10.5h.01" strokeWidth="3" />
+      <path d="M9 14.5a3.5 3.5 0 0 0 6 0" />
+      {isGirl ? (
+        <>
+          <path d="M4 9c-1-0.8-1.5-0.5-1.5 1v2" />
+          <path d="M20 9c1-0.8 1.5-0.5 1.5 1v2" />
+        </>
+      ) : (
+        <path d="M11 3c0.5 1 1.5 1 2 0" />
+      )}
     </svg>
   );
 }
@@ -755,7 +748,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                     </TableHeader>
                     <TableBody>
                       {childrenInGroup.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center py-12 italic text-muted-foreground font-bold">Sin niños en esta categoría.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="text-center py-12 italic text-muted-foreground font-bold">Sin niños in esta categoría.</TableCell></TableRow>
                       ) : (
                         childrenInGroup.map((child, idx) => (
                           <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-16">
