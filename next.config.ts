@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -30,6 +31,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Forzamos que Next.js sepa que corre en un entorno de servidor compatible con Firebase
+  experimental: {
+    externalDir: true,
+  }
 };
 
 export default nextConfig;
