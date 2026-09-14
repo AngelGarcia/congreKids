@@ -163,15 +163,21 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const isCurrentlyOpen = useMemo(() => {
     if (!meeting) return false;
+    // La reunión se considera abierta si su estado es explícitamente 'open'
+    // O si es 'upcoming' y estamos dentro de las fechas automáticas
+    if (meeting.status === 'open') return true;
+    if (meeting.status === 'closed') return false;
+    
     const openingDate = getRegistrationOpeningDate((meeting.date as any).toDate());
     const deadline = (meeting.registrationDeadline as any).toDate();
-    return isRegistrationOpen(deadline, openingDate) && meeting.status !== 'closed';
+    return isRegistrationOpen(deadline, openingDate);
   }, [meeting]);
 
   const handleToggleStatus = async () => {
     if (!meeting) return;
     const shouldOpen = !isCurrentlyOpen;
-    const newStatus = shouldOpen ? 'upcoming' : 'closed';
+    // Si queremos abrir manualmente, usamos el estado 'open' que ignora plazos
+    const newStatus = shouldOpen ? 'open' : 'closed';
     updateDocumentNonBlocking(meetingRef, { status: newStatus });
     
     const now = new Date();
@@ -191,12 +197,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   const handleDeleteMeeting = async () => {
     if (!meetingRef) return;
-    
-    // Cerramos el modal de ajustes primero para evitar que la transición de NextJS
-    // deje el body bloqueado por Radix Dialog.
     setIsSettingsOpen(false);
-    
-    // Pequeño timeout opcional para que la animación de cierre de Radix empiece antes de la navegación
     deleteDocumentNonBlocking(meetingRef);
     toast({ title: "Reunión eliminada", description: "El encuentro ha sido borrado correctamente." });
     router.push('/admin/meetings');

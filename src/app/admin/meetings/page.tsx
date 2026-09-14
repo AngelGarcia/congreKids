@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -43,10 +44,18 @@ export default function MeetingsAdmin() {
     if (isPast) return { label: 'PASADA', variant: 'secondary' as const, icon: <History className="w-3 h-3 mr-1" /> };
 
     if (isNext) {
+      if (meeting.status === 'open') {
+        return { label: 'ABIERTA', variant: 'default' as const, icon: <Unlock className="w-3 h-3 mr-1" /> };
+      }
+      if (meeting.status === 'closed') {
+        return { label: 'CERRADA', variant: 'destructive' as const, icon: <Lock className="w-3 h-3 mr-1" /> };
+      }
+
       const deadline = (meeting.registrationDeadline as any).toDate();
-      const hasPassedDeadline = now > deadline || meeting.status === 'closed';
+      const openingDate = getRegistrationOpeningDate((meeting.date as any).toDate());
+      const isAutoOpen = isRegistrationOpen(deadline, openingDate);
       
-      if (hasPassedDeadline) {
+      if (!isAutoOpen) {
         return { label: 'CERRADA', variant: 'destructive' as const, icon: <Lock className="w-3 h-3 mr-1" /> };
       }
       

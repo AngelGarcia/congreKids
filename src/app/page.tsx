@@ -362,9 +362,11 @@ export default function ParentDashboard() {
 
   const registrationOpeningDate = upcomingMeeting ? getRegistrationOpeningDate((upcomingMeeting.date as any).toDate()) : null;
   // La inscripción está abierta si:
-  // 1. El estado no es 'closed' (cierre manual)
-  // 2. Estamos dentro de las fechas (apertura automática y límite temporal)
-  const isRegistrationCurrentlyOpen = upcomingMeeting ? isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate(), registrationOpeningDate) && upcomingMeeting.status !== 'closed' : false;
+  // 1. El estado es explícitamente 'open' (manejado por admin)
+  // 2. O el estado es 'upcoming' y estamos dentro del plazo automático
+  const isRegistrationCurrentlyOpen = upcomingMeeting 
+    ? (upcomingMeeting.status === 'open' || (upcomingMeeting.status === 'upcoming' && isRegistrationOpen((upcomingMeeting.registrationDeadline as any).toDate(), registrationOpeningDate)))
+    : false;
 
   return (
     <div className="min-h-screen bg-background pb-12">
