@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -9,7 +10,9 @@ import {
   User,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  updateProfile
+  updateProfile,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, updateDoc, arrayUnion, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
@@ -158,17 +161,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async () => {
     try {
       setLoading(true);
+      // Forzamos persistencia local para evitar problemas con sessionStorage en navegadores con ITP (Safari/Brave)
+      await setPersistence(auth, browserLocalPersistence);
       const provider = new GoogleAuthProvider();
+      // Configuramos parámetros para intentar reducir bloqueos de popups
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       setLoading(false);
-      toast({ variant: "destructive", title: "Error", description: "No se pudo iniciar sesión con Google." });
+      console.error("Auth Error:", error);
+      
+      let message = "No se pudo iniciar sesión con Google.";
+      if (error.code === 'auth/popup-blocked') {
+        message = "El navegador bloqueó la ventana emergente. Por favor, permítela e inténtalo de nuevo.";
+      } else if (error.code === 'auth/web-storage-unsupported' || error.message?.includes('missing initial state')) {
+        message = "Tu navegador está bloqueando las cookies necesarias. Intenta desactivar el 'Bloqueo de rastreo' o usa otro navegador.";
+      }
+      
+      toast({ 
+        variant: "destructive", 
+        title: "Error de Autenticación", 
+        description: message 
+      });
     }
   };
 
   const loginWithEmail = async (email: string, password: string) => {
     try {
       setLoading(true);
+      await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
       setLoading(false);
@@ -182,6 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUpWithEmail = async (email: string, password: string, displayName: string) => {
     try {
       setLoading(true);
+      await setPersistence(auth, browserLocalPersistence);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName });
     } catch (error: any) {
