@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -7,6 +7,19 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 export const metadata: Metadata = {
   title: 'CongreKids - Gestión de Cuidado Infantil',
   description: 'Aplicación para la gestión de inscripciones de guardería en la Congregación Mater Salvatoris',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'CongreKids',
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#4EB2B4',
 };
 
 export default function RootLayout({
@@ -15,16 +28,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" className="antialiased">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased bg-background text-foreground">
+      <body className="font-body antialiased bg-background text-foreground selection:bg-primary/20 selection:text-primary">
         <FirebaseClientProvider>
           <AuthProvider>
-            {children}
+            <div className="flex flex-col min-h-screen">
+              {children}
+            </div>
             <Toaster />
           </AuthProvider>
         </FirebaseClientProvider>

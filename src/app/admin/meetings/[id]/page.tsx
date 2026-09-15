@@ -63,7 +63,7 @@ type SortField = 'name' | 'familyName' | 'guitarSelected' | 'gender';
 type SortOrder = 'asc' | 'desc';
 
 /**
- * Badge dinámico de género (Bebé universal con color).
+ * Badge dinámico de género.
  */
 function RenderGenderBadge({ gender }: { gender: string }) {
   const isGirl = gender === 'niña';
@@ -176,27 +176,14 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     const shouldOpen = !isCurrentlyOpen;
     const newStatus = shouldOpen ? 'open' : 'closed';
     updateDocumentNonBlocking(meetingRef, { status: newStatus });
-    
-    const now = new Date();
-    const deadline = (meeting.registrationDeadline as any).toDate();
-    const hasPassedDeadline = now > deadline;
-
-    if (shouldOpen && hasPassedDeadline) {
-      toast({ 
-        title: "Plazo abierto con aviso", 
-        description: "Se ha activado el estado, pero la fecha límite ya ha pasado. Por favor, edita la 'Fecha Límite'.",
-        variant: "destructive"
-      });
-    } else {
-      toast({ title: shouldOpen ? "Plazo abierto" : "Plazo cerrado" });
-    }
+    toast({ title: shouldOpen ? "Plazo abierto" : "Plazo cerrado" });
   };
 
   const handleDeleteMeeting = async () => {
     if (!meetingRef) return;
     setIsSettingsOpen(false);
     deleteDocumentNonBlocking(meetingRef);
-    toast({ title: "Reunión eliminada", description: "El encuentro ha sido borrado correctamente." });
+    toast({ title: "Reunión eliminada" });
     router.push('/admin/meetings');
   };
 
@@ -218,7 +205,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
     updateDocumentNonBlocking(meetingRef, updatedData);
     setIsSettingsOpen(false);
-    toast({ title: "Cambios guardados", description: "La configuración de la reunión ha sido actualizada." });
+    toast({ title: "Configuración actualizada" });
   };
 
   const handleAssignMonitor = (groupIdx: number, monitorId: string) => {
@@ -235,7 +222,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     
     newAgeGroups[groupIdx] = group;
     updateDocumentNonBlocking(meetingRef, { ageGroups: newAgeGroups });
-    toast({ title: "Monitores actualizados" });
   };
 
   const shareOnWhatsApp = (data: any[], title: string) => {
@@ -333,163 +319,163 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const guitarCount = allChildren.filter(c => c.guitarSelected).length;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-1">
-          <Link href="/admin/meetings" className="text-sm text-muted-foreground flex items-center hover:text-primary mb-2 font-bold uppercase tracking-widest">
-            <ChevronLeft className="w-4 h-4 mr-1" /> Volver al listado
+    <div className="space-y-6 sm:space-y-10 max-w-7xl mx-auto px-4 sm:px-0 pb-10">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <Link href="/admin/meetings" className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center hover:text-primary transition-all active:scale-95">
+            <ChevronLeft className="w-4 h-4 mr-1" /> Listado de Reuniones
           </Link>
-          <h1 className="text-4xl font-black tracking-tighter uppercase leading-tight text-primary">{meeting.title}</h1>
-          <div className="text-muted-foreground flex items-center gap-3 font-bold uppercase text-xs tracking-widest">
-            {formatDateTime(meeting.date)}
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tighter uppercase leading-none text-primary break-words">{meeting.title}</h1>
+          <div className="text-muted-foreground flex items-center gap-3 font-bold uppercase text-[10px] sm:text-xs tracking-widest mt-2">
+            <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">{formatDateTime(meeting.date)}</Badge>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
-          <Button onClick={shareInvitation} className="rounded-xl font-black uppercase shadow-lg bg-green-600 hover:bg-green-700 h-12 px-6">
-            <Share2 className="w-4 h-4 mr-2" /> WhatsApp
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 shrink-0">
+          <Button onClick={shareInvitation} className="rounded-2xl font-black uppercase shadow-xl bg-green-600 hover:bg-green-700 h-14 px-4 sm:px-6 order-2 sm:order-1 col-span-1">
+            <Share2 className="w-4 h-4 mr-2" /> <span className="hidden sm:inline">WhatsApp</span><span className="sm:hidden">Invit.</span>
           </Button>
           
-          <Button variant="outline" onClick={handleToggleStatus} className="rounded-xl font-black uppercase h-12 px-6">
+          <Button variant="outline" onClick={handleToggleStatus} className="rounded-2xl font-black uppercase h-14 px-4 sm:px-6 order-3 sm:order-2 col-span-1 border-2">
             {isCurrentlyOpen ? (
-              <><Lock className="w-4 h-4 mr-2" /> Cerrar Plazo</>
+              <><Lock className="w-4 h-4 mr-2" /> Cerrar</>
             ) : (
-              <><Unlock className="w-4 h-4 mr-2" /> Abrir Plazo</>
+              <><Unlock className="w-4 h-4 mr-2" /> Abrir</>
             )}
           </Button>
 
           <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
             <DialogTrigger asChild>
-              <Button variant="secondary" className="rounded-xl font-black uppercase h-12 px-4">
-                <Settings2 className="w-5 h-5 mr-2" /> Ajustes
+              <Button variant="secondary" className="rounded-2xl font-black uppercase h-14 px-4 sm:px-6 order-1 sm:order-3 col-span-2 sm:col-auto bg-muted/50 border-2">
+                <Settings2 className="w-5 h-5 mr-2" /> Configurar Encuentro
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl rounded-3xl overflow-hidden p-0 border-none shadow-2xl">
-              <DialogHeader className="p-8 bg-primary/5 border-b">
-                <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-2">
-                  <Settings2 className="w-6 h-6" /> Configurar Reunión
+            <DialogContent className="max-w-2xl w-[95vw] rounded-[2.5rem] overflow-hidden p-0 border-none shadow-2xl">
+              <DialogHeader className="p-6 sm:p-10 bg-primary/5 border-b">
+                <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-3">
+                  <Settings2 className="w-6 h-6" /> Configuración
                 </DialogTitle>
-                <DialogDescription className="font-bold">
-                  Modifica los datos generales y categorías de edad de este encuentro.
-                </DialogDescription>
+                <DialogDescription className="font-bold">Ajustes generales y categorías de edad.</DialogDescription>
               </DialogHeader>
               
-              <ScrollArea className="max-h-[70vh] p-8">
-                <div className="space-y-8">
-                  <div className="space-y-4">
+              <ScrollArea className="max-h-[60vh] sm:max-h-[70vh] p-6 sm:p-10">
+                <div className="space-y-10">
+                  <div className="space-y-6">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Título de la reunión</Label>
-                      <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="font-black text-lg h-12 rounded-xl border-2" />
+                      <Label className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Título</Label>
+                      <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="font-black text-xl h-14 rounded-2xl border-2 bg-muted/10 focus:bg-white" />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Fecha y Hora</Label>
-                        <Input type="datetime-local" value={editDate} onChange={e => setEditDate(e.target.value)} className="h-12 font-bold rounded-xl border-2" />
+                        <Label className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Fecha y Hora</Label>
+                        <Input type="datetime-local" value={editDate} onChange={e => setEditDate(e.target.value)} className="h-14 font-bold rounded-2xl border-2 bg-muted/10" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Límite Inscripción</Label>
-                        <Input type="datetime-local" value={editDeadline} onChange={e => setEditDeadline(e.target.value)} className="h-12 font-bold rounded-xl border-2" />
+                        <Label className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Límite Inscripción</Label>
+                        <Input type="datetime-local" value={editDeadline} onChange={e => setEditDeadline(e.target.value)} className="h-14 font-bold rounded-2xl border-2 bg-muted/10" />
                       </div>
                     </div>
                   </div>
 
-                  <Separator />
+                  <Separator className="bg-primary/10" />
 
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Categorías de Edad</Label>
+                      <Label className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Categorías de Edad</Label>
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => setEditAgeGroups([...editAgeGroups, { label: 'Nuevo', minMonths: 0, maxMonths: 144, allowsGuitar: false, ratio: 8, assignedMonitors: [] }])}
-                        className="h-8 text-[10px] font-black uppercase"
+                        className="h-9 px-4 rounded-xl text-[10px] font-black uppercase bg-primary/5 text-primary border-none active:scale-95"
                       >
-                        <Plus className="w-3 h-3 mr-1" /> Añadir
+                        <Plus className="w-3.5 h-3.5 mr-1.5" /> Añadir
                       </Button>
                     </div>
                     
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {editAgeGroups.map((group, idx) => (
-                        <Card key={idx} className="bg-muted/5 border-2 rounded-2xl p-4 space-y-4 relative group">
+                        <Card key={idx} className="bg-muted/10 border-2 rounded-[2rem] p-5 space-y-5 relative shadow-sm">
                           <Button 
                             variant="ghost" 
                             size="icon" 
                             onClick={() => setEditAgeGroups(editAgeGroups.filter((_, i) => i !== idx))} 
-                            className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-destructive"
+                            className="absolute top-3 right-3 h-8 w-8 text-muted-foreground hover:text-destructive rounded-xl"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
-                          <div className="grid grid-cols-3 gap-4">
-                            <div className="col-span-2 space-y-1">
-                              <Label className="text-[8px] font-black uppercase">Nombre Categoría</Label>
-                              <Input value={group.label} onChange={e => updateAgeGroup(idx, 'label', e.target.value)} className="h-9 font-bold text-sm" />
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="col-span-2 space-y-1">
+                                <Label className="text-[9px] font-black uppercase">Nombre</Label>
+                                <Input value={group.label} onChange={e => updateAgeGroup(idx, 'label', e.target.value)} className="h-10 font-bold text-sm rounded-xl border-none shadow-inner" />
+                              </div>
+                              <div className="space-y-1 text-center">
+                                <Label className="text-[9px] font-black uppercase">Ratio</Label>
+                                <Input type="number" value={group.ratio || 8} onChange={e => updateAgeGroup(idx, 'ratio', parseInt(e.target.value))} className="h-10 font-bold text-sm text-center rounded-xl border-none shadow-inner" />
+                              </div>
                             </div>
-                            <div className="space-y-1">
-                              <Label className="text-[8px] font-black uppercase">Ratio 1:N</Label>
-                              <Input type="number" value={group.ratio || 8} onChange={e => updateAgeGroup(idx, 'ratio', parseInt(e.target.value))} className="h-9 font-bold text-sm" />
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-[9px] font-black uppercase">Mín (años)</Label>
+                                <Input 
+                                  type="number" 
+                                  step="0.1" 
+                                  value={Math.round((group.minMonths / 12) * 10) / 10} 
+                                  onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} 
+                                  className="h-10 font-bold text-sm rounded-xl border-none shadow-inner" 
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[9px] font-black uppercase">Máx (años)</Label>
+                                <Input 
+                                  type="number" 
+                                  step="0.1" 
+                                  value={Math.round((group.maxMonths / 12) * 10) / 10} 
+                                  onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} 
+                                  className="h-10 font-bold text-sm rounded-xl border-none shadow-inner" 
+                                />
+                              </div>
                             </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                              <Label className="text-[8px] font-black uppercase">Edad Mín (años)</Label>
-                              <Input 
-                                type="number" 
-                                step="0.1" 
-                                value={Math.round((group.minMonths / 12) * 10) / 10} 
-                                onChange={e => updateAgeGroup(idx, 'minMonths', parseFloat(e.target.value) * 12)} 
-                                className="h-9 font-bold text-sm" 
-                              />
+                            <div className="flex items-center justify-between pt-3 border-t-2 border-white/40">
+                               <div className="flex items-center gap-2">
+                                 <Music className="w-4 h-4 text-accent" />
+                                 <span className="text-[10px] font-black uppercase">Guitarra</span>
+                               </div>
+                               <Switch checked={group.allowsGuitar} onCheckedChange={val => updateAgeGroup(idx, 'allowsGuitar', val)} />
                             </div>
-                            <div className="space-y-1">
-                              <Label className="text-[8px] font-black uppercase">Edad Máx (años)</Label>
-                              <Input 
-                                type="number" 
-                                step="0.1" 
-                                value={Math.round((group.maxMonths / 12) * 10) / 10} 
-                                onChange={e => updateAgeGroup(idx, 'maxMonths', parseFloat(e.target.value) * 12)} 
-                                className="h-9 font-bold text-sm" 
-                              />
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between pt-2 border-t">
-                             <div className="flex items-center gap-2">
-                               <Music className="w-4 h-4 text-accent" />
-                               <span className="text-[10px] font-black uppercase">Permitir Guitarra</span>
-                             </div>
-                             <Switch checked={group.allowsGuitar} onCheckedChange={val => updateAgeGroup(idx, 'allowsGuitar', val)} />
                           </div>
                         </Card>
                       ))}
                     </div>
                   </div>
 
-                  <Separator />
+                  <Separator className="bg-destructive/10" />
 
-                  <div className="p-6 bg-destructive/5 rounded-2xl border-2 border-dashed border-destructive/20 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-5 h-5 text-destructive" />
-                      <h4 className="text-xs font-black uppercase text-destructive tracking-widest">Zona de Peligro</h4>
+                  <div className="p-8 bg-destructive/5 rounded-[2.5rem] border-4 border-dashed border-destructive/10 space-y-5">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="w-6 h-6 text-destructive" />
+                      <h4 className="text-sm font-black uppercase text-destructive tracking-[0.2em]">Zona de Peligro</h4>
                     </div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
-                      Borrar esta reunión eliminará permanentemente todos los datos de inscripción y monitores asignados. Esta acción no se puede deshacer.
+                    <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed">
+                      Borrar esta reunión eliminará permanentemente todos los datos de inscripción.
                     </p>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" className="w-full rounded-xl font-black uppercase tracking-tighter shadow-sm h-12">
-                          <Trash2 className="w-4 h-4 mr-2" /> Eliminar Reunión
+                        <Button variant="destructive" className="w-full rounded-2xl font-black uppercase tracking-tighter shadow-lg h-14 active:scale-95 transition-all">
+                          <Trash2 className="w-4 h-4 mr-2" /> Eliminar Permanentemente
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl">
+                      <AlertDialogContent className="rounded-[3rem] border-none shadow-2xl p-8">
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary">¿Estás completamente seguro?</AlertDialogTitle>
-                          <AlertDialogDescription className="font-bold">
-                            Esta acción eliminará la reunión <strong>"{meeting.title}"</strong> y todas las inscripciones asociadas para siempre.
+                          <AlertDialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary">¿Confirmas el borrado?</AlertDialogTitle>
+                          <AlertDialogDescription className="font-bold text-lg leading-tight">
+                            Esta acción eliminará la reunión <strong>"{meeting.title}"</strong> para siempre.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="rounded-xl font-bold uppercase">Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDeleteMeeting} className="rounded-xl font-black uppercase bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Sí, eliminar permanentemente
+                        <AlertDialogFooter className="mt-8 gap-3">
+                          <AlertDialogCancel className="rounded-2xl font-bold uppercase h-14 px-8 border-2">Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteMeeting} className="rounded-2xl font-black uppercase bg-destructive text-destructive-foreground hover:bg-destructive/90 h-14 px-8">
+                            Sí, eliminar
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -498,9 +484,9 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 </div>
               </ScrollArea>
 
-              <DialogFooter className="p-8 bg-muted/5 border-t">
-                <Button variant="ghost" onClick={() => setIsSettingsOpen(false)} className="rounded-xl font-bold uppercase">Cancelar</Button>
-                <Button onClick={handleSaveChanges} className="rounded-xl font-black uppercase shadow-xl h-12 px-8">
+              <DialogFooter className="p-6 sm:p-10 bg-muted/30 border-t flex-col sm:flex-row gap-3">
+                <Button variant="ghost" onClick={() => setIsSettingsOpen(false)} className="rounded-2xl h-14 px-8 font-bold uppercase order-2 sm:order-1">Cancelar</Button>
+                <Button onClick={handleSaveChanges} className="rounded-2xl font-black uppercase shadow-2xl h-14 px-10 bg-primary text-white order-1 sm:order-2 active:scale-95 transition-all">
                   <Save className="w-4 h-4 mr-2" /> Guardar Todo
                 </Button>
               </DialogFooter>
@@ -509,43 +495,24 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-accent/40 bg-accent/5 rounded-2xl shadow-sm">
-          <CardHeader className="p-4 pb-1">
-            <CardTitle className="text-xs font-black uppercase tracking-widest text-accent flex items-center gap-2">
-              <Music className="w-3 h-3" /> Clase Guitarra
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-3xl font-black text-accent">{guitarCount}</div>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase">Niños apuntados</p>
-          </CardContent>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="border-none bg-accent/10 rounded-[2rem] shadow-sm flex flex-col items-center justify-center p-6 text-center">
+          <Music className="w-6 h-6 text-accent mb-2" />
+          <div className="text-3xl font-black text-accent">{guitarCount}</div>
+          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">Guitarra</p>
         </Card>
-        <Card className="border-primary/20 bg-primary/5 rounded-2xl shadow-sm">
-          <CardHeader className="p-4 pb-1">
-            <CardTitle className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-              <Baby className="w-3 h-3" /> Total Inscritos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-3xl font-black text-primary">{totalChildrenCount}</div>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase">Niños confirmados</p>
-          </CardContent>
+        <Card className="border-none bg-primary/10 rounded-[2rem] shadow-sm flex flex-col items-center justify-center p-6 text-center">
+          <Baby className="w-6 h-6 text-primary mb-2" />
+          <div className="text-3xl font-black text-primary">{totalChildrenCount}</div>
+          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">Total Niños</p>
         </Card>
         {meeting.ageGroups?.slice(0, 2).map((group: any) => {
           const count = allChildren.filter(c => c.ageGroupLabel === group.label).length;
           return (
-            <Card key={group.label} className="border-muted bg-white rounded-2xl shadow-sm">
-              <CardHeader className="p-4 pb-1">
-                <CardTitle className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex justify-between">
-                  {group.label}
-                  <span className="text-[10px] font-black opacity-30">1:{group.ratio || 8}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-3xl font-black">{count}</div>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase">Inscritos</p>
-              </CardContent>
+            <Card key={group.label} className="border-none bg-white rounded-[2rem] shadow-sm flex flex-col items-center justify-center p-6 text-center hidden sm:flex">
+              <Users className="w-6 h-6 text-muted-foreground mb-2 opacity-40" />
+              <div className="text-3xl font-black">{count}</div>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">{group.label}</p>
             </Card>
           );
         })}
@@ -553,73 +520,65 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
       <div className="space-y-6">
         <Accordion type="multiple" defaultValue={["general"]} className="space-y-6">
-          <AccordionItem value="general" className="rounded-3xl shadow-sm border overflow-hidden bg-white px-0">
-            <div className="flex items-center justify-between bg-primary/5 pr-4">
-              <AccordionTrigger className="flex-1 hover:no-underline py-6 px-8 group border-none">
-                <div className="flex items-center gap-4">
-                  <ListFilter className="w-6 h-6 text-primary" />
-                  <h2 className="text-xl font-black uppercase tracking-tighter text-primary">Listado General</h2>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary font-black text-sm px-3">{allChildren.length}</Badge>
-                </div>
+          <AccordionItem value="general" className="rounded-[2.5rem] shadow-xl border-none overflow-hidden bg-white px-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-primary/5 p-4 sm:p-6 sm:pr-8 gap-4">
+              <AccordionTrigger className="hover:no-underline py-0 group border-none justify-start gap-4">
+                <ListFilter className="w-6 h-6 text-primary" />
+                <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-primary">Inscripción General</h2>
+                <Badge className="bg-primary text-white font-black text-base px-3 h-8 rounded-xl shadow-md">{allChildren.length}</Badge>
               </AccordionTrigger>
-              <div className="flex items-center gap-2 z-10 relative shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={(e) => { e.stopPropagation(); shareOnWhatsApp(allChildren, "General"); }}
-                  className="h-10 rounded-xl font-black uppercase text-[11px] bg-white border-green-500/20 text-green-600 hover:bg-green-50"
+                  className="h-12 rounded-2xl font-black uppercase text-[10px] bg-white border-green-500/20 text-green-600 hover:bg-green-50 shadow-sm flex-1"
                 >
-                  <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
+                  <MessageCircle className="w-4 h-4 mr-2" /> <span className="hidden sm:inline">WhatsApp</span><span className="sm:hidden">WhatsApp</span>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={(e) => { e.stopPropagation(); openExportDialog(allChildren, "General"); }}
-                  className="h-10 rounded-xl font-black uppercase text-[11px] bg-white border-primary/20 hover:bg-primary/5"
+                  className="h-12 rounded-2xl font-black uppercase text-[10px] bg-white border-primary/20 hover:bg-primary/5 shadow-sm flex-1"
                 >
-                  <FileDown className="w-4 h-4 mr-2" /> Exportar
+                  <FileDown className="w-4 h-4 mr-2" /> <span className="hidden sm:inline">Exportar</span><span className="sm:hidden">CSV</span>
                 </Button>
               </div>
             </div>
             <AccordionContent className="p-0">
-              <Table>
-                <TableHeader className="bg-muted/5">
-                  <TableRow className="hover:bg-transparent border-none h-14">
-                    <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer" onClick={() => toggleSort('name')}>
-                      <div className="flex items-center">Nombre <SortIcon field="name" /></div>
-                    </TableHead>
-                    <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer" onClick={() => toggleSort('gender')}>
-                      <div className="flex items-center">Sexo <SortIcon field="gender" /></div>
-                    </TableHead>
-                    <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer" onClick={() => toggleSort('familyName')}>
-                      <div className="flex items-center">Familia <SortIcon field="familyName" /></div>
-                    </TableHead>
-                    <TableHead className="font-black uppercase text-xs tracking-widest">Categoría</TableHead>
-                    <TableHead className="font-black uppercase text-xs tracking-widest cursor-pointer" onClick={() => toggleSort('guitarSelected')}>
-                      <div className="flex items-center">Guitarra <SortIcon field="guitarSelected" /></div>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allChildren.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center py-12 italic text-muted-foreground font-bold">Sin registros hasta el momento.</TableCell></TableRow>
-                  ) : (
-                    allChildren.map((child, idx) => (
-                      <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-16">
-                        <TableCell className="font-black text-xl">{child.name}</TableCell>
-                        <TableCell>
-                          <RenderGenderBadge gender={child.gender} />
-                        </TableCell>
-                        <TableCell className="text-base font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs font-black uppercase px-3 py-1 border-primary/20 text-primary bg-primary/5">{child.ageGroupLabel}</Badge></TableCell>
-                        <TableCell>
-                          {child.guitarSelected && <Badge className="bg-accent text-white font-black text-xs px-3 py-1"><Music className="w-3 h-3 mr-1" /> GUITARRA</Badge>}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/10 border-b-2 border-primary/5">
+                    <TableRow className="hover:bg-transparent border-none h-16">
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest cursor-pointer px-8" onClick={() => toggleSort('name')}>
+                        <div className="flex items-center">Nombre <SortIcon field="name" /></div>
+                      </TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-center px-4">Sexo</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest cursor-pointer px-4" onClick={() => toggleSort('familyName')}>
+                        <div className="flex items-center">Familia <SortIcon field="familyName" /></div>
+                      </TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest px-4">Extra</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allChildren.length === 0 ? (
+                      <TableRow><TableCell colSpan={4} className="text-center py-20 italic text-muted-foreground font-bold uppercase tracking-[0.2em] opacity-30">Sin registros</TableCell></TableRow>
+                    ) : (
+                      allChildren.map((child, idx) => (
+                        <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-20">
+                          <TableCell className="font-black text-xl px-8 leading-none">{child.name}</TableCell>
+                          <TableCell className="px-4"><div className="flex justify-center"><RenderGenderBadge gender={child.gender} /></div></TableCell>
+                          <TableCell className="text-sm font-black uppercase text-muted-foreground px-4 leading-tight">{child.familyName}</TableCell>
+                          <TableCell className="px-4">
+                            {child.guitarSelected && <Badge className="bg-accent text-white font-black text-[9px] px-3 py-1 shadow-sm"><Music className="w-3 h-3 mr-1" /> GUITARRA</Badge>}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </AccordionContent>
           </AccordionItem>
 
@@ -628,56 +587,58 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
             const assignedMonitors = allMonitors?.filter(m => group.assignedMonitors?.includes(m.id)) || [];
             
             return (
-              <AccordionItem key={group.label} value={group.label} className="rounded-3xl shadow-sm border overflow-hidden bg-white px-0">
-                <div className="flex items-center justify-between bg-muted/5 pr-4">
-                  <AccordionTrigger className="flex-1 hover:no-underline py-6 px-8 group border-none">
-                    <div className="flex items-center gap-4">
-                      <Baby className="w-6 h-6 text-muted-foreground" />
-                      <h2 className="text-xl font-black uppercase tracking-tighter">Categoría: {group.label}</h2>
-                      <Badge variant="outline" className="font-black text-sm px-3">{childrenInGroup.length}</Badge>
-                      <span className="text-xs font-bold text-muted-foreground uppercase opacity-60">
-                        ({Math.round((group.minMonths / 12) * 10) / 10}-{Math.round((group.maxMonths / 12) * 10) / 10} años)
+              <AccordionItem key={group.label} value={group.label} className="rounded-[2.5rem] shadow-xl border-none overflow-hidden bg-white px-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted/10 p-4 sm:p-6 sm:pr-8 gap-4">
+                  <AccordionTrigger className="hover:no-underline py-0 group border-none justify-start gap-4">
+                    <Baby className="w-6 h-6 text-muted-foreground" />
+                    <div className="flex flex-col items-start">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-xl font-black uppercase tracking-tighter">{group.label}</h2>
+                        <Badge variant="secondary" className="font-black text-sm px-2.5 h-7 rounded-lg">{childrenInGroup.length}</Badge>
+                      </div>
+                      <span className="text-[9px] font-black text-muted-foreground uppercase opacity-60 tracking-[0.2em]">
+                        {Math.round((group.minMonths / 12) * 10) / 10}-{Math.round((group.maxMonths / 12) * 10) / 10} años
                       </span>
                     </div>
                   </AccordionTrigger>
-                  <div className="flex items-center gap-2 z-10 relative shrink-0">
-                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); shareOnWhatsApp(childrenInGroup, group.label); }} className="h-10 rounded-xl font-black uppercase text-[11px] bg-white border-green-500/20 text-green-600 hover:bg-green-50">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); shareOnWhatsApp(childrenInGroup, group.label); }} className="h-12 rounded-2xl font-black uppercase text-[10px] bg-white border-green-500/20 text-green-600 hover:bg-green-50 shadow-sm flex-1">
                       <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
                     </Button>
-                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openExportDialog(childrenInGroup, group.label); }} className="h-10 rounded-xl font-black uppercase text-[11px] bg-white border-primary/20 hover:bg-primary/5">
-                      <FileDown className="w-4 h-4 mr-2" /> Exportar
+                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openExportDialog(childrenInGroup, group.label); }} className="h-12 rounded-2xl font-black uppercase text-[10px] bg-white border-primary/20 hover:bg-primary/5 shadow-sm flex-1">
+                      <FileDown className="w-4 h-4 mr-2" /> CSV
                     </Button>
                   </div>
                 </div>
                 <AccordionContent className="p-0">
-                  <div className="p-6 border-b bg-primary/5 space-y-4">
+                  <div className="p-6 sm:p-8 border-b-2 border-primary/5 bg-primary/5 space-y-5">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-2.5">
                         <Users className="w-4 h-4" /> Monitores Asignados
                       </h4>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-primary hover:bg-primary/10">
-                            <UserPlus className="w-3.5 h-3.5 mr-1.5" /> Asignar Monitor
+                          <Button variant="ghost" size="sm" className="h-9 rounded-xl text-[10px] font-black uppercase text-primary hover:bg-primary/10 bg-white shadow-sm border-none active:scale-95">
+                            <UserPlus className="w-4 h-4 mr-2" /> Asignar
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-64 p-2 rounded-2xl shadow-2xl border-none">
-                          <p className="text-[10px] font-black uppercase text-muted-foreground p-3 border-b mb-1">Disponibles en Agenda</p>
-                          <div className="max-h-60 overflow-y-auto space-y-1 p-1">
+                        <PopoverContent className="w-72 p-2 rounded-[2rem] shadow-2xl border-none">
+                          <p className="text-[10px] font-black uppercase text-muted-foreground p-4 border-b-2 border-muted mb-2 tracking-widest">Disponibles</p>
+                          <div className="max-h-60 overflow-y-auto space-y-1.5 p-2 custom-scrollbar">
                             {availableMonitors.length === 0 ? (
-                              <p className="text-[10px] p-4 text-center italic text-muted-foreground">No hay monitores disponibles.</p>
+                              <p className="text-[10px] p-6 text-center italic text-muted-foreground font-bold uppercase tracking-widest opacity-40">No hay monitores</p>
                             ) : (
                               availableMonitors.map(m => (
                                 <div 
                                   key={m.id} 
                                   className={cn(
-                                    "flex items-center justify-between p-3 rounded-xl cursor-pointer transition-colors",
-                                    group.assignedMonitors?.includes(m.id) ? "bg-primary/10" : "hover:bg-muted"
+                                    "flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all active:scale-95",
+                                    group.assignedMonitors?.includes(m.id) ? "bg-primary text-white shadow-lg" : "hover:bg-primary/5 bg-muted/10 font-bold"
                                   )}
                                   onClick={() => handleAssignMonitor(groupIdx, m.id)}
                                 >
-                                  <span className="text-sm font-bold uppercase">{m.firstName}</span>
-                                  {group.assignedMonitors?.includes(m.id) && <UserCheck className="w-4 h-4 text-primary" />}
+                                  <span className="text-xs font-black uppercase tracking-tight">{m.firstName}</span>
+                                  {group.assignedMonitors?.includes(m.id) && <UserCheck className="w-4 h-4 text-white" />}
                                 </div>
                               ))
                             )}
@@ -685,49 +646,49 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                         </PopoverContent>
                       </Popover>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2.5">
                       {assignedMonitors.length === 0 ? (
-                        <p className="text-xs font-bold text-muted-foreground italic uppercase">Ningún monitor asignado.</p>
+                        <p className="text-[10px] font-black text-muted-foreground italic uppercase tracking-widest opacity-40 py-2">Ningún monitor asignado.</p>
                       ) : (
                         assignedMonitors.map(m => (
-                          <Badge key={m.id} className="bg-white text-primary border-primary/20 font-bold text-xs px-3 py-1.5 flex items-center gap-2 shadow-sm">
-                            <span className="uppercase">{m.firstName}</span>
-                            <Button variant="ghost" size="icon" onClick={() => handleAssignMonitor(groupIdx, m.id)} className="h-4 w-4 p-0 text-muted-foreground hover:text-destructive">
-                              <X className="w-3 h-3" />
+                          <Badge key={m.id} className="bg-white text-primary border-2 border-primary/10 font-black text-[10px] px-4 py-2 flex items-center gap-2.5 shadow-md rounded-2xl">
+                            <span className="uppercase tracking-tight">{m.firstName}</span>
+                            <Button variant="ghost" size="icon" onClick={() => handleAssignMonitor(groupIdx, m.id)} className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive rounded-full active:scale-75">
+                              <X className="w-3.5 h-3.5" />
                             </Button>
                           </Badge>
                         ))
                       )}
                     </div>
                   </div>
-                  <Table>
-                    <TableHeader className="bg-muted/5">
-                      <TableRow className="hover:bg-transparent border-none h-14">
-                        <TableHead className="font-black uppercase text-xs tracking-widest">Nombre</TableHead>
-                        <TableHead className="font-black uppercase text-xs tracking-widest text-center w-20">Sexo</TableHead>
-                        <TableHead className="font-black uppercase text-xs tracking-widest">Familia</TableHead>
-                        <TableHead className="font-black uppercase text-xs tracking-widest">Extra</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {childrenInGroup.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center py-12 italic text-muted-foreground font-bold">Sin niños in esta categoría.</TableCell></TableRow>
-                      ) : (
-                        childrenInGroup.map((child, idx) => (
-                          <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-16">
-                            <TableCell className="font-black text-xl">{child.name}</TableCell>
-                            <TableCell className="flex justify-center">
-                              <RenderGenderBadge gender={child.gender} />
-                            </TableCell>
-                            <TableCell className="text-base font-bold uppercase text-muted-foreground">Familia {child.familyName}</TableCell>
-                            <TableCell>
-                              {child.guitarSelected && <Badge className="bg-accent text-white font-black text-xs px-3 py-1"><Music className="w-3 h-3 mr-1" /> GUITARRA</Badge>}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-muted/10 border-b-2 border-primary/5">
+                        <TableRow className="hover:bg-transparent border-none h-16">
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest px-8">Niño</TableHead>
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest text-center px-4">Sexo</TableHead>
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest px-4">Familia</TableHead>
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest px-8">Extra</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {childrenInGroup.length === 0 ? (
+                          <TableRow><TableCell colSpan={4} className="text-center py-20 italic text-muted-foreground font-bold uppercase tracking-widest opacity-30">Vacío</TableCell></TableRow>
+                        ) : (
+                          childrenInGroup.map((child, idx) => (
+                            <TableRow key={idx} className="hover:bg-primary/5 transition-colors border-none h-20">
+                              <TableCell className="font-black text-xl px-8 leading-none">{child.name}</TableCell>
+                              <TableCell className="px-4 flex justify-center py-6"><RenderGenderBadge gender={child.gender} /></TableCell>
+                              <TableCell className="text-sm font-black uppercase text-muted-foreground px-4 leading-tight">{child.familyName}</TableCell>
+                              <TableCell className="px-8">
+                                {child.guitarSelected && <Badge className="bg-accent text-white font-black text-[9px] px-3 py-1 shadow-sm"><Music className="w-3.5 h-3.5 mr-1.5" /> GUITARRA</Badge>}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             );
@@ -736,28 +697,28 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
       </div>
 
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent className="rounded-[2.5rem] border-none shadow-2xl max-w-md">
-          <DialogHeader className="p-6 pb-2">
-            <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-2">
-              <FileDown className="w-6 h-6" /> Exportar {exportTitle}
+        <DialogContent className="rounded-[3rem] border-none shadow-2xl w-[95vw] max-w-md p-0 overflow-hidden">
+          <DialogHeader className="p-8 sm:p-10 bg-primary/5 border-b">
+            <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-3">
+              <FileDown className="w-7 h-7" /> Exportar Datos
             </DialogTitle>
-            <DialogDescription className="font-bold">Personaliza tu listado antes de descargarlo.</DialogDescription>
+            <DialogDescription className="font-bold text-sm">Listado {exportTitle.toUpperCase()}. Selecciona y ordena las columnas.</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-2 p-6 pt-2">
+          <div className="max-h-[50vh] overflow-y-auto p-6 sm:p-8 space-y-2.5 custom-scrollbar">
             {orderedColumns.map((col, idx) => (
-              <div key={col.id} className={cn("flex items-center gap-3 p-3 rounded-2xl border-2 transition-all", selectedColumns.includes(col.id) ? 'border-primary/20 bg-primary/5' : 'border-transparent bg-muted/5 opacity-60')}>
-                <Checkbox checked={selectedColumns.includes(col.id)} onCheckedChange={() => setSelectedColumns(prev => prev.includes(col.id) ? prev.filter(c => c !== col.id) : [...prev, col.id])} className="w-6 h-6 rounded-lg" />
-                <Label className="text-xs font-black uppercase flex-1">{col.label}</Label>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveColumn(idx, 'up')} disabled={idx === 0}><ArrowUp className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveColumn(idx, 'down')} disabled={idx === orderedColumns.length - 1}><ArrowUp className="w-4 h-4 rotate-180" /></Button>
+              <div key={col.id} className={cn("flex items-center gap-4 p-4 rounded-2xl border-2 transition-all", selectedColumns.includes(col.id) ? 'border-primary/20 bg-primary/5 shadow-sm' : 'border-transparent bg-muted/10 opacity-60')}>
+                <Checkbox checked={selectedColumns.includes(col.id)} onCheckedChange={() => setSelectedColumns(prev => prev.includes(col.id) ? prev.filter(c => c !== col.id) : [...prev, col.id])} className="w-7 h-7 rounded-xl border-2" />
+                <Label className="text-xs font-black uppercase flex-1 tracking-tight">{col.label}</Label>
+                <div className="flex gap-1 bg-white p-1 rounded-xl shadow-inner border border-primary/5">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => moveColumn(idx, 'up')} disabled={idx === 0}><ArrowUp className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => moveColumn(idx, 'down')} disabled={idx === orderedColumns.length - 1}><ArrowUp className="w-4 h-4 rotate-180" /></Button>
                 </div>
               </div>
             ))}
           </div>
-          <DialogFooter className="p-6 bg-muted/5 border-t">
-            <Button variant="ghost" onClick={() => setIsExportDialogOpen(false)} className="rounded-xl font-bold uppercase">Cancelar</Button>
-            <Button onClick={exportToCSV} className="rounded-xl font-black uppercase shadow-lg px-8 h-12" disabled={selectedColumns.length === 0}>
+          <DialogFooter className="p-8 sm:p-10 bg-muted/30 border-t flex-col sm:flex-row gap-3">
+            <Button variant="ghost" onClick={() => setIsExportDialogOpen(false)} className="rounded-2xl h-14 font-bold uppercase order-2 sm:order-1">Cancelar</Button>
+            <Button onClick={exportToCSV} className="rounded-2xl font-black uppercase shadow-2xl px-8 h-14 bg-primary text-white order-1 sm:order-2 active:scale-95 transition-all" disabled={selectedColumns.length === 0}>
               <Download className="w-4 h-4 mr-2" /> Descargar CSV
             </Button>
           </DialogFooter>
