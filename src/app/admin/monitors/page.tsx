@@ -8,6 +8,7 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlo
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -21,7 +22,8 @@ import {
   UserMinus, 
   UserPlus,
   Edit2,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -58,6 +60,7 @@ export default function MonitorsAgenda() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [details, setDetails] = useState('');
 
   const monitorsQuery = useMemoFirebase(() => query(collection(db, 'monitors'), orderBy('firstName', 'asc')), [db]);
   const { data: monitors, isLoading } = useCollection(monitorsQuery);
@@ -75,6 +78,7 @@ export default function MonitorsAgenda() {
       firstName,
       lastName: lastName || null,
       phone: phone || null,
+      details: details || null,
       isAvailable: true,
       createdAt: Timestamp.now(),
     });
@@ -92,6 +96,7 @@ export default function MonitorsAgenda() {
       firstName,
       lastName: lastName || null,
       phone: phone || null,
+      details: details || null,
     });
 
     resetForm();
@@ -103,6 +108,7 @@ export default function MonitorsAgenda() {
     setFirstName('');
     setLastName('');
     setPhone('');
+    setDetails('');
     setEditingMonitor(null);
   };
 
@@ -111,6 +117,7 @@ export default function MonitorsAgenda() {
     setFirstName(monitor.firstName);
     setLastName(monitor.lastName || '');
     setPhone(monitor.phone || '');
+    setDetails(monitor.details || '');
     setIsEditDialogOpen(true);
   };
 
@@ -165,6 +172,10 @@ export default function MonitorsAgenda() {
                   <Label className="text-xs font-black uppercase text-muted-foreground">Teléfono de Contacto</Label>
                   <Input value={phone} onChange={e => setPhone(e.target.value)} type="tel" className="h-12 rounded-xl font-bold border-2" />
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase text-muted-foreground">Detalles / Notas</Label>
+                  <Textarea value={details} onChange={e => setDetails(e.target.value)} placeholder="Preferencias, alergias o notas adicionales..." className="rounded-xl border-2 font-medium" />
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setIsAddDialogOpen(false)} className="rounded-xl font-bold uppercase">Cancelar</Button>
@@ -195,7 +206,7 @@ export default function MonitorsAgenda() {
           </div>
         ) : (
           filteredMonitors.map((monitor) => (
-            <Card key={monitor.id} className={`rounded-[2rem] border-2 transition-all shadow-md overflow-hidden ${monitor.isAvailable ? 'border-primary/10 bg-white' : 'border-muted bg-muted/5 opacity-80'}`}>
+            <Card key={monitor.id} className={`rounded-[2rem] border-2 transition-all shadow-md overflow-hidden flex flex-col ${monitor.isAvailable ? 'border-primary/10 bg-white' : 'border-muted bg-muted/5 opacity-80'}`}>
               <CardHeader className="p-6 pb-2">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
@@ -230,19 +241,28 @@ export default function MonitorsAgenda() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-6 pt-2 space-y-6">
+              <CardContent className="p-6 pt-2 space-y-4 flex-1 flex flex-col">
                 {monitor.phone ? (
-                  <div className="flex items-center gap-3 bg-muted/20 p-3 rounded-xl">
+                  <div className="flex items-center gap-3 bg-muted/20 p-3 rounded-xl shrink-0">
                     <Phone className="w-4 h-4 text-primary" />
                     <span className="font-mono font-bold text-lg tracking-wider">{monitor.phone}</span>
                   </div>
                 ) : (
-                  <div className="h-[52px] flex items-center justify-center border-2 border-dashed rounded-xl border-muted/30">
+                  <div className="h-[52px] flex items-center justify-center border-2 border-dashed rounded-xl border-muted/30 shrink-0">
                     <p className="text-[10px] font-black uppercase text-muted-foreground/40">Sin teléfono</p>
                   </div>
                 )}
+
+                {monitor.details && (
+                  <div className="flex gap-2 p-3 bg-primary/5 rounded-xl border border-primary/10 flex-1 min-h-[60px]">
+                    <FileText className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <p className="text-[11px] font-medium leading-relaxed italic text-muted-foreground">
+                      {monitor.details}
+                    </p>
+                  </div>
+                )}
                 
-                <div className="flex items-center justify-center gap-4 pt-4 border-t w-full">
+                <div className="flex items-center justify-center gap-4 pt-4 border-t w-full mt-auto">
                   <span className={cn(
                     "text-[10px] font-black uppercase transition-colors",
                     !monitor.isAvailable ? "text-destructive" : "text-muted-foreground/40"
@@ -288,6 +308,10 @@ export default function MonitorsAgenda() {
               <div className="space-y-2">
                 <Label className="text-xs font-black uppercase text-muted-foreground">Teléfono de Contacto</Label>
                 <Input value={phone} onChange={e => setPhone(e.target.value)} type="tel" className="h-12 rounded-xl font-bold border-2" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase text-muted-foreground">Detalles / Notas</Label>
+                <Textarea value={details} onChange={e => setDetails(e.target.value)} placeholder="Preferencias, alergias o notas adicionales..." className="rounded-xl border-2 font-medium" />
               </div>
             </div>
             <DialogFooter>

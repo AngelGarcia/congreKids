@@ -52,6 +52,7 @@
         "firstName": { "type": "string" },
         "lastName": { "type": "string" },
         "phone": { "type": "string" },
+        "details": { "type": "string", "description": "Preferencias o notas adicionales del monitor." },
         "isAvailable": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
