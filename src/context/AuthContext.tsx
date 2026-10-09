@@ -67,6 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [familyMembers, setFamilyMembers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Configurar persistencia una sola vez al inicio
+  useEffect(() => {
+    setPersistence(auth, browserLocalPersistence).catch(console.error);
+  }, [auth]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -161,27 +166,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async () => {
     try {
       setLoading(true);
-      // Forzamos persistencia local para evitar problemas con sessionStorage en navegadores con ITP (Safari/Brave)
-      await setPersistence(auth, browserLocalPersistence);
       const provider = new GoogleAuthProvider();
-      // Configuramos parámetros para intentar reducir bloqueos de popups
       provider.setCustomParameters({ prompt: 'select_account' });
       
       await signInWithPopup(auth, provider);
     } catch (error: any) {
+      // TRUCO PARA IPHONE: Si es el error de "missing initial state", a menudo la sesión SÍ se ha creado
+      // pero Safari ha bloqueado la respuesta de la promesa. Esperamos 2 segundos.
+      if (error.message?.includes('missing initial state') || error.code === 'auth/internal-error') {
+        console.warn("Detectado posible bloqueo de Safari. Verificando sesión en segundo plano...");
+        setTimeout(() => {
+          if (auth.currentUser) {
+            // Si el usuario ya está aquí, ignoramos el error y dejamos que onAuthStateChanged haga su magia
+            return;
+          } else {
+            setLoading(false);
+            toast({ 
+              variant: "default", 
+              title: "Aviso de Privacidad", 
+              description: "Tu navegador (Safari/iPhone) está protegiendo tus datos. Si no entras automáticamente, intenta usar el acceso por Email abajo." 
+            });
+          }
+        }, 2000);
+        return;
+      }
+
       setLoading(false);
       console.error("Auth Error:", error);
       
-      let message = "No se pudo iniciar sesión con Google.";
+      let message = "No se pudo iniciar sesión.";
       if (error.code === 'auth/popup-blocked') {
         message = "El navegador bloqueó la ventana emergente. Por favor, permítela e inténtalo de nuevo.";
-      } else if (error.code === 'auth/web-storage-unsupported' || error.message?.includes('missing initial state')) {
-        message = "Tu navegador está bloqueando las cookies necesarias. Intenta desactivar el 'Bloqueo de rastreo' o usa otro navegador.";
       }
       
       toast({ 
         variant: "destructive", 
-        title: "Error de Autenticación", 
+        title: "Error de Acceso", 
         description: message 
       });
     }
@@ -190,7 +210,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithEmail = async (email: string, password: string) => {
     try {
       setLoading(true);
-      await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
       setLoading(false);
@@ -204,7 +223,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUpWithEmail = async (email: string, password: string, displayName: string) => {
     try {
       setLoading(true);
-      await setPersistence(auth, browserLocalPersistence);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName });
     } catch (error: any) {
@@ -311,8 +329,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         try {
-          // CRITICAL: Primero guardamos el usuario con su familyId para que la regla de seguridad
-          // de Firestore 'isFamilyMember(familyId)' se cumpla al intentar actualizar el documento de la familia.
           await setDoc(doc(db, 'users', user.uid), newUser);
           await updateDoc(familyRef, { members: arrayUnion(user.uid) });
           toast({ title: "¡Perfil unido!", description: "Ahora compartes perfiles con tu familia." });

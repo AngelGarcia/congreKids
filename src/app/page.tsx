@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, ArrowRight, UserPlus, Loader2, Music, CheckCircle2, Lock, LogOut, ChevronLeft, Mail, Key, User as UserIcon } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, ArrowRight, UserPlus, Loader2, Music, CheckCircle2, Lock, LogOut, ChevronLeft, Mail, Key, User as UserIcon, ShieldAlert } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -235,20 +236,27 @@ export default function ParentDashboard() {
     }));
   };
 
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center font-black text-primary text-2xl uppercase tracking-tighter">CongreKids...</div>;
+  if (authLoading) return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 space-y-4">
+      <div className="w-16 h-16 rounded-[1.5rem] bg-primary/10 flex items-center justify-center text-primary animate-pulse shadow-inner">
+        <Baby className="w-8 h-8" />
+      </div>
+      <div className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60">Cargando CongreKids...</div>
+    </div>
+  );
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center sm:p-6">
-        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary mb-6 sm:mb-8 shadow-inner animate-in fade-in zoom-in duration-700">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center sm:p-6 overflow-hidden">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary mb-6 sm:mb-8 shadow-inner animate-in fade-in zoom-in duration-1000">
           <Baby className="w-10 h-10 sm:w-12 sm:h-12" />
         </div>
-        <h1 className="text-4xl sm:text-5xl font-black text-primary tracking-tighter mb-2 sm:mb-4 uppercase">CongreKids</h1>
-        <p className="text-base sm:text-xl text-muted-foreground max-w-[280px] sm:max-w-sm mb-10 sm:mb-12 font-medium leading-tight">
+        <h1 className="text-4xl sm:text-5xl font-black text-primary tracking-tighter mb-2 sm:mb-4 uppercase drop-shadow-sm">CongreKids</h1>
+        <p className="text-base sm:text-xl text-muted-foreground max-w-[280px] sm:max-w-sm mb-10 sm:mb-12 font-medium leading-tight opacity-80">
           Cuidado infantil inteligente para nuestra congregación.
         </p>
         
-        <Card className="w-full max-w-sm rounded-[2.5rem] shadow-2xl border-none overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-500">
+        <Card className="w-full max-w-sm rounded-[2.5rem] shadow-2xl border-none overflow-hidden animate-in fade-in slide-in-from-bottom-12 duration-700">
           <CardHeader className="bg-primary/5 p-6 sm:p-8 pb-2 sm:pb-4 text-left">
             <CardTitle className="text-xl font-black uppercase tracking-tighter">Acceso Familiar</CardTitle>
             <CardDescription className="font-bold">Elige cómo quieres entrar.</CardDescription>
@@ -256,7 +264,7 @@ export default function ParentDashboard() {
           <CardContent className="p-6 sm:p-8 space-y-4 sm:space-y-6">
             {authMode === 'options' ? (
               <div className="space-y-4">
-                <Button size="lg" onClick={login} className="w-full h-14 sm:h-16 text-base sm:text-lg rounded-2xl shadow-lg font-black bg-white text-primary border-2 border-primary/20 hover:bg-primary/5 transition-all">
+                <Button size="lg" onClick={login} className="w-full h-14 sm:h-16 text-base sm:text-lg rounded-2xl shadow-lg font-black bg-white text-primary border-2 border-primary/20 hover:bg-primary/5 transition-all active:scale-[0.97]">
                   <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-3" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                     <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -267,21 +275,30 @@ export default function ParentDashboard() {
                 </Button>
                 
                 <div className="relative py-2">
-                  <div className="absolute inset-0 flex items-center"><Separator className="w-full" /></div>
+                  <div className="absolute inset-0 flex items-center"><Separator className="w-full opacity-50" /></div>
                   <div className="relative flex justify-center text-[9px] uppercase font-black"><span className="bg-white px-3 text-muted-foreground tracking-[0.2em]">o utiliza tu email</span></div>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <Button variant="outline" onClick={() => setAuthMode('email-login')} className="h-12 sm:h-14 rounded-xl font-black uppercase tracking-widest text-[10px] sm:text-xs border-2">
+                  <Button variant="outline" onClick={() => setAuthMode('email-login')} className="h-12 sm:h-14 rounded-xl font-black uppercase tracking-widest text-[10px] sm:text-xs border-2 active:scale-[0.97]">
                     <Mail className="w-4 h-4 mr-2" /> Iniciar Sesión
                   </Button>
                   <Button variant="ghost" onClick={() => setAuthMode('email-register')} className="h-10 rounded-xl font-black uppercase tracking-widest text-[9px] text-muted-foreground hover:text-primary">
                     <UserPlus className="w-3.5 h-3.5 mr-2" /> Crear cuenta
                   </Button>
                 </div>
+
+                <div className="pt-2 px-2">
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-2.5">
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-[9px] text-left text-amber-800 font-bold uppercase leading-relaxed">
+                      ¿Usas iPhone? Si Google te da problemas, utiliza el acceso por Email para una conexión 100% fiable.
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : (
-              <form onSubmit={handleEmailSubmit} className="space-y-4 animate-in slide-in-from-right-4 duration-300">
+              <form onSubmit={handleEmailSubmit} className="space-y-4 animate-in slide-in-from-right-8 duration-500">
                 {authMode === 'email-register' && (
                   <div className="space-y-1.5 text-left">
                     <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nombre Completo</Label>
@@ -326,12 +343,12 @@ export default function ParentDashboard() {
                   </div>
                 </div>
                 
-                <Button type="submit" className="w-full h-14 rounded-xl font-black uppercase tracking-tighter text-lg shadow-lg mt-4">
+                <Button type="submit" className="w-full h-14 rounded-xl font-black uppercase tracking-tighter text-lg shadow-lg mt-4 active:scale-[0.97]">
                   {authMode === 'email-login' ? 'Entrar' : 'Registrarme'}
                 </Button>
                 
                 <Button variant="ghost" onClick={() => setAuthMode('options')} className="w-full h-10 rounded-xl font-black uppercase tracking-widest text-[9px] text-muted-foreground">
-                  <ChevronLeft className="w-3 h-3 mr-1" /> Volver
+                  <ChevronLeft className="w-3 h-3 mr-1" /> Volver a opciones
                 </Button>
               </form>
             )}
@@ -346,7 +363,7 @@ export default function ParentDashboard() {
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         <div className="flex-1 p-4 sm:p-6 flex flex-col items-center justify-center">
-          <Card className="w-full max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden">
+          <Card className="w-full max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 duration-700">
             <CardHeader className="text-center space-y-2 bg-primary/5 p-8 sm:p-10 pb-6 sm:pb-8">
               <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-sm border">
                 <Users className="w-8 h-8" />
@@ -364,7 +381,7 @@ export default function ParentDashboard() {
                       <Label
                         htmlFor="padre"
                         className={cn(
-                          "flex flex-col items-center justify-center h-24 sm:h-28 rounded-3xl border-2 transition-all cursor-pointer font-black text-lg uppercase",
+                          "flex flex-col items-center justify-center h-24 sm:h-28 rounded-3xl border-2 transition-all cursor-pointer font-black text-lg uppercase active:scale-[0.95]",
                           selectedRole === 'padre' ? "border-primary bg-primary/5 ring-4 ring-primary/5" : "border-muted bg-popover hover:bg-accent"
                         )}
                       >
@@ -376,7 +393,7 @@ export default function ParentDashboard() {
                       <Label
                         htmlFor="madre"
                         className={cn(
-                          "flex flex-col items-center justify-center h-24 sm:h-28 rounded-3xl border-2 transition-all cursor-pointer font-black text-lg uppercase",
+                          "flex flex-col items-center justify-center h-24 sm:h-28 rounded-3xl border-2 transition-all cursor-pointer font-black text-lg uppercase active:scale-[0.95]",
                           selectedRole === 'madre' ? "border-primary bg-primary/5 ring-4 ring-primary/5" : "border-muted bg-popover hover:bg-accent"
                         )}
                       >
@@ -384,7 +401,7 @@ export default function ParentDashboard() {
                       </Label>
                     </div>
                   </RadioGroup>
-                  <Button onClick={() => setStep('search')} className="w-full h-16 rounded-2xl font-black text-xl shadow-xl uppercase tracking-tighter">Continuar</Button>
+                  <Button onClick={() => setStep('search')} className="w-full h-16 rounded-2xl font-black text-xl shadow-xl uppercase tracking-tighter active:scale-[0.98]">Continuar</Button>
                 </div>
               )}
               {step === 'search' && (
@@ -402,7 +419,7 @@ export default function ParentDashboard() {
                       />
                     </div>
                     <div className="flex flex-col gap-3">
-                      <Button type="submit" disabled={isSearching} className="h-16 rounded-2xl font-black text-xl shadow-xl uppercase tracking-tighter">
+                      <Button type="submit" disabled={isSearching} className="h-16 rounded-2xl font-black text-xl shadow-xl uppercase tracking-tighter active:scale-[0.98]">
                         {isSearching ? <Loader2 className="animate-spin w-6 h-6" /> : 'Buscar Familia'}
                       </Button>
                       <Button variant="ghost" onClick={() => setStep('role')} className="h-10 rounded-xl font-black uppercase text-[10px] text-muted-foreground">
@@ -430,18 +447,18 @@ export default function ParentDashboard() {
                                     </div>
                                   ))}
                                 </div>
-                                <Button size="sm" onClick={() => joinFamily(fam.id, selectedRole)} className="rounded-xl h-10 px-6 font-black uppercase text-[10px] shadow-md">UNIRME</Button>
+                                <Button size="sm" onClick={() => joinFamily(fam.id, selectedRole)} className="rounded-xl h-10 px-6 font-black uppercase text-[10px] shadow-md active:scale-[0.95]">UNIRME</Button>
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
                       <div className="relative py-2">
-                        <div className="absolute inset-0 flex items-center"><Separator className="w-full border-dashed" /></div>
+                        <div className="absolute inset-0 flex items-center"><Separator className="w-full border-dashed opacity-50" /></div>
                         <div className="relative flex justify-center text-[8px] uppercase font-black"><span className="bg-white px-3 text-muted-foreground">o tal vez</span></div>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Button variant="outline" onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-14 sm:h-16 rounded-2xl font-black text-[11px] sm:text-xs uppercase border-2 border-primary text-primary hover:bg-primary/5 shadow-sm">
+                        <Button variant="outline" onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-14 sm:h-16 rounded-2xl font-black text-[11px] sm:text-xs uppercase border-2 border-primary text-primary hover:bg-primary/5 shadow-sm active:scale-[0.98]">
                           CREAR FAMILIA {familySurnames.toUpperCase()}
                         </Button>
                         <Button variant="ghost" onClick={() => setStep('search')} className="h-10 rounded-xl font-black uppercase text-[9px] text-muted-foreground">
@@ -454,7 +471,7 @@ export default function ParentDashboard() {
                       <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-primary">Familia {familySurnames}</h3>
                       <p className="text-sm sm:text-base font-bold text-muted-foreground leading-snug">No hemos encontrado ninguna familia con estos apellidos. ¿Quieres crearla ahora?</p>
                       <div className="flex flex-col gap-3">
-                        <Button onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-16 sm:h-20 rounded-3xl font-black text-lg sm:text-xl shadow-2xl uppercase tracking-tighter">
+                        <Button onClick={() => createFamily(familySurnames, selectedRole)} className="w-full h-16 sm:h-20 rounded-3xl font-black text-lg sm:text-xl shadow-2xl uppercase tracking-tighter active:scale-[0.98]">
                           CREAR ESTA FAMILIA
                         </Button>
                         <Button variant="ghost" onClick={() => setStep('search')} className="h-12 rounded-xl font-black uppercase text-[10px] text-muted-foreground">
@@ -491,14 +508,14 @@ export default function ParentDashboard() {
     <div className="min-h-screen bg-background pb-16">
       <Navbar />
       <main className="container mx-auto px-4 py-8 sm:py-12 space-y-8 sm:space-y-12 max-w-4xl">
-        <div className="text-center space-y-1 sm:space-y-2">
+        <div className="text-center space-y-1 sm:space-y-2 animate-in fade-in duration-1000">
           <h1 className="text-4xl sm:text-5xl font-black tracking-tighter uppercase text-primary drop-shadow-sm leading-none">
             {familyData?.name || '...'}
           </h1>
           <p className="text-[9px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em]">Unidad Familiar</p>
         </div>
 
-        <section className="space-y-6">
+        <section className="space-y-6 animate-in slide-in-from-bottom-8 duration-700 delay-200">
           <div className="flex flex-col items-center gap-1.5">
             <h2 className="text-lg sm:text-xl font-black uppercase tracking-tighter flex items-center gap-2.5">
               <CalendarIcon className="text-primary w-5 h-5 sm:w-6 sm:h-6" /> Próxima Reunión
@@ -534,7 +551,7 @@ export default function ParentDashboard() {
                       {(!sortedChildren || sortedChildren.length === 0) ? (
                         <div className="py-10 text-center space-y-6 bg-muted/10 rounded-3xl border-2 border-dashed border-muted">
                           <p className="text-muted-foreground font-bold italic text-sm px-4">Primero añade a tus hijos en el perfil familiar.</p>
-                          <Button asChild variant="outline" className="h-12 rounded-xl font-black uppercase text-xs border-primary text-primary">
+                          <Button asChild variant="outline" className="h-12 rounded-xl font-black uppercase text-xs border-primary text-primary active:scale-[0.98]">
                             <Link href="/family">Configurar Familia</Link>
                           </Button>
                         </div>
@@ -546,7 +563,7 @@ export default function ParentDashboard() {
                           const allowsGuitar = currentGroup?.allowsGuitar;
 
                           return (
-                            <div key={child.id} className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                            <div key={child.id} className="space-y-2 animate-in fade-in slide-in-from-left-4 duration-300">
                               <div 
                                 className={cn(
                                   "flex items-center space-x-4 p-4 sm:p-5 rounded-[1.5rem] border-2 transition-all cursor-pointer active:scale-[0.98]",
@@ -666,7 +683,7 @@ export default function ParentDashboard() {
           )}
         </section>
 
-        <section className="pt-4">
+        <section className="pt-4 animate-in slide-in-from-bottom-8 duration-700 delay-500">
           <Card className="rounded-[2rem] border-2 bg-white border-primary/5 hover:border-primary/20 transition-all group overflow-hidden shadow-xl active:scale-[0.98]">
             <Link href="/family" className="p-6 sm:p-8 flex items-center justify-between">
               <div className="flex items-center gap-4 sm:gap-6">
