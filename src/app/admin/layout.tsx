@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useAuth } from '@/context/AuthContext';
@@ -16,7 +15,7 @@ import {
   SidebarTrigger,
   SidebarFooter
 } from '@/components/ui/sidebar';
-import { Calendar, PlusCircle, Users, LayoutDashboard, ChevronLeft, LogOut, ShieldCheck, Home, Contact } from 'lucide-react';
+import { Calendar, PlusCircle, Users, LayoutDashboard, ChevronLeft, LogOut, ShieldCheck, Home, Contact, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 
@@ -95,6 +94,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <Separator className="my-2 bg-sidebar-border/50" />
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="text-white/70">
+                  <Link href="/help">
+                    <HelpCircle className="w-4 h-4" />
+                    <span>Ayuda Admin</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4">
@@ -113,7 +121,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               Volver a vista familiar
             </Link>
           </header>
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
             {children}
           </div>
         </SidebarInset>

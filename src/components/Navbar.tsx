@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -13,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, LayoutDashboard, User, Home, ShieldCheck } from 'lucide-react';
+import { LogOut, LayoutDashboard, User, Home, ShieldCheck, HelpCircle } from 'lucide-react';
 
 export default function Navbar() {
   const { user, userData, logout } = useAuth();
@@ -31,12 +30,12 @@ export default function Navbar() {
         {user ? (
           <div className="flex items-center gap-3">
             {userData?.isAdmin && (
-              <Link href="/admin" className="hidden sm:flex items-center text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors mr-2">
+              <Link href="/admin" className="hidden sm:flex items-center text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors mr-2 bg-primary/5 px-3 py-2 rounded-xl">
                 <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Admin
               </Link>
             )}
-            <Link href="/family" className="hidden sm:flex items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors mr-2">
-              Mi Familia
+            <Link href="/help" className="flex items-center text-muted-foreground hover:text-primary transition-colors p-2" title="Ayuda">
+              <HelpCircle className="w-5 h-5" />
             </Link>
             
             <DropdownMenu>
@@ -63,13 +62,19 @@ export default function Navbar() {
                   </Link>
                 </DropdownMenuItem>
                 {userData?.isAdmin && (
-                  <DropdownMenuItem asChild className="rounded-xl h-12">
+                  <DropdownMenuItem asChild className="rounded-xl h-12 bg-primary/5 text-primary">
                     <Link href="/admin">
                       <LayoutDashboard className="mr-3 h-5 w-5" />
                       <span className="font-bold">Panel Admin</span>
                     </Link>
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem asChild className="rounded-xl h-12">
+                  <Link href="/help">
+                    <HelpCircle className="mr-3 h-5 w-5" />
+                    <span className="font-bold">Cómo funciona</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => logout()} className="rounded-xl h-12 text-destructive focus:text-destructive">
                   <LogOut className="mr-3 h-5 w-5" />

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, ArrowRight, UserPlus, Loader2, Music, CheckCircle2, Lock, LogOut, ChevronLeft, Mail, Key, User as UserIcon, ShieldAlert } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, AlertCircle, Baby, Users, ArrowRight, UserPlus, Loader2, Music, CheckCircle2, Lock, LogOut, ChevronLeft, Mail, Key, User as UserIcon, ShieldAlert, HelpCircle, ShieldCheck } from 'lucide-react';
 import { collection, query, where, orderBy, limit, doc, Timestamp, getDocs } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -508,6 +507,26 @@ export default function ParentDashboard() {
     <div className="min-h-screen bg-background pb-16">
       <Navbar />
       <main className="container mx-auto px-4 py-8 sm:py-12 space-y-8 sm:space-y-12 max-w-4xl">
+        
+        {userData?.isAdmin && (
+          <div className="animate-in slide-in-from-top-4 duration-700">
+            <Link href="/admin">
+              <div className="bg-primary p-5 rounded-[2rem] shadow-xl flex items-center justify-between text-white group active:scale-[0.98] transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-black uppercase tracking-tighter text-lg leading-none">Panel de Administración</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mt-1">Gestionar reuniones y monitores</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
+          </div>
+        )}
+
         <div className="text-center space-y-1 sm:space-y-2 animate-in fade-in duration-1000">
           <h1 className="text-4xl sm:text-5xl font-black tracking-tighter uppercase text-primary drop-shadow-sm leading-none">
             {familyData?.name || '...'}
@@ -683,7 +702,7 @@ export default function ParentDashboard() {
           )}
         </section>
 
-        <section className="pt-4 animate-in slide-in-from-bottom-8 duration-700 delay-500">
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in slide-in-from-bottom-8 duration-700 delay-500">
           <Card className="rounded-[2rem] border-2 bg-white border-primary/5 hover:border-primary/20 transition-all group overflow-hidden shadow-xl active:scale-[0.98]">
             <Link href="/family" className="p-6 sm:p-8 flex items-center justify-between">
               <div className="flex items-center gap-4 sm:gap-6">
@@ -693,6 +712,21 @@ export default function ParentDashboard() {
                 <div>
                   <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight leading-none mb-1">Mi Familia</h3>
                   <p className="text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-widest">{children?.length || 0} hijos registrados</p>
+                </div>
+              </div>
+              <ArrowRight className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-2" />
+            </Link>
+          </Card>
+
+          <Card className="rounded-[2rem] border-2 bg-white border-muted hover:border-primary/20 transition-all group overflow-hidden shadow-xl active:scale-[0.98]">
+            <Link href="/help" className="p-6 sm:p-8 flex items-center justify-between">
+              <div className="flex items-center gap-4 sm:gap-6">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-muted rounded-2xl flex items-center justify-center text-muted-foreground group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
+                  <HelpCircle className="w-7 h-7 sm:w-8 sm:h-8" />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight leading-none mb-1">Ayuda</h3>
+                  <p className="text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-widest">Guía de funcionamiento</p>
                 </div>
               </div>
               <ArrowRight className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-2" />
